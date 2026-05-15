@@ -56,7 +56,6 @@ DRAFT. Опирается на CSS-переменные темы Telegram (`var(
 pnpm dev              # Next.js dev-сервер (frontend + API)
 pnpm build            # production-сборка
 pnpm typecheck        # tsc --noEmit
-pnpm lint             # eslint
 pnpm test             # vitest
 
 supabase start                     # локальный Postgres + Storage
@@ -71,7 +70,7 @@ vercel --prod         # деплой prod
 
 1. **Plan.** Для задач, трогающих > 1 файла. Читай `docs/features/<эпик>.md` и соответствующий файл итерации в `docs/roadmap/`. Предложи план одним заходом (какие файлы, какие изменения, без кода). Пользователь говорит «ок» или «поправь Х» — итерируем максимум 1 раз, потом сразу Implement.
 2. **Implement.** Реализуй по плану. На неоднозначности — спрашивай, не угадывай.
-3. **Build check.** После реализации запусти `pnpm typecheck && pnpm build`. **Не** делай скриншоты, **не** проводи smoke-тесты — это делает пользователь. Экономим токены.
+3. **Build check.** После реализации запусти `pnpm typecheck && pnpm build`. **Не** делай скриншоты, **не** проводи smoke-тесты — это делает пользователь. Экономим токены. Линтеров на PoC нет — TS-strict + build достаточно.
 4. **Review.** Запусти `code-reviewer` (всегда) и `design-reviewer` (если трогал UI). Только когда пользователь подтвердил, что фича работает.
 5. **Docs.** Обнови соответствующий файл итерации в `docs/roadmap/v0.X.md` (отметь `- [x]`), `docs/features/<эпик>.md`, `docs/ROADMAP.md` через скилл `update-docs`.
 

@@ -14,7 +14,6 @@
 | Bot                | grammy в `/api/bot/route.ts`              | Webhook от Telegram: команды, callback-кнопки голосования, пуши     |
 | Auth               | Telegram `initData` (HMAC на сервере)     | Каждый `/api/*` запрос несёт `initData`; никаких JWT/cookies/сессий |
 | Hosting            | Vercel (временно)                         | Next.js + Vercel Cron                                               |
-| Monitoring         | Sentry (только фронт Mini App)            | Ошибки UI; ошибки API → логи Vercel                                 |
 
 
 ## Что такое бот в нашем контексте
