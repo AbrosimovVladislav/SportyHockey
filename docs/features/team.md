@@ -6,11 +6,12 @@
 ## Фичи
 
 ### v0.1
-- **Profile-экран команды.** Название и лого команды (read-only на PoC, редактирование — v0.2).
-- **Список игроков (Squad).** Все члены из `team_memberships`. Аватарка + имя + роль.
-- **Invite-ссылка для игроков.** Кнопка «Скопировать ссылку», формат `t.me/sporty_hockey_bot?startapp=team_<uuid>`. Игрок жмёт → бот добавляет в команду → пишет приветствие в личке.
+- **Profile-экран.** Карточка user (avatar, имя, @username, chip роли) + карточка команды (название). Лого не показываем — вернёмся в v0.2.
+- **Список игроков `/squad`.** Все члены из `team_memberships` через `GET /api/teams/me/members`. Аватарка + имя + @username + chip роли.
+- **Invite-ссылка для игроков.** Кнопка «Скопировать ссылку приглашения» на `/profile` — видна только organizer'у. Формат `https://t.me/<BOT_USERNAME>?start=team_<uuid>`. Игрок жмёт → бот обрабатывает deeplink → создаёт `team_membership(role=player)` → отвечает приветствием с inline-кнопкой «Открыть Mini App».
 
 ### v0.2
+- Лого команды (загрузка в Supabase Storage)
 - Редактирование профиля команды (название, лого)
 - Промоут игрока до организатора (только организатор → организатор)
 - Удаление игрока из команды (kick)
@@ -21,8 +22,10 @@
 - Coach-роль, тренерская часть
 
 ## Связанные файлы
-- [TODO] заполнится по мере реализации
-- `src/screens/profile/`
-- `src/screens/squad/`
-- `src/api/team.ts`, `src/api/membership.ts`
-- `supabase/functions/bot/scenes/invite.ts`
+- `src/app/(tabs)/profile/page.tsx`
+- `src/app/(tabs)/squad/page.tsx`
+- `src/app/api/me/route.ts`
+- `src/app/api/teams/route.ts`
+- `src/app/api/teams/me/members/route.ts`
+- `src/lib/team-link.ts` — построение invite-ссылки
+- `src/lib/bot.ts` — handler deeplink

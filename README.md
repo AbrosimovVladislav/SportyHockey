@@ -45,6 +45,8 @@ pnpm dev
 | `SUPABASE_SERVICE_ROLE_KEY` | service-role ключ (мимо RLS) — только в `lib/supabase-server.ts` |
 | `BOT_TOKEN` | токен бота из @BotFather |
 | `BOT_WEBHOOK_SECRET` | random hex (32+ байт), проверяется в `/api/bot` через заголовок `X-Telegram-Bot-Api-Secret-Token` |
+| `BOT_USERNAME` | username бота без `@` (например, `sporty_hockey_bot`) — нужен для invite-ссылок `t.me/<bot>?start=team_<uuid>` |
+| `MINI_APP_URL` | публичный URL Mini App (например, `https://sporty-hockey.vercel.app`) — нужен боту для inline-кнопки «Открыть Mini App» |
 
 ## Деплой
 

@@ -56,7 +56,9 @@ SportyHockey/
 │   │   ├── onboarding/page.tsx           # без TabBar
 │   │   ├── api/
 │   │   │   ├── bot/route.ts              # Telegram webhook (grammy)
-│   │   │   ├── teams/route.ts
+│   │   │   ├── me/route.ts               # GET — user + memberships + invite_link
+│   │   │   ├── teams/route.ts            # POST — создать команду + organizer-membership
+│   │   │   ├── teams/me/members/route.ts # GET — список членов команды текущего user
 │   │   │   ├── events/route.ts
 │   │   │   ├── events/[id]/route.ts
 │   │   │   ├── attendance/route.ts
@@ -72,7 +74,8 @@ SportyHockey/
 │   │   ├── supabase-server.ts            # service-role клиент (server-only)
 │   │   ├── telegram-verify.ts            # HMAC validate initData
 │   │   ├── auth.ts                       # requireUser(request) → AuthedUser
-│   │   ├── bot.ts                        # ленивый grammy Bot + handlers
+│   │   ├── bot.ts                        # ленивый grammy Bot + handlers (deeplink /start team_<uuid>)
+│   │   ├── team-link.ts                  # buildInviteLink(teamId) → t.me/<bot>?start=team_<uuid>
 │   │   └── api-client.ts                 # типизированный fetch с Authorization header
 │   ├── store/                            # Zustand-сторы
 │   ├── theme/                            # colors / spacing / typography / radius

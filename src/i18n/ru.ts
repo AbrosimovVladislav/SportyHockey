@@ -12,7 +12,29 @@ export const ru = {
   'squad.title': 'Состав команды',
   'money.title': 'Деньги',
   'profile.title': 'Профиль',
-  'onboarding.title': 'Добро пожаловать',
+
+  // Onboarding
+  'onboarding.welcome.title': 'Привет!',
+  'onboarding.welcome.subtitle': 'Кто ты в команде?',
+  'onboarding.role.organizer': 'Я организатор',
+  'onboarding.role.player': 'Я игрок',
+  'onboarding.organizer.title': 'Создай команду',
+  'onboarding.organizer.namePlaceholder': 'Название команды',
+  'onboarding.organizer.create': 'Создать команду',
+  'onboarding.player.title': 'Жди ссылку от организатора',
+  'onboarding.player.description': 'Попроси организатора прислать ссылку приглашения в Telegram. Нажми её — попадёшь в команду.',
+  'onboarding.back': 'Назад',
+
+  // Profile
+  'profile.team': 'Команда',
+  'profile.role.organizer': 'Организатор',
+  'profile.role.player': 'Игрок',
+  'profile.copyInvite': 'Скопировать ссылку приглашения',
+  'profile.copyInviteHint': 'Перешли её игрокам — они нажмут и попадут в команду.',
+  'profile.copied': 'Скопировано',
+
+  // Squad
+  'squad.empty': 'В команде пока никого нет',
 
   // Common
   'common.empty': 'Пока ничего нет',
