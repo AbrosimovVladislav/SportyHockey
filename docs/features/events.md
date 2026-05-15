@@ -27,6 +27,6 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/screens/events/`
-- `apps/miniapp/src/api/events.ts`
+- `src/screens/events/`
+- `src/api/events.ts`
 - `supabase/functions/bot/scenes/event-broadcast.ts`

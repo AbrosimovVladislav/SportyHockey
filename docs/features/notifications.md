@@ -23,6 +23,6 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/app/api/bot/route.ts` (webhook handler)
-- `apps/miniapp/src/lib/bot.ts` (Telegraf instance, команды, сцены)
-- `apps/miniapp/src/app/api/cron/voting-reminders/route.ts` (Vercel Cron)
+- `src/app/api/bot/route.ts` (webhook handler)
+- `src/lib/bot.ts` (Telegraf instance, команды, сцены)
+- `src/app/api/cron/voting-reminders/route.ts` (Vercel Cron)

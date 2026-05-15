@@ -18,8 +18,8 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/screens/onboarding/`
-- `apps/miniapp/src/api/team.ts`
+- `src/screens/onboarding/`
+- `src/api/team.ts`
 
 ## Шаблон для новых фич
 - **<название>** — поведение в одном предложении. Версия. Связанные экраны/файлы.

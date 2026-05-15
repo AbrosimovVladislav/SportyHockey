@@ -42,48 +42,54 @@
 
 ```
 SportyHockey/
-├── apps/
-│   └── miniapp/                    # Next.js app
-│       ├── src/
-│       │   ├── app/
-│       │   │   ├── (mini)/                     # Mini App страницы
-│       │   │   │   ├── page.tsx                # /  главное
-│       │   │   │   ├── events/page.tsx
-│       │   │   │   ├── events/[id]/page.tsx
-│       │   │   │   ├── events/[id]/roster/page.tsx
-│       │   │   │   ├── money/page.tsx
-│       │   │   │   ├── squad/page.tsx
-│       │   │   │   ├── profile/page.tsx
-│       │   │   │   └── onboarding/page.tsx
-│       │   │   ├── api/
-│       │   │   │   ├── bot/route.ts            # Telegram webhook (grammy)
-│       │   │   │   ├── teams/route.ts
-│       │   │   │   ├── events/route.ts
-│       │   │   │   ├── events/[id]/route.ts
-│       │   │   │   ├── attendance/route.ts
-│       │   │   │   ├── finance/route.ts
-│       │   │   │   └── media/route.ts
-│       │   │   ├── layout.tsx                  # TG SDK init
-│       │   │   └── globals.css
-│       │   ├── components/         # UI-кит
-│       │   ├── features/           # Фичевые композиции
-│       │   ├── hooks/
-│       │   ├── lib/
-│       │   │   ├── supabase-server.ts    # service-role клиент (server-only)
-│       │   │   ├── telegram-verify.ts    # HMAC validate initData
-│       │   │   ├── auth.ts               # requireUser(request) → user_id
-│       │   │   ├── bot.ts                # grammy Bot instance + handlers
-│       │   │   └── api-client.ts         # типизированный fetch с Authorization header
-│       │   ├── store/
-│       │   ├── theme/
-│       │   ├── types/
-│       │   └── i18n/
-│       └── package.json
+├── src/
+│   ├── app/
+│   │   ├── (tabs)/                       # 5 Mini App страниц под общим layout с TabBar
+│   │   │   ├── layout.tsx                # TabBar + контейнер
+│   │   │   ├── page.tsx                  # /  главная
+│   │   │   ├── events/page.tsx
+│   │   │   ├── events/[id]/page.tsx
+│   │   │   ├── events/[id]/roster/page.tsx
+│   │   │   ├── money/page.tsx
+│   │   │   ├── squad/page.tsx
+│   │   │   └── profile/page.tsx
+│   │   ├── onboarding/page.tsx           # без TabBar
+│   │   ├── api/
+│   │   │   ├── bot/route.ts              # Telegram webhook (grammy)
+│   │   │   ├── teams/route.ts
+│   │   │   ├── events/route.ts
+│   │   │   ├── events/[id]/route.ts
+│   │   │   ├── attendance/route.ts
+│   │   │   ├── finance/route.ts
+│   │   │   └── media/route.ts
+│   │   ├── layout.tsx                    # root + lang=ru + viewport
+│   │   ├── providers.tsx                 # TG SDK init + TanStack Query Provider
+│   │   └── globals.css
+│   ├── components/                       # UI-кит (Button, Input, Card, Screen, Chip, Avatar, EmptyState, TabBar)
+│   ├── features/                         # Фичевые композиции
+│   ├── hooks/                            # use-t.ts и далее
+│   ├── lib/
+│   │   ├── supabase-server.ts            # service-role клиент (server-only)
+│   │   ├── telegram-verify.ts            # HMAC validate initData
+│   │   ├── auth.ts                       # requireUser(request) → AuthedUser
+│   │   ├── bot.ts                        # ленивый grammy Bot + handlers
+│   │   └── api-client.ts                 # типизированный fetch с Authorization header
+│   ├── store/                            # Zustand-сторы
+│   ├── theme/                            # colors / spacing / typography / radius
+│   ├── types/                            # db.ts (сгенерённые) + локальные типы
+│   └── i18n/                             # ru.ts (плоский dict)
+├── public/
+├── scripts/
+│   └── set-webhook.mjs                   # pnpm set-webhook <url>
 ├── supabase/
 │   └── migrations/
 ├── docs/
 ├── .claude/
-└── _archive/
+├── _archive/
+├── next.config.ts
+├── package.json
+├── tsconfig.json
+└── AGENTS.md                             # Next.js 16 warning для AI-агентов
 ```
 
 ## Принципы

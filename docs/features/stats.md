@@ -23,5 +23,5 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/api/stats.ts`
+- `src/api/stats.ts`
 - `supabase/migrations/` (если появятся views/RPC)

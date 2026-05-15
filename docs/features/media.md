@@ -20,6 +20,6 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/features/media/`
-- `apps/miniapp/src/api/media.ts`
+- `src/features/media/`
+- `src/api/media.ts`
 - Supabase Storage bucket `team-media`

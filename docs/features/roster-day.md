@@ -29,5 +29,5 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/screens/event-detail/roster/`
-- `apps/miniapp/src/api/attendance.ts`
+- `src/screens/event-detail/roster/`
+- `src/api/attendance.ts`

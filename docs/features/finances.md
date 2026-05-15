@@ -22,5 +22,5 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/screens/money/`
-- `apps/miniapp/src/api/finance.ts`
+- `src/screens/money/`
+- `src/api/finance.ts`

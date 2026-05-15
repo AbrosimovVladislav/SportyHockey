@@ -20,5 +20,5 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/screens/profile/VenuesSection.tsx`
-- `apps/miniapp/src/api/venues.ts`
+- `src/screens/profile/VenuesSection.tsx`
+- `src/api/venues.ts`

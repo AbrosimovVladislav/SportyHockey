@@ -19,6 +19,7 @@ out/
 build/
 dist/
 *.tsbuildinfo
+next-env.d.ts
 
 # Dependencies
 node_modules/

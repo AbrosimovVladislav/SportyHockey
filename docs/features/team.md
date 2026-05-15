@@ -22,7 +22,7 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/screens/profile/`
-- `apps/miniapp/src/screens/squad/`
-- `apps/miniapp/src/api/team.ts`, `apps/miniapp/src/api/membership.ts`
+- `src/screens/profile/`
+- `src/screens/squad/`
+- `src/api/team.ts`, `src/api/membership.ts`
 - `supabase/functions/bot/scenes/invite.ts`

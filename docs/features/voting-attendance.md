@@ -20,7 +20,7 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/app/api/bot/route.ts` (callback handlers голосования)
-- `apps/miniapp/src/lib/bot.ts` (Telegraf сцены голосования)
-- `apps/miniapp/src/app/api/attendance/route.ts`
-- `apps/miniapp/src/features/attendance/AttendanceBlock.tsx`
+- `src/app/api/bot/route.ts` (callback handlers голосования)
+- `src/lib/bot.ts` (Telegraf сцены голосования)
+- `src/app/api/attendance/route.ts`
+- `src/features/attendance/AttendanceBlock.tsx`

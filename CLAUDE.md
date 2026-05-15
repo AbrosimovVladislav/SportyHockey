@@ -60,7 +60,7 @@ pnpm test             # vitest
 
 supabase start                     # локальный Postgres + Storage
 supabase db reset                  # пересоздать БД локально + применить миграции
-supabase gen types typescript --linked > apps/miniapp/src/types/db.ts
+supabase gen types typescript --linked > src/types/db.ts
 
 vercel                # деплой preview
 vercel --prod         # деплой prod

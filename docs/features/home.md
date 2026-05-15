@@ -18,4 +18,4 @@
 
 ## Связанные файлы
 - [TODO] заполнится по мере реализации
-- `apps/miniapp/src/screens/home/HomeScreen.tsx`
+- `src/screens/home/HomeScreen.tsx`
