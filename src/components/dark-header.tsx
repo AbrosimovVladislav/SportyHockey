@@ -8,11 +8,14 @@ type Props = {
   left?: ReactNode;
   right?: ReactNode;
   paddingTop?: number;
+  imageSrc?: string;
 };
 
-export function DarkHeader({ title, role, left, right, paddingTop = spacing['16'] }: Props) {
+export function DarkHeader({ title, role, left, right, paddingTop = spacing['16'], imageSrc }: Props) {
   const wrapper: CSSProperties = {
-    background: colors.headerBg,
+    background: imageSrc
+      ? `linear-gradient(180deg, rgba(35,63,48,0.45) 0%, rgba(35,63,48,0.78) 65%, rgba(35,63,48,0.92) 100%), url(${imageSrc}) center/cover no-repeat`
+      : colors.headerBg,
     color: colors.textInverse,
     paddingTop,
     paddingBottom: spacing['24'],

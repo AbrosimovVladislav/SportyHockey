@@ -32,25 +32,28 @@ type TabId = 'list' | 'calendar';
 function BellWithDot() {
   const wrap: CSSProperties = {
     position: 'relative',
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    background: colors.headerGlass,
+    border: '1px solid rgba(255,255,255,0.18)',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
   };
   const dot: CSSProperties = {
     position: 'absolute',
-    top: 10,
-    right: 12,
-    width: 11,
-    height: 11,
-    borderRadius: 6,
+    top: 7,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     background: colors.success,
-    border: `2.5px solid ${colors.headerBg}`,
+    border: `2px solid ${colors.headerBg}`,
   };
   return (
-    <span style={wrap} aria-hidden>
-      <IconBell size={23} color={colors.textInverse} />
+    <span style={wrap} aria-label="Уведомления" role="button">
+      <IconBell size={20} color={colors.textInverse} />
       <span style={dot} />
     </span>
   );
@@ -74,7 +77,6 @@ export default function EventsPage() {
     () => me.data?.memberships.some((m) => m.role === 'organizer') ?? false,
     [me.data],
   );
-  const role = isOrganizer ? t('schedule.role.organizer') : t('schedule.role.player');
 
   const filtered = useMemo<EventDto[]>(() => {
     const list = events.data?.events ?? [];
@@ -160,9 +162,9 @@ export default function EventsPage() {
   return (
     <div style={{ background: colors.headerBg, minHeight: '100dvh' }}>
       <DarkHeader
-        role={role}
         title={t('schedule.title')}
         right={<BellWithDot />}
+        imageSrc="/rink.jpg"
       />
 
       <div style={sheet}>
