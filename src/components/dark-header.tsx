@@ -11,14 +11,14 @@ type Props = {
   imageSrc?: string;
 };
 
-export function DarkHeader({ title, role, left, right, paddingTop = spacing['16'], imageSrc }: Props) {
+export function DarkHeader({ title, role, left, right, paddingTop = spacing['12'], imageSrc }: Props) {
   const wrapper: CSSProperties = {
     background: imageSrc
       ? `linear-gradient(180deg, rgba(35,63,48,0.45) 0%, rgba(35,63,48,0.78) 65%, rgba(35,63,48,0.92) 100%), url(${imageSrc}) center/cover no-repeat`
       : colors.headerBg,
     color: colors.textInverse,
     paddingTop,
-    paddingBottom: spacing['24'],
+    paddingBottom: spacing['20'],
     paddingLeft: spacing['20'],
     paddingRight: spacing['20'],
   };
@@ -27,19 +27,19 @@ export function DarkHeader({ title, role, left, right, paddingTop = spacing['16'
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: left || right ? spacing['16'] : 0,
-    minHeight: 48,
+    marginBottom: left || right ? spacing['12'] : 0,
+    minHeight: 40,
   };
 
   const roleStyle: CSSProperties = {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.headerMuted,
     marginBottom: spacing['4'],
     letterSpacing: 0.1,
   };
 
   const titleStyle: CSSProperties = {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 800,
     color: colors.textInverse,
     letterSpacing: '-0.02em',
