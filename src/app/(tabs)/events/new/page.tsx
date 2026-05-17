@@ -3,29 +3,25 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { DarkHeader } from '@/components/dark-header';
-import { BackButton } from '@/components/back-button';
-import { TypeChips } from '@/components/type-chips';
-import { CardField } from '@/components/card-field';
 import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
+import { CardField } from '@/components/card-field';
+import { TypeChips } from '@/components/type-chips';
+import { Input } from '@/components/input';
 import { Textarea } from '@/components/textarea';
 import { Button } from '@/components/button';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import {
+  IconBack,
   IconCalendar,
   IconClock,
   IconStopwatch,
   IconWhistle,
   IconStick,
   IconLocation,
-  IconRuble,
-  IconCheckCircle,
   IconSparkle,
-  IconInfo,
 } from '@/components/icons';
 import { useMe } from '@/hooks/use-me';
 import { useT } from '@/hooks/use-t';
-import { useTgHeader } from '@/hooks/use-tg-header';
 import { useVenues } from '@/hooks/use-venues';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import { combineDateTime, formatLongDateLocal } from '@/lib/event-format';
@@ -39,52 +35,58 @@ import type {
   EventType,
   VenueDto,
 } from '@/types/api';
-import type { TKey } from '@/i18n/ru';
 
 type FormState = {
   type: EventType;
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
-  duration: number; // minutes
+  durationStr: string; // HH:mm
   venueId: string | null;
   details: string;
+  cost: string;
+  costTouched: boolean;
 };
 
-const DURATION_OPTIONS: ReadonlyArray<{ value: number; key: TKey }> = [
-  { value: 60, key: 'eventNew.duration.60' },
-  { value: 90, key: 'eventNew.duration.90' },
-  { value: 120, key: 'eventNew.duration.120' },
-  { value: 150, key: 'eventNew.duration.150' },
-  { value: 180, key: 'eventNew.duration.180' },
-];
+const INITIAL_DURATION = '01:30';
 
 const INITIAL_STATE: FormState = {
   type: 'training',
   date: '',
   time: '',
-  duration: 60,
+  durationStr: INITIAL_DURATION,
   venueId: null,
   details: '',
+  cost: '',
+  costTouched: false,
 };
 
-function SectionLabel({ children }: { children: ReactNode }) {
-  const style: CSSProperties = {
-    fontSize: 15,
-    fontWeight: 700,
-    color: colors.text,
-    margin: `${spacing['16']}px 0 ${spacing['8']}px`,
-  };
-  return <span style={style}>{children}</span>;
+function durationStrToMinutes(s: string): number {
+  if (!s) return 0;
+  const [h, m] = s.split(':').map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
+function formatDurationDisplay(s: string): string {
+  const mins = durationStrToMinutes(s);
+  if (!mins) return '';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const parts: string[] = [];
+  if (h > 0) parts.push(`${h} ч`);
+  if (m > 0) parts.push(`${m} мин`);
+  return parts.join(' ');
 }
 
 function HiddenNativeInput({
   type,
   value,
   onChange,
+  step,
 }: {
   type: 'date' | 'time';
   value: string;
   onChange: (v: string) => void;
+  step?: number;
 }) {
   const style: CSSProperties = {
     position: 'absolute',
@@ -104,9 +106,66 @@ function HiddenNativeInput({
       type={type}
       value={value}
       onChange={(e) => onChange(e.currentTarget.value)}
+      step={step}
       style={style}
       aria-hidden
     />
+  );
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  const style: CSSProperties = {
+    fontSize: 13,
+    fontWeight: 600,
+    color: colors.textSecondary,
+    margin: `${spacing['16']}px 0 ${spacing['8']}px`,
+    letterSpacing: '0.01em',
+  };
+  return <div style={style}>{children}</div>;
+}
+
+function LightHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  const wrap: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing['12'],
+    padding: `${spacing['10']}px ${spacing['12']}px`,
+    background: colors.bg,
+    position: 'sticky',
+    top: 0,
+    zIndex: 5,
+    minHeight: 52,
+  };
+  const backBtn: CSSProperties = {
+    width: 40,
+    height: 40,
+    borderRadius: '50%',
+    background: colors.bgMuted,
+    border: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    flexShrink: 0,
+  };
+  const titleStyle: CSSProperties = {
+    ...typography.h3,
+    margin: 0,
+    color: colors.text,
+  };
+  return (
+    <header style={wrap}>
+      <button
+        type="button"
+        className="pressable"
+        onClick={onBack}
+        style={backBtn}
+        aria-label="Назад"
+      >
+        <IconBack size={20} color={colors.text} />
+      </button>
+      <h1 style={titleStyle}>{title}</h1>
+    </header>
   );
 }
 
@@ -114,7 +173,6 @@ export default function EventNewPage() {
   const t = useT();
   const router = useRouter();
   const qc = useQueryClient();
-  useTgHeader('#233F30');
 
   const me = useMe();
   const venuesQuery = useVenues();
@@ -126,7 +184,6 @@ export default function EventNewPage() {
 
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [error, setError] = useState<string | null>(null);
-  const [durationOpen, setDurationOpen] = useState(false);
   const [venueOpen, setVenueOpen] = useState(false);
 
   useEffect(() => {
@@ -135,17 +192,28 @@ export default function EventNewPage() {
     }
   }, [me.data, isOrganizer, router]);
 
-  // Автовыбор первой площадки, если в команде ровно одна
-  const venues: VenueDto[] = venuesQuery.data?.venues ?? [];
+  const venues: VenueDto[] = useMemo(() => venuesQuery.data?.venues ?? [], [venuesQuery.data]);
+
+  // Автовыбор первой площадки, если в команде ровно одна.
   useEffect(() => {
     if (form.venueId !== null) return;
-    if (venues.length === 1) setForm((prev) => ({ ...prev, venueId: venues[0].id }));
+    if (venues.length === 1) {
+      setForm((prev) => ({ ...prev, venueId: venues[0].id }));
+    }
   }, [venues, form.venueId]);
 
   const selectedVenue = useMemo<VenueDto | null>(
     () => venues.find((v) => v.id === form.venueId) ?? null,
     [venues, form.venueId],
   );
+
+  // Подставляем дефолтную стоимость из арены, если юзер ещё не правил поле.
+  useEffect(() => {
+    if (form.costTouched) return;
+    if (selectedVenue?.default_cost_per_player != null) {
+      setForm((prev) => ({ ...prev, cost: String(selectedVenue.default_cost_per_player) }));
+    }
+  }, [selectedVenue, form.costTouched]);
 
   const createEvent = useMutation<CreateEventResponse, ApiError, CreateEventRequest>({
     mutationFn: (body) =>
@@ -163,6 +231,11 @@ export default function EventNewPage() {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const onBack = () => {
+    if (window.history.length > 1) router.back();
+    else router.push('/events');
+  };
+
   const onSubmit = () => {
     setError(null);
     if (!form.date) {
@@ -177,27 +250,23 @@ export default function EventNewPage() {
       setError(t('eventNew.errors.venue'));
       return;
     }
+    const duration = durationStrToMinutes(form.durationStr);
+    if (duration <= 0) {
+      setError(t('eventNew.errors.duration'));
+      return;
+    }
+
+    const costNum = form.cost.trim() ? Number(form.cost) : NaN;
 
     const body: CreateEventRequest = {
       type: form.type,
       starts_at: combineDateTime(form.date, form.time),
-      duration_minutes: form.duration,
+      duration_minutes: duration,
       venue_id: form.venueId,
       title: form.details.trim() || undefined,
+      cost_per_player: Number.isFinite(costNum) && costNum >= 0 ? costNum : undefined,
     };
     createEvent.mutate(body);
-  };
-
-  const sheet: CSSProperties = {
-    background: colors.bgWarm,
-    borderRadius: '24px 24px 0 0',
-    marginTop: -12,
-    position: 'relative',
-    zIndex: 2,
-    minHeight: `calc(100dvh - ${BOTTOM_NAV_HEIGHT}px - 140px)`,
-    padding: `${spacing['4']}px ${spacing['16']}px ${BOTTOM_NAV_HEIGHT + spacing['24']}px`,
-    display: 'flex',
-    flexDirection: 'column',
   };
 
   const typeOptions = [
@@ -213,29 +282,32 @@ export default function EventNewPage() {
     },
   ];
 
-  const durationKey: TKey =
-    DURATION_OPTIONS.find((o) => o.value === form.duration)?.key ?? 'eventNew.duration.60';
-  const durationLabel = t(durationKey);
-
   const dateDisplay = form.date ? formatLongDateLocal(form.date) : '';
-  const timeDisplay = form.time || '';
-
-  const costDisplay = selectedVenue?.default_cost_per_player != null
-    ? `${selectedVenue.default_cost_per_player.toLocaleString('ru-RU')} ₽`
-    : '';
+  const durationDisplay = formatDurationDisplay(form.durationStr);
 
   const submitDisabled =
-    createEvent.isPending || !form.date || !form.time || !form.venueId;
+    createEvent.isPending ||
+    !form.date ||
+    !form.time ||
+    !form.venueId ||
+    durationStrToMinutes(form.durationStr) <= 0;
+
+  const root: CSSProperties = {
+    background: colors.bg,
+    minHeight: '100dvh',
+  };
+
+  const content: CSSProperties = {
+    padding: `0 ${spacing['16']}px ${BOTTOM_NAV_HEIGHT + spacing['24']}px`,
+    display: 'flex',
+    flexDirection: 'column',
+  };
 
   return (
-    <div style={{ background: colors.headerBg, minHeight: '100dvh' }}>
-      <DarkHeader
-        role={t('eventNew.role')}
-        title={t('eventNew.title')}
-        left={<BackButton ariaLabel={t('schedule.backLabel')} />}
-      />
+    <div style={root}>
+      <LightHeader title={t('eventNew.title')} onBack={onBack} />
 
-      <div style={sheet}>
+      <div style={content}>
         <SectionLabel>{t('eventNew.sections.type')}</SectionLabel>
         <TypeChips
           options={typeOptions}
@@ -244,52 +316,67 @@ export default function EventNewPage() {
         />
 
         <SectionLabel>{t('eventNew.sections.schedule')}</SectionLabel>
-        <div style={{ position: 'relative', marginBottom: spacing['8'] }}>
-          <CardField
-            icon={<IconCalendar size={20} color={colors.iconFg} />}
-            label={t('eventNew.fields.date')}
-            value={dateDisplay}
-            placeholder={t('eventNew.fields.datePlaceholder')}
-            showChevron
-          />
-          <HiddenNativeInput
-            type="date"
-            value={form.date}
-            onChange={(v) => set('date', v)}
-          />
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing['8'] }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
           <div style={{ position: 'relative' }}>
             <CardField
-              icon={<IconClock size={20} color={colors.iconFg} />}
-              label={t('eventNew.fields.startTime')}
-              value={timeDisplay}
-              placeholder={t('eventNew.fields.timePlaceholder')}
-              showChevron
+              icon={<IconCalendar size={20} color={colors.iconFg} />}
+              label={t('eventNew.fields.date')}
+              value={dateDisplay}
+              placeholder={t('eventNew.fields.datePlaceholder')}
             />
             <HiddenNativeInput
-              type="time"
-              value={form.time}
-              onChange={(v) => set('time', v)}
+              type="date"
+              value={form.date}
+              onChange={(v) => set('date', v)}
             />
           </div>
-          <CardField
-            icon={<IconStopwatch size={20} color={colors.iconFg} />}
-            label={t('eventNew.fields.duration')}
-            value={durationLabel}
-            onClick={() => setDurationOpen(true)}
-          />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing['8'] }}>
+            <div style={{ position: 'relative' }}>
+              <CardField
+                icon={<IconClock size={20} color={colors.iconFg} />}
+                label={t('eventNew.fields.startTime')}
+                value={form.time}
+                placeholder={t('eventNew.fields.timePlaceholder')}
+                showChevron={false}
+              />
+              <HiddenNativeInput
+                type="time"
+                value={form.time}
+                onChange={(v) => set('time', v)}
+              />
+            </div>
+            <div style={{ position: 'relative' }}>
+              <CardField
+                icon={<IconStopwatch size={20} color={colors.iconFg} />}
+                label={t('eventNew.fields.duration')}
+                value={durationDisplay}
+                placeholder={t('eventNew.fields.timePlaceholder')}
+                showChevron={false}
+              />
+              <HiddenNativeInput
+                type="time"
+                value={form.durationStr}
+                onChange={(v) => set('durationStr', v)}
+                step={300}
+              />
+            </div>
+          </div>
         </div>
 
         <SectionLabel>{t('eventNew.sections.details')}</SectionLabel>
         <Textarea
-          placeholder={`${t('eventNew.fields.details.placeholder1')}\n${t('eventNew.fields.details.placeholder2')}`}
+          placeholder={t('eventNew.fields.details.placeholder')}
           value={form.details}
           onChange={(e) => set('details', e.currentTarget.value)}
           maxLength={2000}
           rows={3}
-          style={{ background: colors.bg, minHeight: 92 }}
+          style={{
+            background: colors.bg,
+            border: `1px solid ${colors.divider}`,
+            minHeight: 88,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          }}
         />
 
         <SectionLabel>{t('eventNew.sections.venue')}</SectionLabel>
@@ -302,19 +389,46 @@ export default function EventNewPage() {
         />
 
         <SectionLabel>{t('eventNew.sections.cost')}</SectionLabel>
-        <CardField
-          icon={<IconRuble size={20} color={colors.iconFg} />}
-          label={costDisplay || t('eventNew.cost.placeholder')}
-          value={t('eventNew.cost.auto')}
-          showChevron={false}
-          right={
-            selectedVenue?.default_cost_per_player != null ? (
-              <IconCheckCircle size={22} color={colors.success} />
-            ) : (
-              <IconInfo size={18} color={colors.textTertiary} />
-            )
-          }
-        />
+        <div style={{ position: 'relative' }}>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={50}
+            value={form.cost}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                cost: e.currentTarget.value,
+                costTouched: true,
+              }))
+            }
+            placeholder="0"
+            style={{
+              background: colors.bg,
+              border: `1px solid ${colors.divider}`,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              paddingRight: 36,
+              fontSize: 17,
+              fontWeight: 600,
+            }}
+          />
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              right: spacing['16'],
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: colors.textSecondary,
+              fontSize: 16,
+              fontWeight: 500,
+              pointerEvents: 'none',
+            }}
+          >
+            ₽
+          </span>
+        </div>
 
         {error ? (
           <div
@@ -331,37 +445,17 @@ export default function EventNewPage() {
           </div>
         ) : null}
 
-        <div style={{ flex: 1 }} />
-
         <Button
           fullWidth
           size="lg"
           disabled={submitDisabled}
           onClick={onSubmit}
-          style={{ background: colors.headerBg, marginTop: spacing['20'] }}
+          style={{ background: colors.headerBg, marginTop: spacing['24'] }}
         >
           <IconSparkle size={18} color={colors.textInverse} />
           {createEvent.isPending ? t('eventNew.submitting') : t('eventNew.submit')}
         </Button>
       </div>
-
-      <BottomSheet
-        open={durationOpen}
-        onClose={() => setDurationOpen(false)}
-        title={t('eventNew.sheet.duration.title')}
-      >
-        {DURATION_OPTIONS.map((o) => (
-          <BottomSheetOption
-            key={o.value}
-            label={t(o.key)}
-            active={form.duration === o.value}
-            onClick={() => {
-              set('duration', o.value);
-              setDurationOpen(false);
-            }}
-          />
-        ))}
-      </BottomSheet>
 
       <BottomSheet
         open={venueOpen}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { CSSProperties, ComponentType } from 'react';
+import { useEffect, useState, type CSSProperties, type ComponentType } from 'react';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { useT } from '@/hooks/use-t';
@@ -32,9 +32,34 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
+// Скрываем нав, если активная клавиатура: visualViewport.height заметно ниже окна.
+function useKeyboardOpen(): boolean {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const ratio = vv.height / window.innerHeight;
+      setOpen(ratio < 0.85);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+  return open;
+}
+
 export function BottomNav() {
   const pathname = usePathname();
   const t = useT();
+  const keyboardOpen = useKeyboardOpen();
+
+  if (keyboardOpen) return null;
 
   const bar: CSSProperties = {
     position: 'fixed',
