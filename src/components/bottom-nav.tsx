@@ -32,16 +32,52 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
-// Скрываем нав, если активная клавиатура: visualViewport.height заметно ниже окна.
+// Поля, ввод в которые открывает soft-клавиатуру.
+const KEYBOARD_INPUT_TYPES = new Set([
+  'text',
+  'number',
+  'email',
+  'tel',
+  'password',
+  'search',
+  'url',
+]);
+
+function isKeyboardField(target: EventTarget | null): boolean {
+  if (target instanceof HTMLTextAreaElement) return true;
+  if (target instanceof HTMLInputElement) {
+    return KEYBOARD_INPUT_TYPES.has(target.type);
+  }
+  return false;
+}
+
+// Скрываем нав, если активная клавиатура: комбо из focusin/focusout
+// (надёжно в TG WebApp на iOS) и visualViewport (надёжно в Android Chrome).
 function useKeyboardOpen(): boolean {
-  const [open, setOpen] = useState(false);
+  const [focusOpen, setFocusOpen] = useState(false);
+  const [viewportOpen, setViewportOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const onFocusIn = (e: FocusEvent) => {
+      if (isKeyboardField(e.target)) setFocusOpen(true);
+    };
+    const onFocusOut = () => setFocusOpen(false);
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', onFocusOut);
+    return () => {
+      document.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('focusout', onFocusOut);
+    };
+  }, []);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const vv = window.visualViewport;
     if (!vv) return;
     const update = () => {
       const ratio = vv.height / window.innerHeight;
-      setOpen(ratio < 0.85);
+      setViewportOpen(ratio < 0.85);
     };
     update();
     vv.addEventListener('resize', update);
@@ -51,7 +87,8 @@ function useKeyboardOpen(): boolean {
       vv.removeEventListener('scroll', update);
     };
   }, []);
-  return open;
+
+  return focusOpen || viewportOpen;
 }
 
 export function BottomNav() {

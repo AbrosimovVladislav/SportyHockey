@@ -125,16 +125,18 @@ function SectionLabel({ children }: { children: ReactNode }) {
 }
 
 function LightHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  // 3 колонки: back (40) / title (центр) / spacer (40) — title всегда строго по центру
   const wrap: CSSProperties = {
-    display: 'flex',
+    display: 'grid',
+    gridTemplateColumns: '40px 1fr 40px',
     alignItems: 'center',
-    gap: spacing['12'],
+    gap: spacing['8'],
     padding: `${spacing['10']}px ${spacing['12']}px`,
     background: colors.bg,
     position: 'sticky',
     top: 0,
     zIndex: 5,
-    minHeight: 52,
+    minHeight: 56,
   };
   const backBtn: CSSProperties = {
     width: 40,
@@ -149,9 +151,14 @@ function LightHeader({ title, onBack }: { title: string; onBack: () => void }) {
     flexShrink: 0,
   };
   const titleStyle: CSSProperties = {
-    ...typography.h3,
+    fontSize: 17,
+    fontWeight: 700,
     margin: 0,
     color: colors.text,
+    textAlign: 'center',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   };
   return (
     <header style={wrap}>
@@ -165,6 +172,7 @@ function LightHeader({ title, onBack }: { title: string; onBack: () => void }) {
         <IconBack size={20} color={colors.text} />
       </button>
       <h1 style={titleStyle}>{title}</h1>
+      <span aria-hidden />
     </header>
   );
 }
@@ -391,18 +399,17 @@ export default function EventNewPage() {
         <SectionLabel>{t('eventNew.sections.cost')}</SectionLabel>
         <div style={{ position: 'relative' }}>
           <Input
-            type="number"
+            type="text"
             inputMode="numeric"
-            min={0}
-            step={50}
             value={form.cost}
-            onChange={(e) =>
+            onChange={(e) => {
+              const raw = e.currentTarget.value.replace(/[^\d]/g, '');
               setForm((prev) => ({
                 ...prev,
-                cost: e.currentTarget.value,
+                cost: raw,
                 costTouched: true,
-              }))
-            }
+              }));
+            }}
             placeholder="0"
             style={{
               background: colors.bg,
