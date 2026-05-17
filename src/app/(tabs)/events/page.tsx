@@ -153,10 +153,7 @@ export default function EventsPage() {
     padding: `0 ${spacing['16']}px`,
   };
 
-  const handleFabClick = () => {
-    // /events/new появится в итерации 10
-    if (typeof window !== 'undefined') window.alert('Скоро');
-  };
+  const handleFabClick = () => router.push('/events/new');
 
   return (
     <div style={{ background: colors.headerBg, minHeight: '100dvh' }}>

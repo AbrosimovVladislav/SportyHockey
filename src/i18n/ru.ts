@@ -56,6 +56,28 @@ export const ru = {
   'schedule.titles.training': 'Тренировка',
   'schedule.titles.game': 'Игра',
 
+  // Event create (/events/new)
+  'eventNew.title': 'Новое событие',
+  'eventNew.role': 'Капитан',
+  'eventNew.type.label': 'Тип',
+  'eventNew.type.training': 'Тренировка',
+  'eventNew.type.game': 'Игра',
+  'eventNew.startsAt.label': 'Начало',
+  'eventNew.endsAt.label': 'Окончание (необязательно)',
+  'eventNew.title.label': 'Название (необязательно)',
+  'eventNew.title.placeholder': 'Например, «Игра vs Северные Волки»',
+  'eventNew.venue.label': 'Площадка (необязательно)',
+  'eventNew.venue.placeholder': 'Большая арена',
+  'eventNew.cost.label': 'Стоимость с игрока, ₽ (необязательно)',
+  'eventNew.cost.placeholder': '1000',
+  'eventNew.description.label': 'Описание (необязательно)',
+  'eventNew.description.placeholder': 'Что важно знать игрокам',
+  'eventNew.submit': 'Создать',
+  'eventNew.submitting': 'Создаём...',
+  'eventNew.errors.startsAt': 'Укажите дату и время начала',
+  'eventNew.errors.endsBeforeStart': 'Окончание должно быть позже начала',
+  'eventNew.errors.organizerOnly': 'Создавать события может только организатор',
+
   // Common
   'common.empty': 'Пока ничего нет',
   'common.loading': 'Загружаем',
