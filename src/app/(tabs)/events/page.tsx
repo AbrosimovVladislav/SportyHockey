@@ -164,7 +164,7 @@ export default function EventsPage() {
       <DarkHeader
         title={t('schedule.title')}
         right={<BellWithDot />}
-        imageSrc="/rink.jpg"
+        imageSrc="/arena.png"
       />
 
       <div style={sheet}>
