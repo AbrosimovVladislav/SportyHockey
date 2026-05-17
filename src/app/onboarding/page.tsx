@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Screen } from '@/components/screen';
@@ -9,6 +9,7 @@ import { Input } from '@/components/input';
 import { EmptyState } from '@/components/empty-state';
 import { useT } from '@/hooks/use-t';
 import { useMe } from '@/hooks/use-me';
+import { useBackButton } from '@/hooks/use-back-button';
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
@@ -25,6 +26,9 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<Step>('welcome');
   const [teamName, setTeamName] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const goWelcome = useCallback(() => setStep('welcome'), []);
+  useBackButton(step === 'welcome' ? null : goWelcome);
 
   useEffect(() => {
     if (me.data && me.data.memberships.length > 0) {
@@ -50,7 +54,9 @@ export default function OnboardingPage() {
   if (me.isLoading) {
     return (
       <Screen>
-        <span style={{ ...typography.body, color: colors.hint }}>{t('common.loading')}</span>
+        <span style={{ ...typography.body, color: colors.textSecondary }}>
+          {t('common.loading')}
+        </span>
       </Screen>
     );
   }
@@ -67,23 +73,19 @@ export default function OnboardingPage() {
           maxLength={50}
         />
         {error ? (
-          <span style={{ ...typography.caption, color: colors.destructive }}>{error}</span>
+          <span style={{ ...typography.sm, color: colors.error }}>{error}</span>
         ) : null}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-          <Button
-            fullWidth
-            disabled={trimmed.length < 2 || createTeam.isPending}
-            onClick={() => {
-              setError(null);
-              createTeam.mutate(trimmed);
-            }}
-          >
-            {t('onboarding.organizer.create')}
-          </Button>
-          <Button variant="secondary" fullWidth onClick={() => setStep('welcome')}>
-            {t('onboarding.back')}
-          </Button>
-        </div>
+        <Button
+          fullWidth
+          size="lg"
+          disabled={trimmed.length < 2 || createTeam.isPending}
+          onClick={() => {
+            setError(null);
+            createTeam.mutate(trimmed);
+          }}
+        >
+          {t('onboarding.organizer.create')}
+        </Button>
       </Screen>
     );
   }
@@ -94,11 +96,6 @@ export default function OnboardingPage() {
         <EmptyState
           title={t('onboarding.player.title')}
           description={t('onboarding.player.description')}
-          action={
-            <Button variant="secondary" onClick={() => setStep('welcome')}>
-              {t('onboarding.back')}
-            </Button>
-          }
         />
       </Screen>
     );
@@ -106,14 +103,14 @@ export default function OnboardingPage() {
 
   return (
     <Screen title={t('onboarding.welcome.title')}>
-      <span style={{ ...typography.body, color: colors.hint }}>
+      <span style={{ ...typography.body, color: colors.textSecondary }}>
         {t('onboarding.welcome.subtitle')}
       </span>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-        <Button fullWidth onClick={() => setStep('organizer')}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
+        <Button fullWidth size="lg" onClick={() => setStep('organizer')}>
           {t('onboarding.role.organizer')}
         </Button>
-        <Button variant="secondary" fullWidth onClick={() => setStep('player')}>
+        <Button variant="secondary" size="lg" fullWidth onClick={() => setStep('player')}>
           {t('onboarding.role.player')}
         </Button>
       </div>

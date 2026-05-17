@@ -8,19 +8,21 @@ import { typography } from '@/theme/typography';
 
 type Props = InputHTMLAttributes<HTMLInputElement> & {
   fullWidth?: boolean;
+  invalid?: boolean;
 };
 
-export function Input({ fullWidth = true, style, ...rest }: Props) {
+export function Input({ fullWidth = true, invalid, style, ...rest }: Props) {
   const base: CSSProperties = {
     ...typography.body,
-    background: colors.secondaryBg,
+    background: colors.bgMuted,
     color: colors.text,
-    border: 'none',
+    border: `1.5px solid ${invalid ? colors.error : 'transparent'}`,
     outline: 'none',
     minHeight: 44,
-    padding: `${spacing.sm}px ${spacing.md}px`,
+    padding: `${spacing['10']}px ${spacing['12']}px`,
     borderRadius: radius.md,
     width: fullWidth ? '100%' : undefined,
+    transition: 'border-color 100ms ease',
     ...style,
   };
 

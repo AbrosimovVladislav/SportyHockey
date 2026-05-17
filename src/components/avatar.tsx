@@ -1,33 +1,47 @@
 import type { CSSProperties } from 'react';
-import { colors } from '@/theme/colors';
-import { typography } from '@/theme/typography';
+import { avatarTones } from '@/theme/colors';
 
 type Props = {
   src?: string | null;
   name?: string;
   size?: number;
+  toneIdx?: number;
 };
 
 function initials(name?: string): string {
   if (!name) return '?';
   const parts = name.trim().split(/\s+/);
-  return (parts[0]?.[0] ?? '?').toUpperCase() + (parts[1]?.[0]?.toUpperCase() ?? '');
+  const first = parts[0]?.[0] ?? '?';
+  const second = parts[1]?.[0] ?? '';
+  return (first + second).toUpperCase();
 }
 
-export function Avatar({ src, name, size = 40 }: Props) {
+function toneIndexFor(name?: string): number {
+  if (!name) return 0;
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return hash % avatarTones.length;
+}
+
+export function Avatar({ src, name, size = 46, toneIdx }: Props) {
+  const idx = toneIdx ?? toneIndexFor(name);
+  const tone = avatarTones[idx % avatarTones.length] ?? avatarTones[0];
+  const [from, to] = tone;
+
   const base: CSSProperties = {
     width: size,
     height: size,
     borderRadius: '50%',
-    background: colors.secondaryBg,
-    color: colors.hint,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     flexShrink: 0,
-    ...typography.bodyBold,
-    fontSize: Math.round(size * 0.4),
+    color: '#FFFFFF',
+    fontWeight: 700,
+    fontSize: Math.round(size * 0.34),
+    letterSpacing: 0.2,
+    background: `linear-gradient(135deg, ${from}, ${to})`,
   };
 
   if (src) {
@@ -37,5 +51,9 @@ export function Avatar({ src, name, size = 40 }: Props) {
     );
   }
 
-  return <span style={base}>{initials(name)}</span>;
+  return (
+    <span role="img" aria-label={name ?? ''} style={base}>
+      {initials(name)}
+    </span>
+  );
 }

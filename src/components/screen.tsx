@@ -7,20 +7,30 @@ type Props = {
   title?: string;
   children?: ReactNode;
   paddingBottom?: number;
+  padding?: number;
+  background?: string;
 };
 
-export function Screen({ title, children, paddingBottom = spacing.xxl }: Props) {
+export function Screen({
+  title,
+  children,
+  paddingBottom = spacing['32'],
+  padding = spacing['20'],
+  background = colors.bg,
+}: Props) {
   const wrapper: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing.lg,
-    padding: spacing.lg,
+    gap: spacing['16'],
+    padding,
     paddingBottom,
     minHeight: '100dvh',
+    background,
+    color: colors.text,
   };
 
   const heading: CSSProperties = {
-    ...typography.title,
+    ...typography.h1,
     color: colors.text,
   };
 

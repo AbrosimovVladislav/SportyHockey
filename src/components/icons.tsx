@@ -1,0 +1,175 @@
+import type { SVGProps } from 'react';
+
+type IconProps = SVGProps<SVGSVGElement> & {
+  size?: number;
+  color?: string;
+};
+
+function Svg({
+  size = 24,
+  color = 'currentColor',
+  children,
+  strokeWidth = 1.7,
+  ...rest
+}: IconProps & { children: React.ReactNode }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...rest}
+    >
+      {children}
+    </svg>
+  );
+}
+
+export const IconHome = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 11.5L12 4l8 7.5" />
+    <path d="M6 10v8.5a1 1 0 001 1h3.5v-4.5h3v4.5H17a1 1 0 001-1V10" />
+  </Svg>
+);
+
+export const IconCalendar = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="4.5" width="17" height="16" rx="2.5" />
+    <line x1="3.5" y1="9.5" x2="20.5" y2="9.5" />
+    <line x1="8" y1="2.5" x2="8" y2="6" />
+    <line x1="16" y1="2.5" x2="16" y2="6" />
+  </Svg>
+);
+
+export const IconRuble = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
+    <circle cx="12" cy="12" r="9.5" stroke={color} strokeWidth="1.7" />
+    <text
+      x="12"
+      y="16.5"
+      textAnchor="middle"
+      fill={color}
+      fontSize="13"
+      fontWeight="600"
+      fontFamily="inherit"
+    >
+      ₽
+    </text>
+  </svg>
+);
+
+export const IconPeople = (p: IconProps) => (
+  <Svg {...p} viewBox="0 0 28 24">
+    <circle cx="11" cy="8" r="3.5" />
+    <path d="M4 20c0-3.3 3-6 7-6s7 2.7 7 6" />
+    <circle cx="19" cy="9" r="2.8" strokeWidth="1.5" />
+    <path d="M22 20c1.8-.8 3-2.5 3-4.5 0-1.8-1-3.3-2.5-4" strokeWidth="1.5" />
+  </Svg>
+);
+
+export const IconMore = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} {...p}>
+    <circle cx="6" cy="12" r="1.8" />
+    <circle cx="12" cy="12" r="1.8" />
+    <circle cx="18" cy="12" r="1.8" />
+  </svg>
+);
+
+export const IconMenu = (p: IconProps) => (
+  <Svg {...p} strokeWidth={1.8}>
+    <path d="M3 6h18M3 12h18M3 18h18" />
+  </Svg>
+);
+
+export const IconBell = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 3a6 6 0 00-6 6v3.5L4 15h16l-2-2.5V9a6 6 0 00-6-6z" />
+    <path d="M9.5 19a2.5 2.5 0 005 0" />
+  </Svg>
+);
+
+export const IconClock = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 6.5V12.5L15.5 14.5" />
+  </Svg>
+);
+
+export const IconTrophy = (p: IconProps) => (
+  <Svg {...p} strokeWidth={1.6}>
+    <path d="M7 3h10v7c0 2.8-2.2 5-5 5s-5-2.2-5-5V3z" />
+    <path d="M7 5.5H4.8v1.8c0 1.5 1.2 2.7 2.7 2.7" strokeWidth="1.4" />
+    <path d="M17 5.5h2.2v1.8c0 1.5-1.2 2.7-2.7 2.7" strokeWidth="1.4" />
+    <line x1="12" y1="15" x2="12" y2="18" />
+    <path d="M9 18h6" />
+  </Svg>
+);
+
+export const IconChevronRight = ({ size = 12, color = '#C4C4C4', ...p }: IconProps) => (
+  <svg width={size * 0.6} height={size} viewBox="0 0 7 12" fill="none" {...p}>
+    <path
+      d="M1 1l5 5-5 5"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const IconPlus = (p: IconProps) => (
+  <Svg {...p} strokeWidth={2.5}>
+    <path d="M12 4v16M4 12h16" />
+  </Svg>
+);
+
+export const IconBack = (p: IconProps) => (
+  <Svg {...p} strokeWidth={2.2}>
+    <path d="M15 18l-6-6 6-6" />
+  </Svg>
+);
+
+export const IconCheck = (p: IconProps) => (
+  <Svg {...p} strokeWidth={2.5}>
+    <path d="M20 6L9 17l-5-5" />
+  </Svg>
+);
+
+export const IconClose = (p: IconProps) => (
+  <Svg {...p} strokeWidth={2.2}>
+    <path d="M18 6L6 18M6 6l12 12" />
+  </Svg>
+);
+
+export const IconPerson = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="8" r="3.6" />
+    <path d="M5 21c.8-3.6 3.6-6 7-6s6.2 2.4 7 6" />
+  </Svg>
+);
+
+export const IconWallet = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="6.5" width="18" height="13" rx="2.5" />
+    <path d="M3 9.5h14a2 2 0 012 2v3a2 2 0 01-2 2H3" />
+    <circle cx="16" cy="13" r="1.2" fill={p.color ?? 'currentColor'} stroke="none" />
+  </Svg>
+);
+
+export const IconLocation = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z" />
+    <circle cx="12" cy="10" r="2.5" />
+  </Svg>
+);
+
+export const IconChat = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 12a8 8 0 0114-5.3" />
+    <path d="M20 12a8 8 0 01-13 6.3L4 19l.7-3A8 8 0 0120 12z" />
+  </Svg>
+);

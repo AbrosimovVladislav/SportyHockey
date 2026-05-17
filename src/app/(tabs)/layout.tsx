@@ -2,10 +2,10 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { TabBar, TAB_BAR_HEIGHT } from '@/components/tab-bar';
+import { BottomNav, BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
+import { Screen } from '@/components/screen';
 import { useMe } from '@/hooks/use-me';
 import { useT } from '@/hooks/use-t';
-import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 import { colors } from '@/theme/colors';
 
@@ -24,16 +24,23 @@ export default function TabsLayout({ children }: { children: ReactNode }) {
 
   if (me.isLoading || noTeam) {
     return (
-      <div style={{ padding: spacing.lg, ...typography.body, color: colors.hint }}>
-        {t('common.loading')}
-      </div>
+      <Screen>
+        <span style={{ ...typography.body, color: colors.textSecondary }}>{t('common.loading')}</span>
+      </Screen>
+    );
+  }
+  if (me.isError) {
+    return (
+      <Screen>
+        <span style={{ ...typography.body, color: colors.error }}>{t('common.error')}</span>
+      </Screen>
     );
   }
 
   return (
     <>
-      <div style={{ paddingBottom: TAB_BAR_HEIGHT + spacing.lg }}>{children}</div>
-      <TabBar />
+      <div style={{ paddingBottom: BOTTOM_NAV_HEIGHT + 16 }}>{children}</div>
+      <BottomNav />
     </>
   );
 }

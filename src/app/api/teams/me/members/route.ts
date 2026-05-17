@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { AuthError, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
-import type { MemberRole, TeamMember, TeamMembersResponse } from '@/types/api';
+import { asMemberRole } from '@/lib/role';
+import type { TeamMember, TeamMembersResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -80,7 +81,7 @@ export async function GET(req: Request): Promise<Response> {
         last_name: u?.last_name ?? null,
         username: u?.username ?? null,
         photo_url: u?.photo_url ?? null,
-        role: m.role as MemberRole,
+        role: asMemberRole(m.role),
       };
     });
 
@@ -91,7 +92,7 @@ export async function GET(req: Request): Promise<Response> {
     return NextResponse.json(body);
   } catch (e) {
     if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: 401 });
+      return NextResponse.json({ error: e.message }, { status: e.status });
     }
     throw e;
   }

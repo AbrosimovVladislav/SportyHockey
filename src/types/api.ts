@@ -44,3 +44,57 @@ export type TeamMembersResponse = {
   team: { id: string; name: string };
   members: TeamMember[];
 };
+
+export type EventType = 'training' | 'game';
+export type EventStatus = 'scheduled' | 'cancelled' | 'completed';
+
+export type AttendanceCount = {
+  going: number;
+  maybe: number;
+  not_going: number;
+};
+
+export type EventDto = {
+  id: string;
+  type: EventType;
+  title: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  venue_text: string | null;
+  cost_per_player: number | null;
+  status: EventStatus;
+  attendance: AttendanceCount;
+};
+
+export type EventDetailDto = EventDto & {
+  team_id: string;
+  description: string | null;
+  created_by: string | null;
+};
+
+export type EventsListResponse = {
+  events: EventDto[];
+};
+
+export type CreateEventRequest = {
+  type: EventType;
+  starts_at: string;
+  title?: string;
+  ends_at?: string | null;
+  venue_text?: string;
+  cost_per_player?: number;
+  description?: string;
+};
+
+export type UpdateEventRequest = {
+  type?: EventType;
+  starts_at?: string;
+  title?: string;
+  ends_at?: string | null;
+  venue_text?: string;
+  cost_per_player?: number;
+  description?: string;
+  status?: 'scheduled' | 'cancelled';
+};
+
+export type CreateEventResponse = { id: string };

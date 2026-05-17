@@ -2,41 +2,31 @@ import { NextResponse } from 'next/server';
 import { AuthError, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { buildInviteLink } from '@/lib/team-link';
-import type { MeMembership, MeResponse, MemberRole } from '@/types/api';
+import { asMemberRole } from '@/lib/role';
+import type { MeMembership, MeResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+type TeamRef = { id: string; name: string } | { id: string; name: string }[] | null;
 
 export async function GET(req: Request): Promise<Response> {
   try {
     const user = await requireUser(req);
     const sb = supabaseServer();
 
-    const { data: memRows, error: memErr } = await sb
+    const { data, error } = await sb
       .from('team_memberships')
-      .select('team_id, role')
+      .select('team_id, role, teams(id, name)')
       .eq('user_id', user.id);
-    if (memErr) {
-      return NextResponse.json({ error: memErr.message }, { status: 500 });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const teamIds = (memRows ?? []).map((m) => m.team_id);
-    let teamMap = new Map<string, string>();
-    if (teamIds.length > 0) {
-      const { data: teams, error: teamErr } = await sb
-        .from('teams')
-        .select('id, name')
-        .in('id', teamIds);
-      if (teamErr) {
-        return NextResponse.json({ error: teamErr.message }, { status: 500 });
-      }
-      teamMap = new Map((teams ?? []).map((t) => [t.id, t.name]));
-    }
-
-    const memberships: MeMembership[] = (memRows ?? []).map((m) => ({
+    const memberships: MeMembership[] = (data ?? []).map((m) => ({
       team_id: m.team_id,
-      team_name: teamMap.get(m.team_id) ?? '',
-      role: m.role as MemberRole,
+      team_name: extractTeamName(m.teams),
+      role: asMemberRole(m.role),
     }));
 
     const organizer = memberships.find((m) => m.role === 'organizer');
@@ -57,8 +47,14 @@ export async function GET(req: Request): Promise<Response> {
     return NextResponse.json(body);
   } catch (e) {
     if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: 401 });
+      return NextResponse.json({ error: e.message }, { status: e.status });
     }
     throw e;
   }
+}
+
+function extractTeamName(teams: TeamRef): string {
+  if (!teams) return '';
+  if (Array.isArray(teams)) return teams[0]?.name ?? '';
+  return teams.name;
 }

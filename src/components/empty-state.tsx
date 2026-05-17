@@ -14,19 +14,26 @@ export function EmptyState({ title, description, action }: Props) {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.xl,
+    gap: spacing['8'],
+    padding: spacing['24'],
     textAlign: 'center',
   };
 
-  const titleStyle: CSSProperties = { ...typography.bodyBold, color: colors.text };
-  const descStyle: CSSProperties = { ...typography.caption, color: colors.hint };
+  const titleStyle: CSSProperties = {
+    ...typography.h3,
+    color: colors.text,
+  };
+  const descStyle: CSSProperties = {
+    ...typography.sm,
+    color: colors.textSecondary,
+    maxWidth: 320,
+  };
 
   return (
     <div style={wrapper}>
       <span style={titleStyle}>{title}</span>
       {description ? <span style={descStyle}>{description}</span> : null}
-      {action ? <div style={{ marginTop: spacing.md }}>{action}</div> : null}
+      {action ? <div style={{ marginTop: spacing['12'] }}>{action}</div> : null}
     </div>
   );
 }

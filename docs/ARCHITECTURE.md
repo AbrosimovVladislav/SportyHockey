@@ -44,8 +44,8 @@
 SportyHockey/
 ├── src/
 │   ├── app/
-│   │   ├── (tabs)/                       # 5 Mini App страниц под общим layout с TabBar
-│   │   │   ├── layout.tsx                # TabBar + контейнер
+│   │   ├── (tabs)/                       # 5 Mini App страниц под общим layout с BottomNav
+│   │   │   ├── layout.tsx                # BottomNav + контейнер
 │   │   │   ├── page.tsx                  # /  главная
 │   │   │   ├── events/page.tsx
 │   │   │   ├── events/[id]/page.tsx
@@ -53,7 +53,7 @@ SportyHockey/
 │   │   │   ├── money/page.tsx
 │   │   │   ├── squad/page.tsx
 │   │   │   └── profile/page.tsx
-│   │   ├── onboarding/page.tsx           # без TabBar
+│   │   ├── onboarding/page.tsx           # без BottomNav
 │   │   ├── api/
 │   │   │   ├── bot/route.ts              # Telegram webhook (grammy)
 │   │   │   ├── me/route.ts               # GET — user + memberships + invite_link
@@ -67,15 +67,21 @@ SportyHockey/
 │   │   ├── layout.tsx                    # root + lang=ru + viewport
 │   │   ├── providers.tsx                 # TG SDK init + TanStack Query Provider
 │   │   └── globals.css
-│   ├── components/                       # UI-кит (Button, Input, Card, Screen, Chip, Avatar, EmptyState, TabBar)
+│   ├── components/                       # UI-кит (Button, Input, Card, Screen, Chip, Avatar, EmptyState, BottomNav, Icons, DarkHeader, GlassButton, FAB, ContentTabs, FilterChips, SectionHeader, EventCard, Donut, StatChip, ActionTile, PlayerRow)
 │   ├── features/                         # Фичевые композиции
 │   ├── hooks/                            # use-t.ts и далее
 │   ├── lib/
 │   │   ├── supabase-server.ts            # service-role клиент (server-only)
 │   │   ├── telegram-verify.ts            # HMAC validate initData
-│   │   ├── auth.ts                       # requireUser(request) → AuthedUser
+│   │   ├── auth.ts                       # requireUser / requireOrganizer / AuthError(status)
 │   │   ├── bot.ts                        # ленивый grammy Bot + handlers (deeplink /start team_<uuid>)
-│   │   ├── team-link.ts                  # buildInviteLink(teamId) → t.me/<bot>?start=team_<uuid>
+│   │   ├── team-link.ts                  # buildInviteLink(teamId)
+│   │   ├── user-team.ts                  # getUserTeamId(userId) (на PoC у user одна команда)
+│   │   ├── role.ts                       # asMemberRole — узкий каст из string
+│   │   ├── format-name.ts                # formatName({first,last,username})
+│   │   ├── event-enum.ts                 # asEventType / asEventStatus
+│   │   ├── event-attendance.ts           # loadAttendance(events) → счётчики {going,maybe,not_going}
+│   │   ├── notify.ts                     # заглушки notifyEvent{Created,Updated,Cancelled} — рассылка в 8.x
 │   │   └── api-client.ts                 # типизированный fetch с Authorization header
 │   ├── store/                            # Zustand-сторы
 │   ├── theme/                            # colors / spacing / typography / radius

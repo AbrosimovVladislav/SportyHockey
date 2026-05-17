@@ -11,10 +11,14 @@ export type AuthedUser = {
   photo_url: string | null;
 };
 
+export type OrganizerContext = AuthedUser & { team_id: string };
+
 export class AuthError extends Error {
-  constructor(message: string) {
+  status: 401 | 403;
+  constructor(message: string, status: 401 | 403 = 401) {
     super(message);
     this.name = 'AuthError';
+    this.status = status;
   }
 }
 
@@ -55,4 +59,23 @@ async function upsertUser(tgUser: TelegramUser): Promise<AuthedUser> {
     throw new AuthError(`users upsert failed: ${error?.message ?? 'unknown'}`);
   }
   return data;
+}
+
+export async function requireOrganizer(req: Request): Promise<OrganizerContext> {
+  const user = await requireUser(req);
+  const sb = supabaseServer();
+  const { data, error } = await sb
+    .from('team_memberships')
+    .select('team_id')
+    .eq('user_id', user.id)
+    .eq('role', 'organizer')
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`organizer check failed: ${error.message}`);
+  }
+  if (!data) {
+    throw new AuthError('Только организатор команды', 403);
+  }
+  return { ...user, team_id: data.team_id };
 }

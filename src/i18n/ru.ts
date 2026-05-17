@@ -1,13 +1,13 @@
 export const ru = {
-  // Tabs
-  'tabs.home': 'Главная',
+  // Tabs (нижняя навигация: Команда / События / Деньги / Состав / Ещё)
+  'tabs.home': 'Команда',
   'tabs.events': 'События',
   'tabs.squad': 'Состав',
   'tabs.money': 'Деньги',
-  'tabs.profile': 'Профиль',
+  'tabs.profile': 'Ещё',
 
-  // Pages — заголовки-заглушки v0.0
-  'home.title': 'Главная',
+  // Pages — заголовки-заглушки
+  'home.title': 'Команда',
   'events.title': 'События',
   'squad.title': 'Состав команды',
   'money.title': 'Деньги',
@@ -22,7 +22,8 @@ export const ru = {
   'onboarding.organizer.namePlaceholder': 'Название команды',
   'onboarding.organizer.create': 'Создать команду',
   'onboarding.player.title': 'Жди ссылку от организатора',
-  'onboarding.player.description': 'Попроси организатора прислать ссылку приглашения в Telegram. Нажми её — попадёшь в команду.',
+  'onboarding.player.description':
+    'Попроси организатора прислать ссылку приглашения в Telegram. Нажми её — попадёшь в команду.',
   'onboarding.back': 'Назад',
 
   // Profile

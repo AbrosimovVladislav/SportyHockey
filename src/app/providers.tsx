@@ -4,12 +4,11 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   init,
-  mountThemeParams,
-  bindThemeParamsCssVars,
   expandViewport,
   mountMiniApp,
-  bindMiniAppCssVars,
   setMiniAppHeaderColor,
+  setMiniAppBackgroundColor,
+  backButton,
 } from '@telegram-apps/sdk-react';
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -32,12 +31,11 @@ export function Providers({ children }: { children: ReactNode }) {
 async function bootstrapTelegram(): Promise<void> {
   try {
     init();
-    mountThemeParams();
-    bindThemeParamsCssVars();
     expandViewport();
     await mountMiniApp();
-    bindMiniAppCssVars();
-    setMiniAppHeaderColor('bg_color');
+    if (setMiniAppHeaderColor.isAvailable()) setMiniAppHeaderColor('#FFFFFF');
+    if (setMiniAppBackgroundColor.isAvailable()) setMiniAppBackgroundColor('#FFFFFF');
+    if (backButton.mount.isAvailable()) backButton.mount();
   } catch (e) {
     if (process.env.NODE_ENV === 'development') {
       console.warn('[tma] init skipped — not in Telegram:', e);

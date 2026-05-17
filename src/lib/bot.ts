@@ -26,7 +26,7 @@ export function getBot(): Bot {
 
 function registerHandlers(bot: Bot): void {
   bot.command('start', async (ctx) => {
-    const payload = String(ctx.match ?? '').trim();
+    const payload = (ctx.match ?? '').trim();
 
     if (payload.startsWith('team_') && ctx.from) {
       const teamId = payload.slice('team_'.length);
@@ -76,6 +76,7 @@ async function joinTeamByDeeplink(from: TelegramFrom, teamId: string): Promise<J
     .select('id, name')
     .eq('id', teamId)
     .maybeSingle();
+  if (teamErr) console.error('[bot] team lookup failed:', teamErr);
   if (teamErr || !team) return { kind: 'not_found' };
 
   const { data: u, error: uErr } = await sb
@@ -91,7 +92,10 @@ async function joinTeamByDeeplink(from: TelegramFrom, teamId: string): Promise<J
     )
     .select('id')
     .single();
-  if (uErr || !u) return { kind: 'not_found' };
+  if (uErr || !u) {
+    console.error('[bot] user upsert failed:', uErr);
+    return { kind: 'not_found' };
+  }
 
   const { data: existing } = await sb
     .from('team_memberships')
@@ -104,7 +108,10 @@ async function joinTeamByDeeplink(from: TelegramFrom, teamId: string): Promise<J
   const { error: insErr } = await sb
     .from('team_memberships')
     .insert({ team_id: team.id, user_id: u.id, role: 'player' });
-  if (insErr) return { kind: 'not_found' };
+  if (insErr) {
+    console.error('[bot] membership insert failed:', insErr);
+    return { kind: 'not_found' };
+  }
 
   return { kind: 'ok', teamName: team.name };
 }
