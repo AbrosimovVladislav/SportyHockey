@@ -104,12 +104,15 @@ export default function EventsPage() {
     return ev.type === 'game' ? t('schedule.titles.game') : t('schedule.titles.training');
   };
 
+  const venueFor = (ev: EventDto): string | undefined =>
+    ev.venue?.name ?? ev.venue_text ?? undefined;
+
   const renderCardToday = (ev: EventDto) => (
     <EventCard
       key={ev.id}
       kind={kindOf(ev)}
       title={titleFor(ev)}
-      venue={ev.venue_text ?? undefined}
+      venue={venueFor(ev)}
       timePrimary={formatTime(ev.starts_at)}
       timeSecondary={ev.ends_at ? `– ${formatTime(ev.ends_at)}` : undefined}
       count={ev.attendance.going}
@@ -125,7 +128,7 @@ export default function EventsPage() {
         key={ev.id}
         kind={kindOf(ev)}
         title={titleFor(ev)}
-        venue={ev.venue_text ?? undefined}
+        venue={venueFor(ev)}
         timePrimary={formatTime(ev.starts_at)}
         weekDate={wd.date}
         weekDay={wd.day}

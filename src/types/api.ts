@@ -54,12 +54,30 @@ export type AttendanceCount = {
   not_going: number;
 };
 
+export type VenueDto = {
+  id: string;
+  name: string;
+  address: string | null;
+  default_cost_per_player: number | null;
+};
+
+export type VenuesListResponse = {
+  venues: VenueDto[];
+};
+
+export type EventVenue = {
+  id: string;
+  name: string;
+  address: string | null;
+};
+
 export type EventDto = {
   id: string;
   type: EventType;
   title: string | null;
   starts_at: string;
   ends_at: string | null;
+  venue: EventVenue | null;
   venue_text: string | null;
   cost_per_player: number | null;
   status: EventStatus;
@@ -100,21 +118,19 @@ export type EventsListResponse = {
 export type CreateEventRequest = {
   type: EventType;
   starts_at: string;
+  duration_minutes: number;
+  venue_id: string;
   title?: string;
-  ends_at?: string | null;
-  venue_text?: string;
   cost_per_player?: number;
-  description?: string;
 };
 
 export type UpdateEventRequest = {
   type?: EventType;
   starts_at?: string;
-  title?: string;
-  ends_at?: string | null;
-  venue_text?: string;
-  cost_per_player?: number;
-  description?: string;
+  duration_minutes?: number;
+  venue_id?: string;
+  title?: string | null;
+  cost_per_player?: number | null;
   status?: 'scheduled' | 'cancelled';
 };
 

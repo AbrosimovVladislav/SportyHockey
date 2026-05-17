@@ -9,6 +9,7 @@ import { notifyEventCreated } from '@/lib/notify';
 import type {
   CreateEventResponse,
   EventDto,
+  EventVenue,
   EventsListResponse,
 } from '@/types/api';
 
@@ -18,12 +19,20 @@ export const dynamic = 'force-dynamic';
 const CreateBody = z.object({
   type: z.enum(['training', 'game']),
   starts_at: z.string().datetime({ offset: true }),
+  duration_minutes: z.number().int().positive().max(720),
+  venue_id: z.string().uuid(),
   title: z.string().trim().min(1).max(100).optional(),
-  ends_at: z.string().datetime({ offset: true }).nullable().optional(),
-  venue_text: z.string().trim().min(1).max(200).optional(),
   cost_per_player: z.number().nonnegative().optional(),
-  description: z.string().trim().max(2000).optional(),
 });
+
+type VenueRow = Pick<EventVenue, 'id' | 'name' | 'address'>;
+
+function pickVenue(raw: VenueRow | VenueRow[] | null | undefined): EventVenue | null {
+  if (!raw) return null;
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  if (!v) return null;
+  return { id: v.id, name: v.name, address: v.address ?? null };
+}
 
 export async function GET(req: Request): Promise<Response> {
   try {
@@ -38,7 +47,9 @@ export async function GET(req: Request): Promise<Response> {
     const [{ data: rows, error }, { count: teamSize, error: countError }] = await Promise.all([
       sb
         .from('events')
-        .select('id, type, title, starts_at, ends_at, venue_text, cost_per_player, status')
+        .select(
+          'id, type, title, starts_at, ends_at, venue_text, cost_per_player, status, venue:venues(id, name, address)',
+        )
         .eq('team_id', teamId)
         .neq('status', 'cancelled')
         .order('starts_at', { ascending: true }),
@@ -63,6 +74,7 @@ export async function GET(req: Request): Promise<Response> {
       title: r.title,
       starts_at: r.starts_at,
       ends_at: r.ends_at,
+      venue: pickVenue(r.venue as VenueRow | VenueRow[] | null),
       venue_text: r.venue_text,
       cost_per_player: r.cost_per_player != null ? Number(r.cost_per_player) : null,
       status: asEventStatus(r.status),
@@ -89,18 +101,40 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const sb = supabaseServer();
+
+    const { data: venue, error: venueErr } = await sb
+      .from('venues')
+      .select('id, default_cost_per_player')
+      .eq('id', parsed.data.venue_id)
+      .eq('team_id', ctx.team_id)
+      .maybeSingle();
+    if (venueErr) {
+      return NextResponse.json({ error: venueErr.message }, { status: 500 });
+    }
+    if (!venue) {
+      return NextResponse.json({ error: 'Площадка не найдена' }, { status: 404 });
+    }
+
+    const startsAt = new Date(parsed.data.starts_at);
+    const endsAt = new Date(startsAt.getTime() + parsed.data.duration_minutes * 60_000);
+    const cost =
+      parsed.data.cost_per_player !== undefined
+        ? parsed.data.cost_per_player
+        : venue.default_cost_per_player != null
+          ? Number(venue.default_cost_per_player)
+          : null;
+
     const { data, error } = await sb
       .from('events')
       .insert({
         team_id: ctx.team_id,
         created_by: ctx.id,
         type: parsed.data.type,
-        starts_at: parsed.data.starts_at,
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt.toISOString(),
+        venue_id: venue.id,
         title: parsed.data.title ?? null,
-        ends_at: parsed.data.ends_at ?? null,
-        venue_text: parsed.data.venue_text ?? null,
-        cost_per_player: parsed.data.cost_per_player ?? null,
-        description: parsed.data.description ?? null,
+        cost_per_player: cost,
       })
       .select('id')
       .single();

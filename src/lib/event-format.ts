@@ -20,6 +20,38 @@ const dateRangeFmt = new Intl.DateTimeFormat('ru-RU', {
   month: 'long',
 });
 
+const longDateFmt = new Intl.DateTimeFormat('ru-RU', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+// «17 мая 2026»
+export function formatLongDate(iso: string): string {
+  const parts = longDateFmt.formatToParts(new Date(iso));
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('day')} ${get('month')} ${get('year')}`;
+}
+
+// «17 мая 2026» — из строки YYYY-MM-DD (локальное время, без UTC-сдвига)
+export function formatLongDateLocal(dateStr: string): string {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y ?? 0, (m ?? 1) - 1, d ?? 1);
+  const parts = longDateFmt.formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('day')} ${get('month')} ${get('year')}`;
+}
+
+// YYYY-MM-DD + HH:mm → ISO в локальном часовом поясе
+export function combineDateTime(dateStr: string, timeStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [h, min] = timeStr.split(':').map(Number);
+  return new Date(y, (m ?? 1) - 1, d, h ?? 0, min ?? 0, 0, 0).toISOString();
+}
+
 export function formatTime(iso: string): string {
   return timeFmt.format(new Date(iso));
 }

@@ -224,9 +224,9 @@ export default function EventDetailPage() {
     );
   }
 
-  const venueParts = (data.venue_text ?? '').split('•').map((s) => s.trim()).filter(Boolean);
-  const venueMain = venueParts[0] ?? data.venue_text ?? '';
-  const venueSub = venueParts.slice(1).join(' • ');
+  const venueName = data.venue?.name ?? data.venue_text ?? '';
+  const venueAddress = data.venue?.address ?? null;
+  const hasVenue = Boolean(venueName);
 
   return (
     <div style={wrap}>
@@ -255,9 +255,9 @@ export default function EventDetailPage() {
           <div style={{ fontSize: 15, marginTop: spacing['8'], opacity: 0.95 }}>
             {formatEventDateRange(data.starts_at, data.ends_at)}
           </div>
-          {data.venue_text ? (
+          {hasVenue ? (
             <div style={{ fontSize: 15, marginTop: spacing['4'], opacity: 0.9 }}>
-              {data.venue_text}
+              {venueName}
             </div>
           ) : null}
         </div>
@@ -438,11 +438,11 @@ export default function EventDetailPage() {
         />
 
         {/* ПЛОЩАДКА */}
-        {data.venue_text ? (
+        {hasVenue ? (
           <ListRow
             icon={<IconLocation size={20} color={colors.iconFg} />}
             title={t('eventDetail.links.venue')}
-            subtitle={[venueMain, venueSub].filter(Boolean).join('\n')}
+            subtitle={[venueName, venueAddress].filter(Boolean).join('\n')}
             showChevron={false}
             right={
               <button

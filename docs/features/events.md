@@ -8,13 +8,12 @@
 ### v0.1
 - ✅ **API события (итерация 7).** `GET /api/events` (список команды, без `cancelled`, со счётчиком явки + `team_size`), `POST /api/events` (organizer-only, zod), `GET /api/events/[id]` (detail + счётчик явки, 404 если user не в команде), `PATCH /api/events/[id]` (organizer-only, все поля optional + `status`).
 - ✅ **Список событий — экран расписания (итерация 9).** DarkHeader («Капитан / Расписание»), белый sheet с радиусом 24px, табы «Список / Календарь», фильтры «Все / Тренировки / Игры», группировка «Сегодня / Эта неделя / Далее», карточка `EventCard` (today/week-режимы) со счётчиком `going / team_size`, FAB для organizer.
-- **Создание события — `/events/new` (итерация 10).** Форма: тип, дата/время, площадка свободным текстом, стоимость на игрока, описание. По «Сохранить» → POST + бот рассылает голосование (рассылка в 11.x).
+- ✅ **Создание события — `/events/new` (итерация 10).** Форма: чипы тип (тренировка/игра, с иконками), секция «Расписание» (Дата → нативный календарь, Начало → нативный time picker, Длительность → BottomSheet 1ч/1,5ч/2ч/2,5ч/3ч), Textarea «Детали события» (сохраняется в `events.title`), арена через BottomSheet из `GET /api/venues`, авто-взнос с игрока из `venue.default_cost_per_player`. POST принимает `{ type, starts_at, duration_minutes, venue_id, title?, cost_per_player? }`. Бот-рассылка вынесена в 12.x.
 - ✅ **Страница события — детали (итерация 11).** Hero-шапка (плейсхолдер фото) с заголовком, датой/временем (`formatEventDateRange`) и площадкой; vote-карточка (Я иду / Не иду), карточка «Состав и явка» (3 счётчика), карточка «Участники и взносы» (avatar-stack + прогресс-бар взносов), `ListRow`-секции «Команды», «Статистика события», «Площадка», «Медиа» — пока заглушки.
 - **Редактирование события (UI).** Только организатор. При изменении даты/времени — бот пушит обновление (в 12.x).
 - **Отмена события (UI).** Soft-delete (`status = cancelled`), рассылка отмены (в 12.x).
 
 ### v0.2
-- Выбор площадки из справочника (см. [venues.md](venues.md))
 - Календарный вид (контент таба «Календарь» в `/events` — на v0.1 заглушка)
 - Дубликат события («Повторить как в прошлый раз»)
 - Турниры — отдельный `events.type='tournament'` + чип-фильтр на расписании
@@ -28,9 +27,14 @@
 - Календарный вид
 
 ## Связанные файлы
-- `src/app/api/events/route.ts` — GET / POST
+- `src/app/api/events/route.ts` — GET / POST (venue_id + duration_minutes)
 - `src/app/api/events/[id]/route.ts` — GET / PATCH
+- `src/app/api/venues/route.ts` — GET площадок команды
 - `src/app/(tabs)/events/page.tsx` — экран расписания (итерация 9)
-- `src/hooks/use-events.ts`, `src/lib/event-format.ts` — клиентский слой расписания
+- `src/app/(tabs)/events/new/page.tsx` — форма создания (итерация 10)
+- `src/app/(tabs)/events/[id]/page.tsx` — детали + голосование (итерация 11)
+- `src/hooks/use-events.ts`, `src/hooks/use-event.ts`, `src/hooks/use-venues.ts`, `src/hooks/use-vote-event.ts`
+- `src/lib/event-format.ts` — клиентский слой расписания + `formatLongDateLocal`, `combineDateTime`
 - `src/lib/event-enum.ts`, `src/lib/event-attendance.ts`, `src/lib/notify.ts`, `src/lib/user-team.ts`
 - `src/lib/auth.ts` — `requireOrganizer`
+- DS-компоненты формы: `src/components/type-chips.tsx`, `src/components/card-field.tsx`, `src/components/bottom-sheet.tsx`

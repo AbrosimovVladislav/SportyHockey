@@ -361,6 +361,7 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string | null
+          default_cost_per_player: number | null
           id: string
           name: string
           notes: string | null
@@ -369,6 +370,7 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string | null
+          default_cost_per_player?: number | null
           id?: string
           name: string
           notes?: string | null
@@ -377,6 +379,7 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string | null
+          default_cost_per_player?: number | null
           id?: string
           name?: string
           notes?: string | null

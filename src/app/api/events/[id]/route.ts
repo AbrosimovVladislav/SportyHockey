@@ -7,7 +7,7 @@ import { loadAttendance } from '@/lib/event-attendance';
 import { asMemberRole } from '@/lib/role';
 import { notifyEventCancelled, notifyEventUpdated } from '@/lib/notify';
 import type { TablesUpdate } from '@/types/db';
-import type { EventAttendee, EventDetailDto, EventVote } from '@/types/api';
+import type { EventAttendee, EventDetailDto, EventVenue, EventVote } from '@/types/api';
 
 const VOTE_ORDER: Record<string, number> = {
   going: 0,
@@ -21,17 +21,25 @@ function asVote(value: string | null | undefined): EventVote | null {
   return null;
 }
 
+type VenueRow = Pick<EventVenue, 'id' | 'name' | 'address'>;
+
+function pickVenue(raw: VenueRow | VenueRow[] | null | undefined): EventVenue | null {
+  if (!raw) return null;
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  if (!v) return null;
+  return { id: v.id, name: v.name, address: v.address ?? null };
+}
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const UpdateBody = z.object({
   type: z.enum(['training', 'game']).optional(),
   starts_at: z.string().datetime({ offset: true }).optional(),
-  title: z.string().trim().min(1).max(100).optional(),
-  ends_at: z.string().datetime({ offset: true }).nullable().optional(),
-  venue_text: z.string().trim().min(1).max(200).optional(),
-  cost_per_player: z.number().nonnegative().optional(),
-  description: z.string().trim().max(2000).optional(),
+  duration_minutes: z.number().int().positive().max(720).optional(),
+  venue_id: z.string().uuid().optional(),
+  title: z.string().trim().min(1).max(100).nullable().optional(),
+  cost_per_player: z.number().nonnegative().nullable().optional(),
   status: z.enum(['scheduled', 'cancelled']).optional(),
 });
 
@@ -46,7 +54,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: event, error } = await sb
       .from('events')
       .select(
-        'id, team_id, type, title, starts_at, ends_at, venue_text, cost_per_player, status, description, created_by',
+        'id, team_id, type, title, starts_at, ends_at, venue_text, cost_per_player, status, description, created_by, venue:venues(id, name, address)',
       )
       .eq('id', id)
       .maybeSingle();
@@ -69,7 +77,6 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
 
     const attendanceMap = await loadAttendance(sb, [event.id]);
 
-    // Все члены команды + их текущий голос (LEFT JOIN через два запроса).
     const { data: members, error: memErr } = await sb
       .from('team_memberships')
       .select('user_id, role, users(first_name, last_name, username, photo_url)')
@@ -115,6 +122,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       title: event.title,
       starts_at: event.starts_at,
       ends_at: event.ends_at,
+      venue: pickVenue(event.venue as VenueRow | VenueRow[] | null),
       venue_text: event.venue_text,
       cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
       status: asEventStatus(event.status),
@@ -146,7 +154,7 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     const sb = supabaseServer();
     const { data: existing, error: existingErr } = await sb
       .from('events')
-      .select('id, team_id, status')
+      .select('id, team_id, status, starts_at')
       .eq('id', id)
       .maybeSingle();
     if (existingErr) {
@@ -156,16 +164,36 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
     }
 
-    const patch: TablesUpdate<'events'> = {};
     const d = parsed.data;
+    const patch: TablesUpdate<'events'> = {};
+
     if (d.type !== undefined) patch.type = d.type;
-    if (d.starts_at !== undefined) patch.starts_at = d.starts_at;
     if (d.title !== undefined) patch.title = d.title;
-    if (d.ends_at !== undefined) patch.ends_at = d.ends_at;
-    if (d.venue_text !== undefined) patch.venue_text = d.venue_text;
     if (d.cost_per_player !== undefined) patch.cost_per_player = d.cost_per_player;
-    if (d.description !== undefined) patch.description = d.description;
     if (d.status !== undefined) patch.status = d.status;
+
+    if (d.venue_id !== undefined) {
+      const { data: venue } = await sb
+        .from('venues')
+        .select('id')
+        .eq('id', d.venue_id)
+        .eq('team_id', ctx.team_id)
+        .maybeSingle();
+      if (!venue) {
+        return NextResponse.json({ error: 'Площадка не найдена' }, { status: 404 });
+      }
+      patch.venue_id = venue.id;
+    }
+
+    if (d.starts_at !== undefined || d.duration_minutes !== undefined) {
+      const startsIso = d.starts_at ?? existing.starts_at;
+      patch.starts_at = startsIso;
+      if (d.duration_minutes !== undefined) {
+        const startsDate = new Date(startsIso);
+        const endsDate = new Date(startsDate.getTime() + d.duration_minutes * 60_000);
+        patch.ends_at = endsDate.toISOString();
+      }
+    }
 
     if (Object.keys(patch).length === 0) {
       return NextResponse.json({ ok: true });

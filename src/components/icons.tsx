@@ -211,3 +211,40 @@ export const IconInfo = (p: IconProps) => (
     <circle cx="12" cy="8" r="0.8" fill={p.color ?? 'currentColor'} stroke="none" />
   </Svg>
 );
+
+export const IconWhistle = (p: IconProps) => (
+  <Svg {...p} strokeWidth={1.7}>
+    <path d="M3 12.5a5.5 5.5 0 005.5 5.5h2a5.5 5.5 0 005.5-5.5V11h2.5a1.5 1.5 0 001.5-1.5v-1A1.5 1.5 0 0018.5 7H8.5A5.5 5.5 0 003 12.5z" />
+    <circle cx="8.5" cy="12.5" r="1" fill={p.color ?? 'currentColor'} stroke="none" />
+  </Svg>
+);
+
+export const IconStick = (p: IconProps) => (
+  <Svg {...p} strokeWidth={1.7}>
+    <path d="M4 18l9-12 4 3-9 12-4-3z" />
+    <path d="M13 6l4 3" />
+    <circle cx="18.5" cy="18.5" r="1.5" />
+  </Svg>
+);
+
+export const IconStopwatch = (p: IconProps) => (
+  <Svg {...p} strokeWidth={1.7}>
+    <circle cx="12" cy="13" r="8" />
+    <path d="M9 3h6" />
+    <path d="M12 9v4l2.5 2" />
+  </Svg>
+);
+
+export const IconSparkle = (p: IconProps) => (
+  <Svg {...p} strokeWidth={1.7}>
+    <path d="M12 4l1.6 4.4L18 10l-4.4 1.6L12 16l-1.6-4.4L6 10l4.4-1.6L12 4z" />
+    <path d="M19 4l.7 1.8L21.5 6.5l-1.8.7L19 9l-.7-1.8L16.5 6.5l1.8-.7L19 4z" strokeWidth="1.4" />
+  </Svg>
+);
+
+export const IconCheckCircle = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
+    <circle cx="12" cy="12" r="10" fill={color} />
+    <path d="M7 12l3.5 3.5L17 9" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
