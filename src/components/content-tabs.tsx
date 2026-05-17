@@ -15,8 +15,11 @@ type Props = {
 export function ContentTabs({ tabs, activeId, onChange }: Props) {
   const wrap: CSSProperties = {
     display: 'flex',
-    borderBottom: `1px solid ${colors.line}`,
-    position: 'relative',
+    gap: spacing['4'],
+    padding: spacing['4'],
+    margin: `${spacing['16']}px ${spacing['16']}px`,
+    background: colors.cardSchedule,
+    borderRadius: 999,
   };
 
   return (
@@ -26,23 +29,15 @@ export function ContentTabs({ tabs, activeId, onChange }: Props) {
         const tabStyle: CSSProperties = {
           flex: 1,
           textAlign: 'center',
-          padding: `${spacing['16']}px 0 ${spacing['12']}px`,
-          fontSize: 16,
-          fontWeight: active ? 600 : 400,
-          color: active ? colors.text : colors.tabInactive,
-          position: 'relative',
-          background: 'none',
+          padding: `${spacing['10']}px 0`,
+          fontSize: 15,
+          fontWeight: active ? 700 : 500,
+          color: active ? colors.textInverse : colors.tabInactive,
+          background: active ? colors.headerBg : 'transparent',
+          borderRadius: 999,
           border: 'none',
           cursor: 'pointer',
-        };
-        const indicator: CSSProperties = {
-          position: 'absolute',
-          bottom: -1,
-          left: '28%',
-          right: '28%',
-          height: 3,
-          borderRadius: 2,
-          background: colors.headerAccent,
+          transition: 'background 0.15s ease, color 0.15s ease',
         };
         return (
           <button
@@ -53,7 +48,6 @@ export function ContentTabs({ tabs, activeId, onChange }: Props) {
             style={tabStyle}
           >
             {tab.label}
-            {active ? <span style={indicator} /> : null}
           </button>
         );
       })}

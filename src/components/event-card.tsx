@@ -4,7 +4,7 @@ import type { CSSProperties } from 'react';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
-import { IconWhistle, IconStick, IconTrophy, IconChevronRight } from './icons';
+import { IconWhistle, IconSticksCrossed, IconTrophy, IconChevronRight } from './icons';
 
 export type EventCardKind = 'training' | 'game' | 'tournament';
 
@@ -23,7 +23,7 @@ type Props = {
 
 function IconForKind({ kind }: { kind: EventCardKind }) {
   if (kind === 'tournament') return <IconTrophy size={22} color={colors.gold} />;
-  if (kind === 'game') return <IconStick size={22} color={colors.iconFg} />;
+  if (kind === 'game') return <IconSticksCrossed size={22} color={colors.iconFg} />;
   return <IconWhistle size={22} color={colors.iconFg} />;
 }
 

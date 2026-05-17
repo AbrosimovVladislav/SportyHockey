@@ -227,6 +227,27 @@ export const IconStick = (p: IconProps) => (
   </Svg>
 );
 
+export const IconSticksCrossed = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={1.7}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...p}
+  >
+    <path d="M4 4l13 13" />
+    <path d="M17 17l2 2.5" />
+    <path d="M20 4L7 17" />
+    <path d="M7 17l-2 2.5" />
+    <circle cx="4.5" cy="20" r="1" fill={color} stroke="none" />
+    <circle cx="19.5" cy="20" r="1" fill={color} stroke="none" />
+  </svg>
+);
+
 export const IconStopwatch = (p: IconProps) => (
   <Svg {...p} strokeWidth={1.7}>
     <circle cx="12" cy="13" r="8" />
