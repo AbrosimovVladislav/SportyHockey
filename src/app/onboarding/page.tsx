@@ -53,7 +53,7 @@ export default function OnboardingPage() {
 
   if (me.isLoading) {
     return (
-      <Screen>
+      <Screen withTabBar={false}>
         <span style={{ ...typography.body, color: colors.textSecondary }}>
           {t('common.loading')}
         </span>
@@ -64,7 +64,7 @@ export default function OnboardingPage() {
   if (step === 'organizer') {
     const trimmed = teamName.trim();
     return (
-      <Screen title={t('onboarding.organizer.title')}>
+      <Screen withTabBar={false} title={t('onboarding.organizer.title')}>
         <Input
           placeholder={t('onboarding.organizer.namePlaceholder')}
           value={teamName}
@@ -92,7 +92,7 @@ export default function OnboardingPage() {
 
   if (step === 'player') {
     return (
-      <Screen>
+      <Screen withTabBar={false}>
         <EmptyState
           title={t('onboarding.player.title')}
           description={t('onboarding.player.description')}
@@ -102,7 +102,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <Screen title={t('onboarding.welcome.title')}>
+    <Screen withTabBar={false} title={t('onboarding.welcome.title')}>
       <span style={{ ...typography.body, color: colors.textSecondary }}>
         {t('onboarding.welcome.subtitle')}
       </span>

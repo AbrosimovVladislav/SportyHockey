@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { BottomNav, BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
+import { BottomNav } from '@/components/bottom-nav';
 import { Screen } from '@/components/screen';
 import { useMe } from '@/hooks/use-me';
 import { useT } from '@/hooks/use-t';
@@ -39,7 +39,7 @@ export default function TabsLayout({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div style={{ paddingBottom: BOTTOM_NAV_HEIGHT + 16 }}>{children}</div>
+      {children}
       <BottomNav />
     </>
   );

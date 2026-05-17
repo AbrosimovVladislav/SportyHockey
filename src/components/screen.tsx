@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 import { colors } from '@/theme/colors';
+import { BOTTOM_NAV_HEIGHT } from './bottom-nav';
 
 type Props = {
   title?: string;
@@ -9,21 +10,25 @@ type Props = {
   paddingBottom?: number;
   padding?: number;
   background?: string;
+  withTabBar?: boolean;
 };
 
 export function Screen({
   title,
   children,
-  paddingBottom = spacing['32'],
+  paddingBottom,
   padding = spacing['20'],
   background = colors.bg,
+  withTabBar = true,
 }: Props) {
+  const resolvedBottom =
+    paddingBottom ?? spacing['32'] + (withTabBar ? BOTTOM_NAV_HEIGHT : 0);
   const wrapper: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
     gap: spacing['16'],
     padding,
-    paddingBottom,
+    paddingBottom: resolvedBottom,
     minHeight: '100dvh',
     background,
     color: colors.text,

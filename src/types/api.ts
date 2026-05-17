@@ -73,6 +73,7 @@ export type EventDetailDto = EventDto & {
 };
 
 export type EventsListResponse = {
+  team_size: number;
   events: EventDto[];
 };
 

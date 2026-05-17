@@ -37,6 +37,25 @@ export const ru = {
   // Squad
   'squad.empty': 'В команде пока никого нет',
 
+  // Schedule (расписание событий)
+  'schedule.role.organizer': 'Капитан',
+  'schedule.role.player': 'Игрок',
+  'schedule.title': 'Расписание',
+  'schedule.tabs.list': 'Список',
+  'schedule.tabs.calendar': 'Календарь',
+  'schedule.filters.all': 'Все',
+  'schedule.filters.training': 'Тренировки',
+  'schedule.filters.game': 'Игры',
+  'schedule.sections.today': 'Сегодня',
+  'schedule.sections.week': 'Эта неделя',
+  'schedule.sections.later': 'Далее',
+  'schedule.empty': 'Событий пока нет',
+  'schedule.calendarSoon': 'Календарь скоро',
+  'schedule.fabLabel': 'Создать событие',
+  'schedule.backLabel': 'Назад',
+  'schedule.titles.training': 'Тренировка',
+  'schedule.titles.game': 'Игра',
+
   // Common
   'common.empty': 'Пока ничего нет',
   'common.loading': 'Загружаем',

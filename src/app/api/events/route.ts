@@ -30,19 +30,28 @@ export async function GET(req: Request): Promise<Response> {
     const user = await requireUser(req);
     const teamId = await getUserTeamId(user.id);
     if (!teamId) {
-      const empty: EventsListResponse = { events: [] };
+      const empty: EventsListResponse = { team_size: 0, events: [] };
       return NextResponse.json(empty);
     }
 
     const sb = supabaseServer();
-    const { data: rows, error } = await sb
-      .from('events')
-      .select('id, type, title, starts_at, ends_at, venue_text, cost_per_player, status')
-      .eq('team_id', teamId)
-      .neq('status', 'cancelled')
-      .order('starts_at', { ascending: true });
+    const [{ data: rows, error }, { count: teamSize, error: countError }] = await Promise.all([
+      sb
+        .from('events')
+        .select('id, type, title, starts_at, ends_at, venue_text, cost_per_player, status')
+        .eq('team_id', teamId)
+        .neq('status', 'cancelled')
+        .order('starts_at', { ascending: true }),
+      sb
+        .from('team_memberships')
+        .select('id', { count: 'exact', head: true })
+        .eq('team_id', teamId),
+    ]);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (countError) {
+      return NextResponse.json({ error: countError.message }, { status: 500 });
     }
 
     const ids = (rows ?? []).map((r) => r.id);
@@ -60,7 +69,7 @@ export async function GET(req: Request): Promise<Response> {
       attendance: attendanceMap.get(r.id) ?? { going: 0, maybe: 0, not_going: 0 },
     }));
 
-    const body: EventsListResponse = { events };
+    const body: EventsListResponse = { team_size: teamSize ?? 0, events };
     return NextResponse.json(body);
   } catch (e) {
     if (e instanceof AuthError) {
