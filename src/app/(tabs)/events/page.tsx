@@ -3,7 +3,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { DarkHeader } from '@/components/dark-header';
-import { BackButton } from '@/components/back-button';
 import { ContentTabs } from '@/components/content-tabs';
 import { FilterChips } from '@/components/filter-chips';
 import { SectionHeader } from '@/components/section-header';
@@ -163,7 +162,6 @@ export default function EventsPage() {
       <DarkHeader
         role={role}
         title={t('schedule.title')}
-        left={<BackButton ariaLabel={t('schedule.backLabel')} />}
         right={<BellWithDot />}
       />
 
@@ -232,7 +230,7 @@ export default function EventsPage() {
           variant="dark"
           ariaLabel={t('schedule.fabLabel')}
           onClick={handleFabClick}
-          bottom={BOTTOM_NAV_HEIGHT + 14}
+          bottom={BOTTOM_NAV_HEIGHT + 24}
         />
       ) : null}
     </div>

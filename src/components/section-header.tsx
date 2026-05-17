@@ -16,7 +16,7 @@ export function SectionHeader({ title, subtitle }: Props) {
   };
 
   const titleStyle: CSSProperties = {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: 700,
     color: colors.text,
   };

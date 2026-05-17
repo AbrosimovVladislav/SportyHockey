@@ -23,7 +23,7 @@ const variantBg: Record<Variant, string> = {
 export function FAB({ onClick, variant = 'dark', ariaLabel, children, bottom = 78, right = 18 }: Props) {
   const base: CSSProperties = {
     position: 'fixed',
-    bottom,
+    bottom: `calc(${bottom}px + env(safe-area-inset-bottom, 0px))`,
     right,
     width: 56,
     height: 56,
