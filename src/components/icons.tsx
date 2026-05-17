@@ -173,3 +173,41 @@ export const IconChat = (p: IconProps) => (
     <path d="M20 12a8 8 0 01-13 6.3L4 19l.7-3A8 8 0 0120 12z" />
   </Svg>
 );
+
+export const IconShirt = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M9 4l3 2 3-2 5 2-1 4-3-1v11H7V9L4 10 3 6l6-2z" />
+  </Svg>
+);
+
+export const IconStats = (p: IconProps) => (
+  <Svg {...p} strokeWidth={1.8}>
+    <line x1="6" y1="20" x2="6" y2="13" />
+    <line x1="12" y1="20" x2="12" y2="8" />
+    <line x1="18" y1="20" x2="18" y2="15" />
+  </Svg>
+);
+
+export const IconExternal = (p: IconProps) => (
+  <Svg {...p} strokeWidth={1.8}>
+    <path d="M14 4h6v6" />
+    <path d="M20 4L11 13" />
+    <path d="M19 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5" />
+  </Svg>
+);
+
+export const IconImage = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4.5" width="18" height="15" rx="2.5" />
+    <circle cx="9" cy="10" r="1.5" />
+    <path d="M21 17l-5-5-7 7" />
+  </Svg>
+);
+
+export const IconInfo = (p: IconProps) => (
+  <Svg {...p} strokeWidth={1.6}>
+    <circle cx="12" cy="12" r="9" />
+    <line x1="12" y1="11" x2="12" y2="16.5" />
+    <circle cx="12" cy="8" r="0.8" fill={p.color ?? 'currentColor'} stroke="none" />
+  </Svg>
+);

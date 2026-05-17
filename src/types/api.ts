@@ -66,11 +66,31 @@ export type EventDto = {
   attendance: AttendanceCount;
 };
 
+export type EventVote = 'going' | 'maybe' | 'not_going';
+
+export type EventAttendee = {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  photo_url: string | null;
+  role: MemberRole;
+  vote: EventVote | null;
+};
+
 export type EventDetailDto = EventDto & {
   team_id: string;
   description: string | null;
   created_by: string | null;
+  team_size: number;
+  attendees: EventAttendee[];
 };
+
+export type VoteRequest = {
+  vote: 'going' | 'not_going';
+};
+
+export type VoteResponse = { ok: true };
 
 export type EventsListResponse = {
   team_size: number;

@@ -14,6 +14,12 @@ const todayFmt = new Intl.DateTimeFormat('ru-RU', {
 
 const weekDayFmt = new Intl.DateTimeFormat('ru-RU', { weekday: 'short' });
 
+const dateRangeFmt = new Intl.DateTimeFormat('ru-RU', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'long',
+});
+
 export function formatTime(iso: string): string {
   return timeFmt.format(new Date(iso));
 }
@@ -24,6 +30,19 @@ export function formatTodaySubtitle(date: Date): string {
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((p) => p.type === type)?.value ?? '';
   return `${get('day')} ${get('month')}, ${get('weekday')}`;
+}
+
+// «сб 24 мая • 19:30–21:00» либо «сб 24 мая • 19:30» если ends_at пуст
+export function formatEventDateRange(startsIso: string, endsIso?: string | null): string {
+  const start = new Date(startsIso);
+  const parts = dateRangeFmt.formatToParts(start);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  const weekday = get('weekday').replace('.', '');
+  const datePart = `${weekday} ${get('day')} ${get('month')}`;
+  const startTime = formatTime(startsIso);
+  if (!endsIso) return `${datePart} • ${startTime}`;
+  return `${datePart} • ${startTime}–${formatTime(endsIso)}`;
 }
 
 export function formatWeekDate(iso: string): { date: string; day: string } {

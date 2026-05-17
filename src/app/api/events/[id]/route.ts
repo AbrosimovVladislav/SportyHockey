@@ -4,9 +4,22 @@ import { AuthError, requireOrganizer, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventStatus, asEventType } from '@/lib/event-enum';
 import { loadAttendance } from '@/lib/event-attendance';
+import { asMemberRole } from '@/lib/role';
 import { notifyEventCancelled, notifyEventUpdated } from '@/lib/notify';
 import type { TablesUpdate } from '@/types/db';
-import type { EventDetailDto } from '@/types/api';
+import type { EventAttendee, EventDetailDto, EventVote } from '@/types/api';
+
+const VOTE_ORDER: Record<string, number> = {
+  going: 0,
+  maybe: 1,
+  not_going: 2,
+  null: 3,
+};
+
+function asVote(value: string | null | undefined): EventVote | null {
+  if (value === 'going' || value === 'maybe' || value === 'not_going') return value;
+  return null;
+}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -56,6 +69,45 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
 
     const attendanceMap = await loadAttendance(sb, [event.id]);
 
+    // Все члены команды + их текущий голос (LEFT JOIN через два запроса).
+    const { data: members, error: memErr } = await sb
+      .from('team_memberships')
+      .select('user_id, role, users(first_name, last_name, username, photo_url)')
+      .eq('team_id', event.team_id);
+    if (memErr) {
+      return NextResponse.json({ error: memErr.message }, { status: 500 });
+    }
+    const { data: votes, error: voteErr } = await sb
+      .from('event_attendances')
+      .select('user_id, vote')
+      .eq('event_id', event.id);
+    if (voteErr) {
+      return NextResponse.json({ error: voteErr.message }, { status: 500 });
+    }
+    const voteByUser = new Map<string, EventVote | null>();
+    for (const v of votes ?? []) voteByUser.set(v.user_id, asVote(v.vote));
+
+    const attendees: EventAttendee[] = (members ?? []).map((m) => {
+      const u = Array.isArray(m.users) ? m.users[0] : m.users;
+      return {
+        user_id: m.user_id,
+        first_name: u?.first_name ?? null,
+        last_name: u?.last_name ?? null,
+        username: u?.username ?? null,
+        photo_url: u?.photo_url ?? null,
+        role: asMemberRole(m.role),
+        vote: voteByUser.get(m.user_id) ?? null,
+      };
+    });
+    attendees.sort((a, b) => {
+      const av = VOTE_ORDER[a.vote ?? 'null'];
+      const bv = VOTE_ORDER[b.vote ?? 'null'];
+      if (av !== bv) return av - bv;
+      const an = `${a.first_name ?? ''} ${a.last_name ?? ''}`.trim();
+      const bn = `${b.first_name ?? ''} ${b.last_name ?? ''}`.trim();
+      return an.localeCompare(bn, 'ru');
+    });
+
     const dto: EventDetailDto = {
       id: event.id,
       team_id: event.team_id,
@@ -69,6 +121,8 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       description: event.description,
       created_by: event.created_by,
       attendance: attendanceMap.get(event.id) ?? { going: 0, maybe: 0, not_going: 0 },
+      team_size: attendees.length,
+      attendees,
     };
     return NextResponse.json(dto);
   } catch (e) {
