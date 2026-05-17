@@ -81,7 +81,7 @@ SportyHockey/
 │   │   ├── format-name.ts                # formatName({first,last,username})
 │   │   ├── event-enum.ts                 # asEventType / asEventStatus
 │   │   ├── event-attendance.ts           # loadAttendance(events) → счётчики {going,maybe,not_going}
-│   │   ├── notify.ts                     # заглушки notifyEvent{Created,Updated,Cancelled} — рассылка в 8.x
+│   │   ├── notify.ts                     # заглушки notifyEvent{Created,Updated,Cancelled} — рассылка в 9.x
 │   │   └── api-client.ts                 # типизированный fetch с Authorization header
 │   ├── store/                            # Zustand-сторы
 │   ├── theme/                            # colors / spacing / typography / radius

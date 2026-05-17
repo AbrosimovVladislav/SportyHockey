@@ -24,6 +24,7 @@
 - [Онбординг](features/onboarding.md)
 - [Команда (минимально)](features/team.md)
 - [События](features/events.md)
+- [Дизайн-система v1](DESIGN.md)
 - [Голосование и явка](features/voting-attendance.md)
 - [Состав на событие (PoC)](features/roster-day.md)
 - [Финансы (учёт)](features/finances.md)
