@@ -1,10 +1,9 @@
 'use client';
 
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
-import { useParams } from 'next/navigation';
-import { BackButton } from '@/components/back-button';
-import { RoundIconButton } from '@/components/round-icon-button';
-import { Button } from '@/components/button';
+import { useParams, useRouter } from 'next/navigation';
+import { DarkHeader } from '@/components/dark-header';
+import { GlassButton } from '@/components/glass-button';
 import { ListRow } from '@/components/list-row';
 import { AvatarStack } from '@/components/avatar-stack';
 import { ProgressBar } from '@/components/progress-bar';
@@ -36,8 +35,6 @@ import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import type { EventAttendee } from '@/types/api';
 
-const HERO_HEIGHT = 360;
-
 function interp(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
 }
@@ -55,8 +52,8 @@ function StatusCircle({ kind, count }: { kind: 'going' | 'notGoing' | 'noAnswer'
   const { bg, fg, Icon } = meta[kind];
 
   const circle: CSSProperties = {
-    width: 28,
-    height: 28,
+    width: 22,
+    height: 22,
     borderRadius: '50%',
     background: bg,
     color: fg,
@@ -66,15 +63,15 @@ function StatusCircle({ kind, count }: { kind: 'going' | 'notGoing' | 'noAnswer'
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: spacing['8'] }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: spacing['6'] }}>
       <span style={circle}>
         {kind === 'noAnswer' ? (
-          <span style={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>−</span>
+          <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1 }}>−</span>
         ) : (
-          <Icon size={16} color={fg} />
+          <Icon size={13} color={fg} />
         )}
       </span>
-      <span style={{ fontSize: 28, fontWeight: 800, color: colors.text, fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontSize: 20, fontWeight: 700, color: colors.text, fontVariantNumeric: 'tabular-nums' }}>
         {count}
       </span>
     </div>
@@ -91,9 +88,52 @@ function SectionCard({ children, padding }: { children: ReactNode; padding?: num
   return <div style={card}>{children}</div>;
 }
 
+type VotePillProps = {
+  active: boolean;
+  kind: 'going' | 'notGoing';
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+};
+
+function VotePill({ active, kind, label, onClick, disabled }: VotePillProps) {
+  const isGoing = kind === 'going';
+  const activeBg = isGoing ? colors.success : colors.error;
+  const inactiveBg = colors.bg;
+  const inactiveColor = colors.text;
+  const Icon = isGoing ? IconCheck : IconClose;
+  const iconColor = active ? colors.textInverse : inactiveColor;
+
+  const style: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '6px 10px',
+    borderRadius: radius.md,
+    background: active ? activeBg : inactiveBg,
+    color: active ? colors.textInverse : inactiveColor,
+    border: active ? 'none' : `1px solid ${colors.border}`,
+    fontSize: 13,
+    fontWeight: 600,
+    lineHeight: '18px',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
+    flexShrink: 0,
+    minHeight: 32,
+  };
+
+  return (
+    <button type="button" className="pressable" onClick={onClick} disabled={disabled} style={style}>
+      <Icon size={14} color={iconColor} />
+      {label}
+    </button>
+  );
+}
+
 export default function EventDetailPage() {
   const t = useT();
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = params?.id ?? '';
   useTgHeader('#233F30');
 
@@ -119,52 +159,18 @@ export default function EventDetailPage() {
   }, [data]);
 
   const wrap: CSSProperties = {
-    background: colors.bgWarm,
+    background: colors.bg,
     minHeight: '100dvh',
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
   };
 
-  const hero: CSSProperties = {
-    position: 'relative',
-    height: HERO_HEIGHT,
-    background: `linear-gradient(180deg, ${colors.headerBg} 0%, ${colors.primaryDark} 60%, #0F2A1B 100%)`,
-    overflow: 'hidden',
-  };
-
-  const heroOverlay: CSSProperties = {
-    position: 'absolute',
-    inset: 0,
-    background:
-      'linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%)',
-  };
-
-  const heroTopBar: CSSProperties = {
-    position: 'absolute',
-    top: spacing['16'],
-    left: spacing['16'],
-    right: spacing['16'],
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    zIndex: 2,
-  };
-
-  const heroBottom: CSSProperties = {
-    position: 'absolute',
-    left: spacing['20'],
-    right: spacing['20'],
-    bottom: spacing['32'],
-    color: colors.textInverse,
-    zIndex: 2,
-  };
-
   const sheet: CSSProperties = {
-    background: colors.bgWarm,
+    background: colors.bg,
     borderRadius: '24px 24px 0 0',
-    marginTop: -24,
+    marginTop: -12,
     position: 'relative',
-    zIndex: 3,
-    padding: `${spacing['20']}px ${spacing['16']}px 0`,
+    zIndex: 2,
+    padding: `${spacing['16']}px ${spacing['16']}px 0`,
     display: 'flex',
     flexDirection: 'column',
     gap: spacing['12'],
@@ -186,18 +192,43 @@ export default function EventDetailPage() {
       ? t('eventDetail.title.training')
       : t('eventDetail.title.game');
 
+  const venueName = data?.venue?.name ?? data?.venue_text ?? '';
+  const venueAddress = data?.venue?.address ?? null;
+  const hasVenue = Boolean(venueName);
+
+  const headerSubtitle = data ? (
+    <div style={{ fontSize: 14, color: colors.textInverse, opacity: 0.92, lineHeight: 1.4 }}>
+      <div>{formatEventDateRange(data.starts_at, data.ends_at)}</div>
+      {hasVenue ? <div style={{ marginTop: 2 }}>{venueName}</div> : null}
+    </div>
+  ) : null;
+
+  const renderHeader = (titleOverride?: string) => (
+    <DarkHeader
+      title={titleOverride ?? titleText}
+      subtitle={headerSubtitle ?? undefined}
+      imageSrc="/arena.png"
+      left={
+        <GlassButton ariaLabel={t('schedule.backLabel')} onClick={() => router.back()} size={40}>
+          <IconBack size={20} color={colors.textInverse} />
+        </GlassButton>
+      }
+      right={
+        <GlassButton
+          ariaLabel={t('eventDetail.menuLabel')}
+          onClick={() => alert(t('eventDetail.soon'))}
+          size={40}
+        >
+          <IconMore size={20} color={colors.textInverse} />
+        </GlassButton>
+      }
+    />
+  );
+
   if (ev.isLoading || !data) {
     return (
       <div style={wrap}>
-        <div style={hero}>
-          <div style={heroOverlay} />
-          <div style={heroTopBar}>
-            <BackButton ariaLabel={t('schedule.backLabel')} />
-            <RoundIconButton ariaLabel={t('eventDetail.menuLabel')}>
-              <IconMore size={22} color={colors.text} />
-            </RoundIconButton>
-          </div>
-        </div>
+        {renderHeader(t('eventDetail.title.training'))}
         <div style={sheet}>
           <span style={{ ...typography.body, color: colors.textSecondary }}>
             {t('common.loading')}
@@ -209,12 +240,7 @@ export default function EventDetailPage() {
   if (ev.isError) {
     return (
       <div style={wrap}>
-        <div style={hero}>
-          <div style={heroOverlay} />
-          <div style={heroTopBar}>
-            <BackButton ariaLabel={t('schedule.backLabel')} />
-          </div>
-        </div>
+        {renderHeader(t('eventDetail.title.training'))}
         <div style={sheet}>
           <span style={{ ...typography.body, color: colors.error }}>
             {t('eventDetail.errors.notFound')}
@@ -224,121 +250,94 @@ export default function EventDetailPage() {
     );
   }
 
-  const venueName = data.venue?.name ?? data.venue_text ?? '';
-  const venueAddress = data.venue?.address ?? null;
-  const hasVenue = Boolean(venueName);
-
   return (
     <div style={wrap}>
-      {/* HERO */}
-      <div style={hero}>
-        <div style={heroOverlay} />
-        <div style={heroTopBar}>
-          {/* Тут BackButton рендерится только если history > 1; для случая прямого захода — заменим на свой круг */}
-          <RoundIconButton
-            ariaLabel={t('schedule.backLabel')}
-            onClick={() => history.back()}
-          >
-            <IconBack size={20} color={colors.text} />
-          </RoundIconButton>
-          <RoundIconButton
-            ariaLabel={t('eventDetail.menuLabel')}
-            onClick={() => alert(t('eventDetail.soon'))}
-          >
-            <IconMore size={22} color={colors.text} />
-          </RoundIconButton>
-        </div>
-        <div style={heroBottom}>
-          <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
-            {titleText}
-          </div>
-          <div style={{ fontSize: 15, marginTop: spacing['8'], opacity: 0.95 }}>
-            {formatEventDateRange(data.starts_at, data.ends_at)}
-          </div>
-          {hasVenue ? (
-            <div style={{ fontSize: 15, marginTop: spacing['4'], opacity: 0.9 }}>
-              {venueName}
-            </div>
-          ) : null}
-        </div>
-      </div>
+      {renderHeader()}
 
       {/* SHEET */}
       <div style={sheet}>
         {/* VOTE */}
-        <SectionCard>
+        <SectionCard padding={spacing['12']}>
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: spacing['10'],
-              flexWrap: 'wrap',
+              gap: spacing['8'],
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing['6'], flex: 1, minWidth: 180 }}>
-              <span style={{ fontSize: 14, fontWeight: 500, color: colors.text }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing['4'],
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: colors.text,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {meName ? `${meName}, ${voteQuestion}` : voteQuestion}
               </span>
-              <IconInfo size={16} color={colors.textTertiary} />
+              <IconInfo size={14} color={colors.textTertiary} />
             </div>
-            <div style={{ display: 'flex', gap: spacing['8'] }}>
-              <Button
-                variant={myVote === 'going' ? 'primary' : 'secondary'}
-                size="md"
+            <div style={{ display: 'flex', gap: spacing['6'], flexShrink: 0 }}>
+              <VotePill
+                active={myVote === 'going'}
+                kind="going"
+                label={t('eventDetail.vote.going')}
                 onClick={() => handleVote('going')}
                 disabled={vote.isPending}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <IconCheck size={16} color={myVote === 'going' ? colors.textInverse : colors.text} />
-                  {t('eventDetail.vote.going')}
-                </span>
-              </Button>
-              <Button
-                variant={myVote === 'not_going' ? 'danger' : 'secondary'}
-                size="md"
+              />
+              <VotePill
+                active={myVote === 'not_going'}
+                kind="notGoing"
+                label={t('eventDetail.vote.notGoing')}
                 onClick={() => handleVote('not_going')}
                 disabled={vote.isPending}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <IconClose size={16} color={myVote === 'not_going' ? colors.textInverse : colors.text} />
-                  {t('eventDetail.vote.notGoing')}
-                </span>
-              </Button>
+              />
             </div>
           </div>
         </SectionCard>
 
         {/* СОСТАВ И ЯВКА */}
-        <SectionCard>
+        <SectionCard padding={spacing['12']}>
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: spacing['16'],
+              marginBottom: spacing['10'],
             }}
           >
-            <span style={{ fontSize: 17, fontWeight: 700, color: colors.text }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>
               {t('eventDetail.attendance.title')}
             </span>
-            <IconInfo size={18} color={colors.textTertiary} />
+            <IconInfo size={16} color={colors.textTertiary} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: spacing['12'] }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <StatusCircle kind="going" count={data.attendance.going} />
-              <span style={{ fontSize: 12, color: colors.textSecondary, marginLeft: 36 }}>
+              <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
                 {t('eventDetail.attendance.going')}
               </span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <StatusCircle kind="notGoing" count={data.attendance.not_going} />
-              <span style={{ fontSize: 12, color: colors.textSecondary, marginLeft: 36 }}>
+              <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
                 {t('eventDetail.attendance.notGoing')}
               </span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <StatusCircle kind="noAnswer" count={Math.max(0, noAnswer)} />
-              <span style={{ fontSize: 12, color: colors.textSecondary, marginLeft: 36 }}>
+              <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
                 {t('eventDetail.attendance.noAnswer')}
               </span>
             </div>
