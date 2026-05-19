@@ -7,7 +7,14 @@ import { loadAttendance } from '@/lib/event-attendance';
 import { asMemberRole } from '@/lib/role';
 import { notifyEventCancelled, notifyEventUpdated } from '@/lib/notify';
 import type { TablesUpdate } from '@/types/db';
-import type { EventAttendee, EventDetailDto, EventVenue, EventVote } from '@/types/api';
+import type {
+  EventAttendee,
+  EventDetailDto,
+  EventPaymentSummary,
+  EventVenue,
+  EventVote,
+  PlayerPosition,
+} from '@/types/api';
 
 const VOTE_ORDER: Record<string, number> = {
   going: 0,
@@ -18,6 +25,11 @@ const VOTE_ORDER: Record<string, number> = {
 
 function asVote(value: string | null | undefined): EventVote | null {
   if (value === 'going' || value === 'maybe' || value === 'not_going') return value;
+  return null;
+}
+
+function asPosition(value: string | null | undefined): PlayerPosition | null {
+  if (value === 'forward' || value === 'defender' || value === 'goalie') return value;
   return null;
 }
 
@@ -80,23 +92,48 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
 
     const { data: members, error: memErr } = await sb
       .from('team_memberships')
-      .select('user_id, role, users(first_name, last_name, username, photo_url)')
+      .select(
+        'user_id, role, jersey_number, position, users(first_name, last_name, username, photo_url)',
+      )
       .eq('team_id', event.team_id);
     if (memErr) {
       return NextResponse.json({ error: memErr.message }, { status: 500 });
     }
-    const { data: votes, error: voteErr } = await sb
+    const { data: attRows, error: attErr } = await sb
       .from('event_attendances')
-      .select('user_id, vote')
+      .select('user_id, vote, showed_up, payment_claim')
       .eq('event_id', event.id);
-    if (voteErr) {
-      return NextResponse.json({ error: voteErr.message }, { status: 500 });
+    if (attErr) {
+      return NextResponse.json({ error: attErr.message }, { status: 500 });
     }
-    const voteByUser = new Map<string, EventVote | null>();
-    for (const v of votes ?? []) voteByUser.set(v.user_id, asVote(v.vote));
+    const attByUser = new Map<
+      string,
+      { vote: EventVote | null; showed_up: boolean | null; payment_claim: boolean }
+    >();
+    for (const v of attRows ?? []) {
+      attByUser.set(v.user_id, {
+        vote: asVote(v.vote),
+        showed_up: v.showed_up ?? null,
+        payment_claim: v.payment_claim ?? false,
+      });
+    }
+
+    const { data: payRows, error: payErr } = await sb
+      .from('finance_transactions')
+      .select('user_id, amount')
+      .eq('event_id', event.id)
+      .eq('type', 'player_payment');
+    if (payErr) {
+      return NextResponse.json({ error: payErr.message }, { status: 500 });
+    }
+    const paidByUser = new Map<string, number>();
+    for (const p of payRows ?? []) {
+      if (p.user_id) paidByUser.set(p.user_id, Number(p.amount));
+    }
 
     const attendees: EventAttendee[] = (members ?? []).map((m) => {
       const u = Array.isArray(m.users) ? m.users[0] : m.users;
+      const att = attByUser.get(m.user_id);
       return {
         user_id: m.user_id,
         first_name: u?.first_name ?? null,
@@ -104,7 +141,12 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
         username: u?.username ?? null,
         photo_url: u?.photo_url ?? null,
         role: asMemberRole(m.role),
-        vote: voteByUser.get(m.user_id) ?? null,
+        vote: att?.vote ?? null,
+        jersey_number: m.jersey_number ?? null,
+        position: asPosition(m.position),
+        showed_up: att?.showed_up ?? null,
+        paid_amount: paidByUser.get(m.user_id) ?? null,
+        payment_claim: att?.payment_claim ?? false,
       };
     });
     attendees.sort((a, b) => {
@@ -115,6 +157,36 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       const bn = `${b.first_name ?? ''} ${b.last_name ?? ''}`.trim();
       return an.localeCompare(bn, 'ru');
     });
+
+    const costPerPlayer =
+      event.cost_per_player != null ? Number(event.cost_per_player) : null;
+    const going = attendees.filter((a) => a.vote === 'going');
+    let paid_count = 0;
+    let partial_count = 0;
+    let debt_count = 0;
+    let collected = 0;
+    for (const a of going) {
+      const amount = a.paid_amount ?? 0;
+      collected += amount;
+      if (costPerPlayer == null || costPerPlayer === 0) {
+        if (amount > 0) paid_count += 1;
+        else debt_count += 1;
+      } else if (amount >= costPerPlayer) {
+        paid_count += 1;
+      } else if (amount > 0) {
+        partial_count += 1;
+      } else {
+        debt_count += 1;
+      }
+    }
+    const target = costPerPlayer != null ? going.length * costPerPlayer : 0;
+    const payments: EventPaymentSummary = {
+      paid_count,
+      partial_count,
+      debt_count,
+      collected,
+      target,
+    };
 
     const dto: EventDetailDto = {
       id: event.id,
@@ -133,6 +205,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       attendance: attendanceMap.get(event.id) ?? { going: 0, maybe: 0, not_going: 0 },
       team_size: attendees.length,
       attendees,
+      payments,
     };
     return NextResponse.json(dto);
   } catch (e) {

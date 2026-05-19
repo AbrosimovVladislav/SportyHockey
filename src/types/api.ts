@@ -88,6 +88,8 @@ export type EventDto = {
 
 export type EventVote = 'going' | 'maybe' | 'not_going';
 
+export type PlayerPosition = 'forward' | 'defender' | 'goalie';
+
 export type EventAttendee = {
   user_id: string;
   first_name: string | null;
@@ -96,6 +98,19 @@ export type EventAttendee = {
   photo_url: string | null;
   role: MemberRole;
   vote: EventVote | null;
+  jersey_number: number | null;
+  position: PlayerPosition | null;
+  showed_up: boolean | null;
+  paid_amount: number | null;
+  payment_claim: boolean;
+};
+
+export type EventPaymentSummary = {
+  paid_count: number;
+  partial_count: number;
+  debt_count: number;
+  collected: number;
+  target: number;
 };
 
 export type EventDetailDto = EventDto & {
@@ -104,7 +119,20 @@ export type EventDetailDto = EventDto & {
   created_by: string | null;
   team_size: number;
   attendees: EventAttendee[];
+  payments: EventPaymentSummary;
 };
+
+export type SetPaymentRequest = {
+  user_id: string;
+  amount: number | null;
+};
+
+export type SetAttendanceRequest = {
+  user_id: string;
+  showed_up: boolean;
+};
+
+export type PaymentClaimResponse = { ok: true };
 
 export type VoteRequest = {
   vote: 'going' | 'not_going' | null;

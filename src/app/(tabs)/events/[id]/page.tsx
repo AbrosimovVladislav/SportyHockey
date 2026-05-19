@@ -339,7 +339,7 @@ export default function EventDetailPage() {
         <button
           type="button"
           className="pressable"
-          onClick={() => alert(t('eventDetail.soon'))}
+          onClick={() => router.push(`/events/${id}/attendees`)}
           style={{
             background: colors.bg,
             borderRadius: radius.lg,
