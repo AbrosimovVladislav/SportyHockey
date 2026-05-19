@@ -160,6 +160,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
 
     const costPerPlayer =
       event.cost_per_player != null ? Number(event.cost_per_player) : null;
+    const arenaCost = event.arena_cost != null ? Number(event.arena_cost) : null;
     const going = attendees.filter((a) => a.vote === 'going');
     let paid_count = 0;
     let partial_count = 0;
@@ -179,7 +180,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
         debt_count += 1;
       }
     }
-    const target = costPerPlayer != null ? going.length * costPerPlayer : 0;
+    const target = arenaCost ?? 0;
     const payments: EventPaymentSummary = {
       paid_count,
       partial_count,

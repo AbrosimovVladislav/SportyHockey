@@ -153,8 +153,9 @@ export default function EventDetailPage() {
   const noAnswer = data ? data.team_size - data.attendance.going - data.attendance.not_going : 0;
 
   const fund = useMemo(() => {
-    if (!data || !data.cost_per_player) return null;
-    const target = data.team_size * data.cost_per_player;
+    if (!data) return null;
+    if (!data.arena_cost || !data.cost_per_player) return null;
+    const target = data.arena_cost;
     const got = data.attendance.going * data.cost_per_player;
     return { target, got };
   }, [data]);
