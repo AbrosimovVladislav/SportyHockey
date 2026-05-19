@@ -62,6 +62,7 @@ export const ru = {
   'eventNew.sections.schedule': 'Расписание',
   'eventNew.sections.details': 'Детали события',
   'eventNew.sections.venue': 'Арена',
+  'eventNew.sections.arenaCost': 'Оплата арене',
   'eventNew.sections.cost': 'Взнос с игрока',
   'eventNew.type.training': 'Тренировка',
   'eventNew.type.game': 'Игра',

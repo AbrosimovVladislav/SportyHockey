@@ -23,6 +23,7 @@ const CreateBody = z.object({
   venue_id: z.string().uuid(),
   title: z.string().trim().min(1).max(100).optional(),
   cost_per_player: z.number().nonnegative().optional(),
+  arena_cost: z.number().nonnegative().optional(),
 });
 
 type VenueRow = Pick<EventVenue, 'id' | 'name' | 'address'>;
@@ -48,7 +49,7 @@ export async function GET(req: Request): Promise<Response> {
       sb
         .from('events')
         .select(
-          'id, type, title, starts_at, ends_at, venue_text, cost_per_player, status, venue:venues(id, name, address)',
+          'id, type, title, starts_at, ends_at, venue_text, cost_per_player, arena_cost, status, venue:venues(id, name, address)',
         )
         .eq('team_id', teamId)
         .neq('status', 'cancelled')
@@ -77,6 +78,7 @@ export async function GET(req: Request): Promise<Response> {
       venue: pickVenue(r.venue as VenueRow | VenueRow[] | null),
       venue_text: r.venue_text,
       cost_per_player: r.cost_per_player != null ? Number(r.cost_per_player) : null,
+      arena_cost: r.arena_cost != null ? Number(r.arena_cost) : null,
       status: asEventStatus(r.status),
       attendance: attendanceMap.get(r.id) ?? { going: 0, maybe: 0, not_going: 0 },
     }));
@@ -104,7 +106,7 @@ export async function POST(req: Request): Promise<Response> {
 
     const { data: venue, error: venueErr } = await sb
       .from('venues')
-      .select('id, default_cost_per_player')
+      .select('id, default_cost_per_player, cost_per_arena')
       .eq('id', parsed.data.venue_id)
       .eq('team_id', ctx.team_id)
       .maybeSingle();
@@ -123,6 +125,12 @@ export async function POST(req: Request): Promise<Response> {
         : venue.default_cost_per_player != null
           ? Number(venue.default_cost_per_player)
           : null;
+    const arenaCost =
+      parsed.data.arena_cost !== undefined
+        ? parsed.data.arena_cost
+        : venue.cost_per_arena != null
+          ? Number(venue.cost_per_arena)
+          : null;
 
     const { data, error } = await sb
       .from('events')
@@ -135,6 +143,7 @@ export async function POST(req: Request): Promise<Response> {
         venue_id: venue.id,
         title: parsed.data.title ?? null,
         cost_per_player: cost,
+        arena_cost: arenaCost,
       })
       .select('id')
       .single();

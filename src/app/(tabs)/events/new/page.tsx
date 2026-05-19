@@ -43,6 +43,8 @@ type FormState = {
   durationStr: string; // HH:mm
   venueId: string | null;
   details: string;
+  arenaCost: string;
+  arenaTouched: boolean;
   cost: string;
   costTouched: boolean;
 };
@@ -56,6 +58,8 @@ const INITIAL_STATE: FormState = {
   durationStr: INITIAL_DURATION,
   venueId: null,
   details: '',
+  arenaCost: '',
+  arenaTouched: false,
   cost: '',
   costTouched: false,
 };
@@ -110,6 +114,43 @@ function HiddenNativeInput({
       style={style}
       aria-hidden
     />
+  );
+}
+
+function RubInput({ value, onChange }: { value: string; onChange: (raw: string) => void }) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <Input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.currentTarget.value.replace(/[^\d]/g, ''))}
+        placeholder="0"
+        style={{
+          background: colors.bg,
+          border: `1px solid ${colors.divider}`,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          paddingRight: 36,
+          fontSize: 17,
+          fontWeight: 600,
+        }}
+      />
+      <span
+        aria-hidden
+        style={{
+          position: 'absolute',
+          right: spacing['16'],
+          top: '50%',
+          transform: 'translateY(-50%)',
+          color: colors.textSecondary,
+          fontSize: 16,
+          fontWeight: 500,
+          pointerEvents: 'none',
+        }}
+      >
+        ₽
+      </span>
+    </div>
   );
 }
 
@@ -223,6 +264,14 @@ export default function EventNewPage() {
     }
   }, [selectedVenue, form.costTouched]);
 
+  // Аналогично для оплаты арене.
+  useEffect(() => {
+    if (form.arenaTouched) return;
+    if (selectedVenue?.cost_per_arena != null) {
+      setForm((prev) => ({ ...prev, arenaCost: String(selectedVenue.cost_per_arena) }));
+    }
+  }, [selectedVenue, form.arenaTouched]);
+
   const createEvent = useMutation<CreateEventResponse, ApiError, CreateEventRequest>({
     mutationFn: (body) =>
       apiFetch<CreateEventResponse>('/api/events', {
@@ -265,6 +314,7 @@ export default function EventNewPage() {
     }
 
     const costNum = form.cost.trim() ? Number(form.cost) : NaN;
+    const arenaNum = form.arenaCost.trim() ? Number(form.arenaCost) : NaN;
 
     const body: CreateEventRequest = {
       type: form.type,
@@ -273,6 +323,7 @@ export default function EventNewPage() {
       venue_id: form.venueId,
       title: form.details.trim() || undefined,
       cost_per_player: Number.isFinite(costNum) && costNum >= 0 ? costNum : undefined,
+      arena_cost: Number.isFinite(arenaNum) && arenaNum >= 0 ? arenaNum : undefined,
     };
     createEvent.mutate(body);
   };
@@ -396,46 +447,17 @@ export default function EventNewPage() {
           onClick={() => setVenueOpen(true)}
         />
 
+        <SectionLabel>{t('eventNew.sections.arenaCost')}</SectionLabel>
+        <RubInput
+          value={form.arenaCost}
+          onChange={(raw) => setForm((prev) => ({ ...prev, arenaCost: raw, arenaTouched: true }))}
+        />
+
         <SectionLabel>{t('eventNew.sections.cost')}</SectionLabel>
-        <div style={{ position: 'relative' }}>
-          <Input
-            type="text"
-            inputMode="numeric"
-            value={form.cost}
-            onChange={(e) => {
-              const raw = e.currentTarget.value.replace(/[^\d]/g, '');
-              setForm((prev) => ({
-                ...prev,
-                cost: raw,
-                costTouched: true,
-              }));
-            }}
-            placeholder="0"
-            style={{
-              background: colors.bg,
-              border: `1px solid ${colors.divider}`,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              paddingRight: 36,
-              fontSize: 17,
-              fontWeight: 600,
-            }}
-          />
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute',
-              right: spacing['16'],
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: colors.textSecondary,
-              fontSize: 16,
-              fontWeight: 500,
-              pointerEvents: 'none',
-            }}
-          >
-            ₽
-          </span>
-        </div>
+        <RubInput
+          value={form.cost}
+          onChange={(raw) => setForm((prev) => ({ ...prev, cost: raw, costTouched: true }))}
+        />
 
         {error ? (
           <div
@@ -480,22 +502,28 @@ export default function EventNewPage() {
             {t('eventNew.empty.venues')}
           </div>
         ) : (
-          venues.map((v) => (
-            <BottomSheetOption
-              key={v.id}
-              label={v.name}
-              hint={
-                v.default_cost_per_player != null
-                  ? `${v.default_cost_per_player.toLocaleString('ru-RU')} ₽ с игрока`
-                  : v.address ?? undefined
-              }
-              active={form.venueId === v.id}
-              onClick={() => {
-                set('venueId', v.id);
-                setVenueOpen(false);
-              }}
-            />
-          ))
+          venues.map((v) => {
+            const hintParts: string[] = [];
+            if (v.cost_per_arena != null) {
+              hintParts.push(`${v.cost_per_arena.toLocaleString('ru-RU')} ₽ аренда`);
+            }
+            if (v.default_cost_per_player != null) {
+              hintParts.push(`${v.default_cost_per_player.toLocaleString('ru-RU')} ₽ с игрока`);
+            }
+            const hint = hintParts.length > 0 ? hintParts.join(' · ') : v.address ?? undefined;
+            return (
+              <BottomSheetOption
+                key={v.id}
+                label={v.name}
+                hint={hint}
+                active={form.venueId === v.id}
+                onClick={() => {
+                  set('venueId', v.id);
+                  setVenueOpen(false);
+                }}
+              />
+            );
+          })
         )}
       </BottomSheet>
     </div>

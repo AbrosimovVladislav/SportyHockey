@@ -19,7 +19,7 @@ export async function GET(req: Request): Promise<Response> {
     const sb = supabaseServer();
     const { data, error } = await sb
       .from('venues')
-      .select('id, name, address, default_cost_per_player')
+      .select('id, name, address, default_cost_per_player, cost_per_arena')
       .eq('team_id', teamId)
       .order('name', { ascending: true });
     if (error) {
@@ -32,6 +32,7 @@ export async function GET(req: Request): Promise<Response> {
       address: v.address,
       default_cost_per_player:
         v.default_cost_per_player != null ? Number(v.default_cost_per_player) : null,
+      cost_per_arena: v.cost_per_arena != null ? Number(v.cost_per_arena) : null,
     }));
     const body: VenuesListResponse = { venues };
     return NextResponse.json(body);

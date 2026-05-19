@@ -22,6 +22,7 @@ export type Database = {
           id: string
           notes: string | null
           paid_amount: number | null
+          payment_claim: boolean
           showed_up: boolean | null
           team_color: string | null
           user_id: string
@@ -35,6 +36,7 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_amount?: number | null
+          payment_claim?: boolean
           showed_up?: boolean | null
           team_color?: string | null
           user_id: string
@@ -48,6 +50,7 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_amount?: number | null
+          payment_claim?: boolean
           showed_up?: boolean | null
           team_color?: string | null
           user_id?: string
@@ -73,6 +76,7 @@ export type Database = {
       }
       events: {
         Row: {
+          arena_cost: number | null
           cost_per_player: number | null
           created_at: string | null
           created_by: string | null
@@ -89,6 +93,7 @@ export type Database = {
           visibility: string | null
         }
         Insert: {
+          arena_cost?: number | null
           cost_per_player?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -105,6 +110,7 @@ export type Database = {
           visibility?: string | null
         }
         Update: {
+          arena_cost?: number | null
           cost_per_player?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -270,21 +276,27 @@ export type Database = {
       team_memberships: {
         Row: {
           id: string
+          jersey_number: number | null
           joined_at: string | null
+          position: string | null
           role: string
           team_id: string
           user_id: string
         }
         Insert: {
           id?: string
+          jersey_number?: number | null
           joined_at?: string | null
+          position?: string | null
           role: string
           team_id: string
           user_id: string
         }
         Update: {
           id?: string
+          jersey_number?: number | null
           joined_at?: string | null
+          position?: string | null
           role?: string
           team_id?: string
           user_id?: string
@@ -360,6 +372,7 @@ export type Database = {
       venues: {
         Row: {
           address: string | null
+          cost_per_arena: number | null
           created_at: string | null
           default_cost_per_player: number | null
           id: string
@@ -369,6 +382,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          cost_per_arena?: number | null
           created_at?: string | null
           default_cost_per_player?: number | null
           id?: string
@@ -378,6 +392,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          cost_per_arena?: number | null
           created_at?: string | null
           default_cost_per_player?: number | null
           id?: string

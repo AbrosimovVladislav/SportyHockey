@@ -40,6 +40,7 @@ const UpdateBody = z.object({
   venue_id: z.string().uuid().optional(),
   title: z.string().trim().min(1).max(100).nullable().optional(),
   cost_per_player: z.number().nonnegative().nullable().optional(),
+  arena_cost: z.number().nonnegative().nullable().optional(),
   status: z.enum(['scheduled', 'cancelled']).optional(),
 });
 
@@ -54,7 +55,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: event, error } = await sb
       .from('events')
       .select(
-        'id, team_id, type, title, starts_at, ends_at, venue_text, cost_per_player, status, description, created_by, venue:venues(id, name, address)',
+        'id, team_id, type, title, starts_at, ends_at, venue_text, cost_per_player, arena_cost, status, description, created_by, venue:venues(id, name, address)',
       )
       .eq('id', id)
       .maybeSingle();
@@ -125,6 +126,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       venue: pickVenue(event.venue as VenueRow | VenueRow[] | null),
       venue_text: event.venue_text,
       cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
+      arena_cost: event.arena_cost != null ? Number(event.arena_cost) : null,
       status: asEventStatus(event.status),
       description: event.description,
       created_by: event.created_by,
@@ -170,6 +172,7 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     if (d.type !== undefined) patch.type = d.type;
     if (d.title !== undefined) patch.title = d.title;
     if (d.cost_per_player !== undefined) patch.cost_per_player = d.cost_per_player;
+    if (d.arena_cost !== undefined) patch.arena_cost = d.arena_cost;
     if (d.status !== undefined) patch.status = d.status;
 
     if (d.venue_id !== undefined) {

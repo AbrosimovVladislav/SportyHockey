@@ -59,6 +59,7 @@ export type VenueDto = {
   name: string;
   address: string | null;
   default_cost_per_player: number | null;
+  cost_per_arena: number | null;
 };
 
 export type VenuesListResponse = {
@@ -80,6 +81,7 @@ export type EventDto = {
   venue: EventVenue | null;
   venue_text: string | null;
   cost_per_player: number | null;
+  arena_cost: number | null;
   status: EventStatus;
   attendance: AttendanceCount;
 };
@@ -122,6 +124,7 @@ export type CreateEventRequest = {
   venue_id: string;
   title?: string;
   cost_per_player?: number;
+  arena_cost?: number;
 };
 
 export type UpdateEventRequest = {
@@ -131,6 +134,7 @@ export type UpdateEventRequest = {
   venue_id?: string;
   title?: string | null;
   cost_per_player?: number | null;
+  arena_cost?: number | null;
   status?: 'scheduled' | 'cancelled';
 };
 
