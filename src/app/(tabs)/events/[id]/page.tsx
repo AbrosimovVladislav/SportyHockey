@@ -176,7 +176,6 @@ export default function EventDetailPage() {
     gap: spacing['12'],
   };
 
-  const meName = me.data ? formatName(me.data.user) : '';
   const voteQuestion = isTraining
     ? t('eventDetail.vote.question.training')
     : t('eventDetail.vote.question.game');
@@ -265,29 +264,20 @@ export default function EventDetailPage() {
               gap: spacing['8'],
             }}
           >
-            <div
+            <span
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing['4'],
+                fontSize: 13,
+                fontWeight: 500,
+                color: colors.text,
                 flex: 1,
                 minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: colors.text,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {meName ? `${meName}, ${voteQuestion}` : voteQuestion}
-              </span>
-              <IconInfo size={14} color={colors.textTertiary} />
-            </div>
+              {voteQuestion}
+            </span>
             <div style={{ display: 'flex', gap: spacing['6'], flexShrink: 0 }}>
               <VotePill
                 active={myVote === 'going'}

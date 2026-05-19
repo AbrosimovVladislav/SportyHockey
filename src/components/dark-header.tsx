@@ -15,7 +15,7 @@ type Props = {
 export function DarkHeader({ title, role, subtitle, left, right, paddingTop = spacing['12'], imageSrc }: Props) {
   const wrapper: CSSProperties = {
     background: imageSrc
-      ? `linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.2) 55%, rgba(0,0,0,0.55) 100%), url(${imageSrc}) center/cover no-repeat`
+      ? `linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.8) 100%), url(${imageSrc}) center/cover no-repeat`
       : colors.headerBg,
     color: colors.textInverse,
     paddingTop,
