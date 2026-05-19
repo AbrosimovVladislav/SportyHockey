@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 const Body = z.object({
   event_id: z.string().uuid(),
-  vote: z.enum(['going', 'not_going']),
+  vote: z.enum(['going', 'not_going']).nullable(),
 });
 
 export async function POST(req: Request): Promise<Response> {
@@ -49,19 +49,30 @@ export async function POST(req: Request): Promise<Response> {
       return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
     }
 
-    const { error: upErr } = await sb
-      .from('event_attendances')
-      .upsert(
-        {
-          event_id: parsed.data.event_id,
-          user_id: user.id,
-          vote: parsed.data.vote,
-          voted_at: new Date().toISOString(),
-        },
-        { onConflict: 'event_id,user_id' },
-      );
-    if (upErr) {
-      return NextResponse.json({ error: upErr.message }, { status: 500 });
+    if (parsed.data.vote === null) {
+      const { error: delErr } = await sb
+        .from('event_attendances')
+        .delete()
+        .eq('event_id', parsed.data.event_id)
+        .eq('user_id', user.id);
+      if (delErr) {
+        return NextResponse.json({ error: delErr.message }, { status: 500 });
+      }
+    } else {
+      const { error: upErr } = await sb
+        .from('event_attendances')
+        .upsert(
+          {
+            event_id: parsed.data.event_id,
+            user_id: user.id,
+            vote: parsed.data.vote,
+            voted_at: new Date().toISOString(),
+          },
+          { onConflict: 'event_id,user_id' },
+        );
+      if (upErr) {
+        return NextResponse.json({ error: upErr.message }, { status: 500 });
+      }
     }
 
     const body: VoteResponse = { ok: true };

@@ -107,24 +107,25 @@ function VotePill({ active, kind, label, onClick, disabled }: VotePillProps) {
   const style: CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 4,
-    padding: '6px 10px',
+    gap: 3,
+    padding: '5px 8px',
     borderRadius: radius.md,
     background: active ? activeBg : inactiveBg,
     color: active ? colors.textInverse : inactiveColor,
     border: active ? 'none' : `1px solid ${colors.border}`,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 600,
-    lineHeight: '18px',
+    lineHeight: '16px',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.5 : 1,
     flexShrink: 0,
-    minHeight: 32,
+    minHeight: 28,
+    whiteSpace: 'nowrap',
   };
 
   return (
     <button type="button" className="pressable" onClick={onClick} disabled={disabled} style={style}>
-      <Icon size={14} color={iconColor} />
+      <Icon size={12} color={iconColor} />
       {label}
     </button>
   );
@@ -139,7 +140,7 @@ export default function EventDetailPage() {
 
   const me = useMe();
   const ev = useEvent(id);
-  const vote = useVoteEvent(id);
+  const vote = useVoteEvent(id, me.data?.user.id);
 
   const data = ev.data;
   const isTraining = data?.type !== 'game';
@@ -182,7 +183,7 @@ export default function EventDetailPage() {
 
   const handleVote = (next: 'going' | 'not_going') => {
     if (vote.isPending) return;
-    vote.mutate(next);
+    vote.mutate(myVote === next ? null : next);
   };
 
   const titleText = data?.title?.trim()
@@ -256,17 +257,17 @@ export default function EventDetailPage() {
       {/* SHEET */}
       <div style={sheet}>
         {/* VOTE */}
-        <SectionCard padding={spacing['12']}>
+        <SectionCard padding={spacing['10']}>
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: spacing['8'],
+              gap: spacing['6'],
             }}
           >
             <span
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 500,
                 color: colors.text,
                 flex: 1,
@@ -278,7 +279,7 @@ export default function EventDetailPage() {
             >
               {voteQuestion}
             </span>
-            <div style={{ display: 'flex', gap: spacing['6'], flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: spacing['4'], flexShrink: 0 }}>
               <VotePill
                 active={myVote === 'going'}
                 kind="going"

@@ -105,7 +105,7 @@ export type EventDetailDto = EventDto & {
 };
 
 export type VoteRequest = {
-  vote: 'going' | 'not_going';
+  vote: 'going' | 'not_going' | null;
 };
 
 export type VoteResponse = { ok: true };
