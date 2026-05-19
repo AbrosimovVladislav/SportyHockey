@@ -160,7 +160,7 @@ export default function EventsPage() {
   const handleFabClick = () => router.push('/events/new');
 
   return (
-    <div style={{ background: colors.headerBg, minHeight: '100dvh' }}>
+    <div style={{ background: colors.bg, minHeight: '100dvh' }}>
       <DarkHeader
         title={t('schedule.title')}
         right={<BellWithDot />}

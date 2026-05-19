@@ -17,7 +17,7 @@ export function FilterChips({ options, activeId, onChange }: Props) {
   const wrap: CSSProperties = {
     display: 'flex',
     gap: spacing['8'],
-    padding: `${spacing['16']}px ${spacing['16']}px ${spacing['4']}px`,
+    padding: `${spacing['12']}px ${spacing['16']}px ${spacing['4']}px`,
     justifyContent: 'center',
     flexWrap: 'wrap',
   };
@@ -27,15 +27,15 @@ export function FilterChips({ options, activeId, onChange }: Props) {
       {options.map((o) => {
         const active = o.id === activeId;
         const chipStyle: CSSProperties = {
-          padding: `${spacing['8']}px ${spacing['16']}px`,
+          padding: `${spacing['6']}px ${spacing['12']}px`,
           borderRadius: radius.xl,
-          fontSize: 15,
-          fontWeight: 500,
-          lineHeight: '20px',
+          fontSize: 13,
+          fontWeight: active ? 600 : 500,
+          lineHeight: '18px',
           whiteSpace: 'nowrap',
-          background: active ? colors.headerBg : colors.bg,
+          background: active ? colors.headerBg : colors.cardSchedule,
           color: active ? colors.textInverse : colors.text,
-          border: active ? 'none' : `1.5px solid ${colors.chipBorder}`,
+          border: 'none',
           cursor: 'pointer',
         };
         return (

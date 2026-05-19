@@ -14,13 +14,16 @@ type Props = {
 export function DarkHeader({ title, role, left, right, paddingTop = spacing['12'], imageSrc }: Props) {
   const wrapper: CSSProperties = {
     background: imageSrc
-      ? `linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.25) 45%, rgba(0,0,0,0.75) 88%, rgba(0,0,0,0.9) 100%), url(${imageSrc}) center/cover no-repeat`
+      ? `linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.2) 55%, rgba(0,0,0,0.55) 100%), url(${imageSrc}) center/cover no-repeat`
       : colors.headerBg,
     color: colors.textInverse,
     paddingTop,
-    paddingBottom: imageSrc ? spacing['48'] : spacing['20'],
+    paddingBottom: imageSrc ? spacing['32'] : spacing['20'],
     paddingLeft: spacing['20'],
     paddingRight: spacing['20'],
+    minHeight: imageSrc ? 260 : undefined,
+    display: 'flex',
+    flexDirection: 'column',
   };
 
   const topRow: CSSProperties = {
@@ -46,6 +49,10 @@ export function DarkHeader({ title, role, left, right, paddingTop = spacing['12'
     lineHeight: 1.15,
   };
 
+  const titleGroupStyle: CSSProperties = {
+    marginTop: 'auto',
+  };
+
   return (
     <div style={wrapper}>
       {(left || right) && (
@@ -54,8 +61,10 @@ export function DarkHeader({ title, role, left, right, paddingTop = spacing['12'
           <div>{right}</div>
         </div>
       )}
-      {role ? <div style={roleStyle}>{role}</div> : null}
-      <div style={titleStyle}>{title}</div>
+      <div style={titleGroupStyle}>
+        {role ? <div style={roleStyle}>{role}</div> : null}
+        <div style={titleStyle}>{title}</div>
+      </div>
     </div>
   );
 }
