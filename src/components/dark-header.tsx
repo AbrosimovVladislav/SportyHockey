@@ -21,7 +21,7 @@ export function DarkHeader({ title, role, left, right, paddingTop = spacing['12'
     paddingBottom: imageSrc ? spacing['32'] : spacing['20'],
     paddingLeft: spacing['20'],
     paddingRight: spacing['20'],
-    minHeight: imageSrc ? 260 : undefined,
+    minHeight: imageSrc ? 234 : undefined,
     display: 'flex',
     flexDirection: 'column',
   };
