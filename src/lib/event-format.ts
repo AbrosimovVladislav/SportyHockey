@@ -85,6 +85,76 @@ export function formatWeekDate(iso: string): { date: string; day: string } {
   };
 }
 
+// Понедельник недели (00:00 локального времени), считая неделю с понедельника.
+export function startOfWeek(date: Date): Date {
+  const out = new Date(date);
+  out.setHours(0, 0, 0, 0);
+  const day = out.getDay(); // 0=вс, 1=пн … 6=сб
+  const diff = day === 0 ? -6 : 1 - day;
+  out.setDate(out.getDate() + diff);
+  return out;
+}
+
+export function addDays(date: Date, n: number): Date {
+  const out = new Date(date);
+  out.setDate(out.getDate() + n);
+  return out;
+}
+
+export function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+const monthShortFmt = new Intl.DateTimeFormat('ru-RU', { month: 'short' });
+const monthLongFmt = new Intl.DateTimeFormat('ru-RU', { month: 'long' });
+const dayHeaderFmt = new Intl.DateTimeFormat('ru-RU', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+});
+
+function cleanMonth(text: string): string {
+  return text.replace('.', '').trim();
+}
+
+// «19 – 25 мая» / «28 апр – 4 мая» / «29 дек 2025 – 4 янв 2026»
+export function weekRangeLabel(weekStart: Date): string {
+  const end = addDays(weekStart, 6);
+  const sameMonth =
+    weekStart.getMonth() === end.getMonth() &&
+    weekStart.getFullYear() === end.getFullYear();
+  const sameYear = weekStart.getFullYear() === end.getFullYear();
+  const thisYear = new Date().getFullYear();
+  if (sameMonth) {
+    const monthLabel = cleanMonth(monthLongFmt.format(weekStart));
+    const yearSuffix = weekStart.getFullYear() === thisYear ? '' : ` ${weekStart.getFullYear()}`;
+    return `${weekStart.getDate()} – ${end.getDate()} ${monthLabel}${yearSuffix}`;
+  }
+  if (sameYear) {
+    const m1 = cleanMonth(monthShortFmt.format(weekStart));
+    const m2 = cleanMonth(monthShortFmt.format(end));
+    const yearSuffix = weekStart.getFullYear() === thisYear ? '' : ` ${weekStart.getFullYear()}`;
+    return `${weekStart.getDate()} ${m1} – ${end.getDate()} ${m2}${yearSuffix}`;
+  }
+  const m1 = cleanMonth(monthShortFmt.format(weekStart));
+  const m2 = cleanMonth(monthShortFmt.format(end));
+  return `${weekStart.getDate()} ${m1} ${weekStart.getFullYear()} – ${end.getDate()} ${m2} ${end.getFullYear()}`;
+}
+
+// «Четверг, 22 мая»
+export function dayHeaderLabel(date: Date): string {
+  const parts = dayHeaderFmt.formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  const weekday = get('weekday');
+  const capitalized = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+  return `${capitalized}, ${get('day')} ${cleanMonth(get('month'))}`;
+}
+
 type GroupedEvents = {
   today: EventDto[];
   week: EventDto[];

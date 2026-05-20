@@ -9,6 +9,9 @@ import { SectionHeader } from '@/components/section-header';
 import { EventCard, type EventCardKind } from '@/components/event-card';
 import { EmptyState } from '@/components/empty-state';
 import { FAB } from '@/components/fab';
+import { WeekPicker } from '@/components/week-picker';
+import { WeekDays } from '@/components/week-days';
+import { DayEventRow } from '@/components/day-event-row';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { IconBell } from '@/components/icons';
 import { useEvents } from '@/hooks/use-events';
@@ -19,10 +22,15 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 import {
+  addDays,
+  dayHeaderLabel,
   formatTime,
   formatTodaySubtitle,
   formatWeekDate,
   groupEvents,
+  isSameDay,
+  startOfWeek,
+  weekRangeLabel,
 } from '@/lib/event-format';
 import type { EventDto } from '@/types/api';
 
@@ -74,6 +82,15 @@ export default function EventsPage() {
   const events = useEvents();
   const [tab, setTab] = useState<TabId>('list');
   const [filter, setFilter] = useState<FilterId>('all');
+  const [calendarSelected, setCalendarSelected] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const calendarWeekStart = useMemo(
+    () => startOfWeek(calendarSelected),
+    [calendarSelected],
+  );
 
   const isOrganizer = useMemo(
     () => me.data?.memberships.some((m) => m.role === 'organizer') ?? false,
@@ -165,6 +182,38 @@ export default function EventsPage() {
     );
   };
 
+  const dayShortKey = (
+    [
+      'schedule.calendar.daysShort.mon',
+      'schedule.calendar.daysShort.tue',
+      'schedule.calendar.daysShort.wed',
+      'schedule.calendar.daysShort.thu',
+      'schedule.calendar.daysShort.fri',
+      'schedule.calendar.daysShort.sat',
+      'schedule.calendar.daysShort.sun',
+    ] as const
+  );
+
+  const calendarWeekDays = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const date = addDays(calendarWeekStart, i);
+        return { date, shortLabel: t(dayShortKey[i]) };
+      }),
+    [calendarWeekStart, t],
+  );
+
+  const calendarEvents = useMemo(() => {
+    const list = events.data?.events ?? [];
+    const filteredByDay = list.filter((e) =>
+      isSameDay(new Date(e.starts_at), calendarSelected),
+    );
+    if (filter !== 'all') return filteredByDay.filter((e) => e.type === filter);
+    return filteredByDay.sort(
+      (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
+    );
+  }, [events.data, calendarSelected, filter]);
+
   const sheet: CSSProperties = {
     background: colors.bg,
     borderRadius: '24px 24px 0 0',
@@ -196,9 +245,51 @@ export default function EventsPage() {
         <ContentTabs tabs={tabsOptions} activeId={tab} onChange={(id) => setTab(id as TabId)} />
 
         {tab === 'calendar' ? (
-          <div style={{ padding: `${spacing['32']}px ${spacing['20']}px` }}>
-            <EmptyState title={t('schedule.calendarSoon')} />
-          </div>
+          <>
+            <WeekPicker
+              label={weekRangeLabel(calendarWeekStart)}
+              prevAriaLabel={t('schedule.calendar.prevWeek')}
+              nextAriaLabel={t('schedule.calendar.nextWeek')}
+              onPrev={() => setCalendarSelected((d) => addDays(d, -7))}
+              onNext={() => setCalendarSelected((d) => addDays(d, 7))}
+            />
+            <WeekDays
+              days={calendarWeekDays}
+              selected={calendarSelected}
+              onSelect={setCalendarSelected}
+            />
+            <SectionHeader title={dayHeaderLabel(calendarSelected)} />
+            <div style={list}>
+              {events.isLoading ? (
+                <span style={{ ...typography.body, color: colors.textSecondary }}>
+                  {t('common.loading')}
+                </span>
+              ) : events.isError ? (
+                <span style={{ ...typography.body, color: colors.error }}>
+                  {t('common.error')}
+                </span>
+              ) : calendarEvents.length === 0 ? (
+                <div style={{ padding: `${spacing['24']}px 0` }}>
+                  <EmptyState title={t('schedule.calendar.empty')} />
+                </div>
+              ) : (
+                calendarEvents.map((ev) => (
+                  <DayEventRow
+                    key={ev.id}
+                    kind={ev.type === 'game' ? 'game' : 'training'}
+                    startLabel={formatTime(ev.starts_at)}
+                    endLabel={ev.ends_at ? formatTime(ev.ends_at) : undefined}
+                    title={titleFor(ev)}
+                    subtitle={venueFor(ev)}
+                    count={ev.attendance.going}
+                    total={teamSize}
+                    completed={ev.status === 'completed'}
+                    onClick={() => router.push(`/events/${ev.id}`)}
+                  />
+                ))
+              )}
+            </div>
+          </>
         ) : (
           <>
             <FilterChips

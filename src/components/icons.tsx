@@ -109,6 +109,30 @@ export const IconTrophy = (p: IconProps) => (
   </Svg>
 );
 
+export const IconChevronLeft = ({ size = 12, color = '#C4C4C4', ...p }: IconProps) => (
+  <svg width={size * 0.6} height={size} viewBox="0 0 7 12" fill="none" {...p}>
+    <path
+      d="M6 1L1 6l5 5"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const IconChevronDown = ({ size = 12, color = '#C4C4C4', ...p }: IconProps) => (
+  <svg width={size} height={size * 0.6} viewBox="0 0 12 7" fill="none" {...p}>
+    <path
+      d="M1 1l5 5 5-5"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export const IconChevronRight = ({ size = 12, color = '#C4C4C4', ...p }: IconProps) => (
   <svg width={size * 0.6} height={size} viewBox="0 0 7 12" fill="none" {...p}>
     <path
