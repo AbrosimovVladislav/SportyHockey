@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { AuthError, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import type { EventMediaResponse, MediaItemDto } from '@/types/api';
@@ -7,8 +8,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const BUCKET = 'team-media';
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -34,7 +34,6 @@ async function loadEventAccess(req: Request, eventId: string) {
     sb,
     user,
     event,
-    isOrganizer: membership.role === 'organizer',
   };
 }
 
@@ -42,12 +41,17 @@ function buildPublicUrl(sb: ReturnType<typeof supabaseServer>, path: string): st
   return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-function safeExt(mime: string): string {
-  if (mime === 'image/jpeg') return 'jpg';
-  if (mime === 'image/png') return 'png';
-  if (mime === 'image/webp') return 'webp';
-  return 'bin';
-}
+const CommitBody = z.object({
+  items: z
+    .array(
+      z.object({
+        path: z.string().min(1),
+        mime: z.enum(ALLOWED_MIME),
+      }),
+    )
+    .min(1)
+    .max(20),
+});
 
 export async function GET(req: Request, { params }: Params): Promise<Response> {
   try {
@@ -99,6 +103,8 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
   }
 }
 
+// Commit: фронт уже загрузил файлы напрямую в Supabase Storage через signed URL
+// (см. /sign), сюда передаёт массив {path, mime} — создаём записи в media_items.
 export async function POST(req: Request, { params }: Params): Promise<Response> {
   try {
     const { id } = await params;
@@ -108,82 +114,58 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
     }
     const { sb, user, event } = access;
 
-    const form = await req.formData().catch(() => null);
-    if (!form) {
-      return NextResponse.json({ error: 'Ожидается multipart/form-data' }, { status: 400 });
-    }
-    const files = form.getAll('files');
-    if (files.length === 0) {
-      return NextResponse.json({ error: 'Файлы не приложены' }, { status: 400 });
+    const json = await req.json().catch(() => null);
+    const parsed = CommitBody.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
     }
 
-    const uploaded: MediaItemDto[] = [];
-    for (const raw of files) {
-      if (!(raw instanceof File)) continue;
-      const mime = raw.type;
-      if (!ALLOWED_MIME.has(mime)) {
-        return NextResponse.json(
-          { error: 'Можно загружать только JPG, PNG или WebP' },
-          { status: 400 },
-        );
+    // Защита: path должен принадлежать этому событию (префикс `{team_id}/{event_id}/`).
+    const expectedPrefix = `${event.team_id}/${event.id}/`;
+    for (const it of parsed.data.items) {
+      if (!it.path.startsWith(expectedPrefix)) {
+        return NextResponse.json({ error: 'Некорректный путь файла' }, { status: 400 });
       }
-      if (raw.size > MAX_FILE_BYTES) {
-        return NextResponse.json(
-          { error: 'Файл больше 10 МБ' },
-          { status: 400 },
-        );
-      }
-
-      const ext = safeExt(mime);
-      const filename = `${crypto.randomUUID()}.${ext}`;
-      const storagePath = `${event.team_id}/${event.id}/${filename}`;
-      const buffer = Buffer.from(await raw.arrayBuffer());
-
-      const { error: upErr } = await sb.storage.from(BUCKET).upload(storagePath, buffer, {
-        contentType: mime,
-        upsert: false,
-      });
-      if (upErr) {
-        return NextResponse.json({ error: upErr.message }, { status: 500 });
-      }
-
-      const { data: inserted, error: insErr } = await sb
-        .from('media_items')
-        .insert({
-          team_id: event.team_id,
-          event_id: event.id,
-          uploaded_by: user.id,
-          storage_path: storagePath,
-          type: 'photo',
-          mime_type: mime,
-        })
-        .select('id, created_at')
-        .single();
-      if (insErr || !inserted) {
-        await sb.storage.from(BUCKET).remove([storagePath]);
-        return NextResponse.json(
-          { error: insErr?.message ?? 'Не удалось сохранить медиа' },
-          { status: 500 },
-        );
-      }
-
-      uploaded.push({
-        id: inserted.id,
-        url: buildPublicUrl(sb, storagePath),
-        width: null,
-        height: null,
-        mime_type: mime,
-        created_at: inserted.created_at ?? new Date().toISOString(),
-        uploaded_by: {
-          id: user.id,
-          first_name: user.first_name ?? null,
-          last_name: user.last_name ?? null,
-          photo_url: user.photo_url ?? null,
-        },
-      });
     }
 
-    const body: EventMediaResponse = { items: uploaded };
+    const rows = parsed.data.items.map((it) => ({
+      team_id: event.team_id,
+      event_id: event.id,
+      uploaded_by: user.id,
+      storage_path: it.path,
+      type: 'photo',
+      mime_type: it.mime,
+    }));
+
+    const { data: inserted, error: insErr } = await sb
+      .from('media_items')
+      .insert(rows)
+      .select('id, storage_path, mime_type, created_at');
+    if (insErr || !inserted) {
+      const paths = parsed.data.items.map((it) => it.path);
+      await sb.storage.from(BUCKET).remove(paths);
+      return NextResponse.json(
+        { error: insErr?.message ?? 'Не удалось сохранить медиа' },
+        { status: 500 },
+      );
+    }
+
+    const items: MediaItemDto[] = inserted.map((r) => ({
+      id: r.id,
+      url: buildPublicUrl(sb, r.storage_path),
+      width: null,
+      height: null,
+      mime_type: r.mime_type ?? null,
+      created_at: r.created_at ?? new Date().toISOString(),
+      uploaded_by: {
+        id: user.id,
+        first_name: user.first_name ?? null,
+        last_name: user.last_name ?? null,
+        photo_url: user.photo_url ?? null,
+      },
+    }));
+
+    const body: EventMediaResponse = { items };
     return NextResponse.json(body, { status: 201 });
   } catch (e) {
     if (e instanceof AuthError) {

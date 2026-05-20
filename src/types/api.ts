@@ -167,6 +167,25 @@ export type EventMediaResponse = {
 
 export type DeleteMediaResponse = { ok: true };
 
+export type SignMediaRequest = {
+  files: { mime: string; size: number }[];
+};
+
+export type SignMediaUpload = {
+  path: string;
+  signed_url: string;
+  token: string;
+  mime: string;
+};
+
+export type SignMediaResponse = {
+  uploads: SignMediaUpload[];
+};
+
+export type CommitMediaRequest = {
+  items: { path: string; mime: string }[];
+};
+
 export type SetPaymentRequest = {
   user_id: string;
   amount: number | null;

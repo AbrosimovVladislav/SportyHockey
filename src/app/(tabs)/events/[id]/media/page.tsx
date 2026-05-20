@@ -10,7 +10,7 @@ import { MediaViewer } from '@/components/media-viewer';
 import { IconChevronDown } from '@/components/icons';
 import { useEvent } from '@/hooks/use-event';
 import { useEventMedia } from '@/hooks/use-event-media';
-import { useUploadMedia } from '@/hooks/use-upload-media';
+import { useUploadMedia, UploadError } from '@/hooks/use-upload-media';
 import { useDeleteMedia } from '@/hooks/use-delete-media';
 import { useMe } from '@/hooks/use-me';
 import { useT } from '@/hooks/use-t';
@@ -105,7 +105,11 @@ export default function EventMediaPage() {
     setError(null);
     upload.mutate(files, {
       onError: (e) =>
-        setError(e instanceof ApiError ? e.message : t('media.upload.error')),
+        setError(
+          e instanceof ApiError || e instanceof UploadError
+            ? e.message
+            : t('media.upload.error'),
+        ),
     });
   };
 
