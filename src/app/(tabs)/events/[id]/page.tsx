@@ -589,8 +589,10 @@ export default function EventDetailPage() {
         <ListRow
           icon={<IconImage size={20} color={colors.iconFg} />}
           title={t('eventDetail.links.media.title')}
-          subtitle={interp(t('eventDetail.links.media.subtitle'), { count: 0 })}
-          onClick={() => alert(t('eventDetail.soon'))}
+          subtitle={interp(t('eventDetail.links.media.subtitle'), {
+            count: data.media_count,
+          })}
+          onClick={() => router.push(`/events/${id}/media`)}
         />
       </div>
     </div>

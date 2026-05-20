@@ -220,6 +220,38 @@ export const IconExternal = (p: IconProps) => (
   </Svg>
 );
 
+export const IconCloudUp = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
+    <path
+      d="M7 18a4 4 0 01-.34-7.99 6 6 0 0111.7-1.55A4.5 4.5 0 0117 18h-2.5"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 12v8m0-8l-3 3m3-3l3 3"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const IconTrash = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
+    <path
+      d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0v12a2 2 0 002 2h6a2 2 0 002-2V7"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M10 11v6M14 11v6" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
 export const IconImage = (p: IconProps) => (
   <Svg {...p}>
     <rect x="3" y="4.5" width="18" height="15" rx="2.5" />

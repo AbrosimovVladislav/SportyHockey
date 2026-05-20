@@ -160,6 +160,14 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     if (lineErr) {
       return NextResponse.json({ error: lineErr.message }, { status: 500 });
     }
+
+    const { count: mediaCount, error: mediaErr } = await sb
+      .from('media_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', event.id);
+    if (mediaErr) {
+      return NextResponse.json({ error: mediaErr.message }, { status: 500 });
+    }
     const lines: EventLineEntry[] = [];
     for (const r of lineRows ?? []) {
       const side = asTeamSide(r.team_side);
@@ -250,6 +258,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       attendees,
       payments,
       lines,
+      media_count: mediaCount ?? 0,
     };
     return NextResponse.json(dto);
   } catch (e) {

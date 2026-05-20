@@ -141,7 +141,31 @@ export type EventDetailDto = EventDto & {
   attendees: EventAttendee[];
   payments: EventPaymentSummary;
   lines: EventLineEntry[];
+  media_count: number;
 };
+
+export type MediaUploader = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  photo_url: string | null;
+};
+
+export type MediaItemDto = {
+  id: string;
+  url: string;
+  width: number | null;
+  height: number | null;
+  mime_type: string | null;
+  created_at: string;
+  uploaded_by: MediaUploader | null;
+};
+
+export type EventMediaResponse = {
+  items: MediaItemDto[];
+};
+
+export type DeleteMediaResponse = { ok: true };
 
 export type SetPaymentRequest = {
   user_id: string;

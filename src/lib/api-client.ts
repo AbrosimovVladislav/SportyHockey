@@ -20,10 +20,15 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     // вне Telegram — initData пустой; сервер вернёт 401
   }
 
+  const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
+  const baseHeaders: Record<string, string> = isFormData
+    ? {}
+    : { 'Content-Type': 'application/json' };
+
   const res = await fetch(path, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
+      ...baseHeaders,
       ...init?.headers,
       Authorization: `tma ${initData}`,
     },

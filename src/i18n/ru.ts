@@ -191,6 +191,24 @@ export const ru = {
   'lineup.positionShort.defender': 'Защ',
   'lineup.positionShort.goalie': 'Вр',
 
+  // Media (/events/[id]/media)
+  'media.title.training': 'Медиа тренировки',
+  'media.title.game': 'Медиа игры',
+  'media.upload.title': 'Загрузить фото',
+  'media.upload.hint': 'Только изображения (JPG, PNG)',
+  'media.upload.button': 'Выбрать фото',
+  'media.upload.busy': 'Загружаем…',
+  'media.upload.error': 'Не удалось загрузить',
+  'media.list.title': 'Фото',
+  'media.list.sortNewest': 'По новизне',
+  'media.list.empty': 'Фото пока нет',
+  'media.viewer.close': 'Закрыть',
+  'media.viewer.prev': 'Предыдущая',
+  'media.viewer.next': 'Следующая',
+  'media.viewer.delete': 'Удалить',
+  'media.viewer.deleteConfirm': 'Удалить это фото?',
+  'media.errors.notFound': 'Событие не найдено',
+
   // Common
   'common.empty': 'Пока ничего нет',
   'common.loading': 'Загружаем',
