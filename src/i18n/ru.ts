@@ -166,6 +166,9 @@ export const ru = {
   'lineup.role.ld': 'ЛЗ',
   'lineup.role.rd': 'ПЗ',
   'lineup.role.g': 'Вр',
+  'lineup.positionShort.forward': 'Нап',
+  'lineup.positionShort.defender': 'Защ',
+  'lineup.positionShort.goalie': 'Вр',
 
   // Common
   'common.empty': 'Пока ничего нет',

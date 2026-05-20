@@ -51,9 +51,12 @@ export function RosterCard({
 
   const displayFirst = firstName ?? '';
   const displayLast = lastName ?? '';
+  const verticalSeparator = ' · ';
+  const horizontalSeparator = ' ';
+  const sep = layout === 'horizontal' ? horizontalSeparator : verticalSeparator;
   const subtitle =
     jersey != null && positionLabel
-      ? `#${jersey} · ${positionLabel}`
+      ? `#${jersey}${sep}${positionLabel}`
       : jersey != null
         ? `#${jersey}`
         : positionLabel ?? '';
@@ -77,20 +80,11 @@ export function RosterCard({
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing['8'],
-      padding: `${spacing['8']}px ${spacing['10']}px ${spacing['8']}px ${spacing['6']}px`,
+      gap: spacing['10'],
+      padding: `${spacing['10']}px ${spacing['12']}px`,
       minHeight: 84,
-    };
-    const handle: CSSProperties = {
-      flexShrink: 0,
-      width: 22,
-      height: 48,
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'grab',
-      touchAction: 'none',
-      borderRadius: radius.sm,
+      cursor: forOverlay ? 'grabbing' : 'grab',
+      touchAction: 'manipulation',
     };
     const textCol: CSSProperties = {
       flex: 1,
@@ -100,7 +94,7 @@ export function RosterCard({
       gap: 0,
     };
     const nameStyle: CSSProperties = {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: 600,
       color: colors.text,
       lineHeight: 1.2,
@@ -108,24 +102,21 @@ export function RosterCard({
       wordBreak: 'break-word',
     };
     const subStyle: CSSProperties = {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textSecondary,
       fontVariantNumeric: 'tabular-nums',
       lineHeight: 1.2,
-      marginTop: 2,
+      marginTop: 4,
       overflowWrap: 'break-word',
     };
     return (
-      <div ref={forOverlay ? undefined : drag.setNodeRef} style={wrap}>
-        <span
-          style={handle}
-          aria-label="Перетащить"
-          {...(forOverlay ? {} : drag.listeners)}
-          {...(forOverlay ? {} : drag.attributes)}
-        >
-          <GripDots size="md" />
-        </span>
-        <Avatar src={photoUrl ?? null} name={`${displayFirst} ${displayLast}`} size={40} />
+      <div
+        ref={forOverlay ? undefined : drag.setNodeRef}
+        style={wrap}
+        {...(forOverlay ? {} : drag.listeners)}
+        {...(forOverlay ? {} : drag.attributes)}
+      >
+        <Avatar src={photoUrl ?? null} name={`${displayFirst} ${displayLast}`} size={44} />
         <div style={textCol}>
           <div style={nameStyle}>{displayFirst || '—'}</div>
           {displayLast ? <div style={nameStyle}>{displayLast}</div> : null}

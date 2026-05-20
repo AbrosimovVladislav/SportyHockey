@@ -45,6 +45,14 @@ function positionLabel(pos: PlayerPosition | null, t: (k: never) => string): str
   return null;
 }
 
+function positionLabelShort(pos: PlayerPosition | null, t: (k: never) => string): string | null {
+  if (!pos) return null;
+  if (pos === 'forward') return t('lineup.positionShort.forward' as never);
+  if (pos === 'defender') return t('lineup.positionShort.defender' as never);
+  if (pos === 'goalie') return t('lineup.positionShort.goalie' as never);
+  return null;
+}
+
 function playerSubtitle(a: EventAttendee, t: (k: never) => string): string | undefined {
   const pos = positionLabel(a.position, t);
   if (a.jersey_number != null && pos) return `#${a.jersey_number} · ${pos}`;
@@ -70,7 +78,7 @@ export default function EventLineupPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 350, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 600, tolerance: 8 } }),
   );
 
   const attendees = useMemo(() => data?.attendees ?? [], [data]);
@@ -195,7 +203,7 @@ export default function EventLineupPage() {
       lastName={a.last_name}
       photoUrl={a.photo_url}
       jersey={a.jersey_number}
-      positionLabel={positionLabel(a.position, t as (k: never) => string)}
+      positionLabel={positionLabelShort(a.position, t as (k: never) => string)}
       layout="horizontal"
     />
   );
@@ -286,10 +294,11 @@ export default function EventLineupPage() {
                 lastName={activeAttendee.last_name}
                 photoUrl={activeAttendee.photo_url}
                 jersey={activeAttendee.jersey_number}
-                positionLabel={positionLabel(
-                  activeAttendee.position,
-                  t as (k: never) => string,
-                )}
+                positionLabel={
+                  currentTab === 'teams'
+                    ? positionLabelShort(activeAttendee.position, t as (k: never) => string)
+                    : positionLabel(activeAttendee.position, t as (k: never) => string)
+                }
                 layout={currentTab === 'teams' ? 'horizontal' : 'vertical'}
                 forOverlay
               />
