@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DarkHeader } from '@/components/dark-header';
 import { GlassButton } from '@/components/glass-button';
@@ -9,6 +9,7 @@ import { Avatar } from '@/components/avatar';
 import { AvatarStack } from '@/components/avatar-stack';
 import { ProgressBar } from '@/components/progress-bar';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
+import { BottomSheet } from '@/components/bottom-sheet';
 import {
   IconBack,
   IconMore,
@@ -22,6 +23,7 @@ import {
   IconExternal,
   IconImage,
   IconRuble,
+  IconClock,
 } from '@/components/icons';
 import { useEvent } from '@/hooks/use-event';
 import { useVoteEvent } from '@/hooks/use-vote-event';
@@ -142,9 +144,18 @@ export default function EventDetailPage() {
   const me = useMe();
   const ev = useEvent(id);
   const vote = useVoteEvent(id, me.data?.user.id);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const data = ev.data;
   const isTraining = data?.type !== 'game';
+
+  const isOrganizer = useMemo(() => {
+    if (!data || !me.data) return false;
+    return me.data.memberships.some(
+      (m) => m.team_id === data.team_id && m.role === 'organizer',
+    );
+  }, [data, me.data]);
+  const canEditEvent = isOrganizer && data?.status === 'scheduled';
   const myVote = useMemo<EventAttendee['vote'] | undefined>(() => {
     if (!data || !me.data) return undefined;
     return data.attendees.find((a) => a.user_id === me.data!.user.id)?.vote ?? null;
@@ -229,13 +240,15 @@ export default function EventDetailPage() {
         </GlassButton>
       }
       right={
-        <GlassButton
-          ariaLabel={t('eventDetail.menuLabel')}
-          onClick={() => alert(t('eventDetail.soon'))}
-          size={40}
-        >
-          <IconMore size={20} color={colors.textInverse} />
-        </GlassButton>
+        canEditEvent ? (
+          <GlassButton
+            ariaLabel={t('eventDetail.menuLabel')}
+            onClick={() => setMenuOpen(true)}
+            size={40}
+          >
+            <IconMore size={20} color={colors.textInverse} />
+          </GlassButton>
+        ) : undefined
       }
     />
   );
@@ -595,6 +608,77 @@ export default function EventDetailPage() {
           onClick={() => router.push(`/events/${id}/media`)}
         />
       </div>
+
+      {canEditEvent ? (
+        <BottomSheet
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          title={t('eventMenu.title')}
+        >
+          <MenuButton
+            icon={<IconClock size={20} color={colors.iconFg} />}
+            label={t('eventMenu.reschedule')}
+            onClick={() => {
+              setMenuOpen(false);
+              router.push(`/events/${id}/reschedule`);
+            }}
+          />
+          <MenuButton
+            icon={<IconClose size={20} color={colors.error} />}
+            label={t('eventMenu.cancel')}
+            tone="danger"
+            onClick={() => {
+              setMenuOpen(false);
+              router.push(`/events/${id}/cancel`);
+            }}
+          />
+        </BottomSheet>
+      ) : null}
     </div>
+  );
+}
+
+function MenuButton({
+  icon,
+  label,
+  onClick,
+  tone = 'neutral',
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  tone?: 'neutral' | 'danger';
+}) {
+  const isDanger = tone === 'danger';
+  const row: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing['12'],
+    padding: `${spacing['12']}px ${spacing['4']}px`,
+    width: '100%',
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    textAlign: 'left',
+    color: isDanger ? colors.error : colors.text,
+    borderRadius: radius.md,
+    fontSize: 16,
+    fontWeight: 500,
+  };
+  const iconBox: CSSProperties = {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    background: isDanger ? 'rgba(211,47,47,0.10)' : colors.bgMuted,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  };
+  return (
+    <button type="button" className="pressable" onClick={onClick} style={row}>
+      <span style={iconBox}>{icon}</span>
+      <span style={{ flex: 1 }}>{label}</span>
+    </button>
   );
 }

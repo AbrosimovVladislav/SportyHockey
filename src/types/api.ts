@@ -142,6 +142,7 @@ export type EventDetailDto = EventDto & {
   payments: EventPaymentSummary;
   lines: EventLineEntry[];
   media_count: number;
+  cancelled_reason: string | null;
 };
 
 export type MediaUploader = {
@@ -245,6 +246,9 @@ export type UpdateEventRequest = {
   arena_cost?: number | null;
   opponent_name?: string | null;
   status?: 'scheduled' | 'cancelled';
+  cancelled_reason?: string | null;
 };
+
+export type UpdateEventResponse = { ok: true };
 
 export type CreateEventResponse = { id: string };

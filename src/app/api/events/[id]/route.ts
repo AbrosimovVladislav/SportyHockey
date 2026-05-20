@@ -63,6 +63,7 @@ const UpdateBody = z.object({
   arena_cost: z.number().nonnegative().nullable().optional(),
   opponent_name: z.string().trim().max(100).nullable().optional(),
   status: z.enum(['scheduled', 'cancelled']).optional(),
+  cancelled_reason: z.string().trim().max(200).nullable().optional(),
 });
 
 type Params = { params: Promise<{ id: string }> };
@@ -76,7 +77,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: event, error } = await sb
       .from('events')
       .select(
-        'id, team_id, type, title, starts_at, ends_at, venue_text, cost_per_player, arena_cost, opponent_name, status, description, created_by, venue:venues(id, name, address)',
+        'id, team_id, type, title, starts_at, ends_at, venue_text, cost_per_player, arena_cost, opponent_name, status, description, created_by, cancelled_reason, venue:venues(id, name, address)',
       )
       .eq('id', id)
       .maybeSingle();
@@ -259,6 +260,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       payments,
       lines,
       media_count: mediaCount ?? 0,
+      cancelled_reason: event.cancelled_reason ?? null,
     };
     return NextResponse.json(dto);
   } catch (e) {
@@ -302,7 +304,15 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     if (d.opponent_name !== undefined) {
       patch.opponent_name = d.opponent_name && d.opponent_name.length > 0 ? d.opponent_name : null;
     }
-    if (d.status !== undefined) patch.status = d.status;
+    if (d.status !== undefined) {
+      patch.status = d.status;
+      // Возврат в scheduled очищает причину отмены.
+      if (d.status === 'scheduled') patch.cancelled_reason = null;
+    }
+    if (d.status === 'cancelled' && d.cancelled_reason !== undefined) {
+      patch.cancelled_reason =
+        d.cancelled_reason && d.cancelled_reason.length > 0 ? d.cancelled_reason : null;
+    }
 
     if (d.venue_id !== undefined) {
       const { data: venue } = await sb

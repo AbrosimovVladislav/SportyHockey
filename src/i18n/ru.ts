@@ -213,6 +213,47 @@ export const ru = {
   'media.viewer.shareError': 'Не удалось поделиться',
   'media.errors.notFound': 'Событие не найдено',
 
+  // Event menu (контекстное меню на /events/[id])
+  'eventMenu.title': 'Действия',
+  'eventMenu.reschedule': 'Перенести',
+  'eventMenu.cancel': 'Отменить',
+
+  // Reschedule (/events/[id]/reschedule)
+  'reschedule.title': 'Перенос события',
+  'reschedule.summary.training': 'Тренировка',
+  'reschedule.summary.game': 'Игра',
+  'reschedule.sections.newTime': 'Новое время и место',
+  'reschedule.fields.newDate': 'Новая дата',
+  'reschedule.fields.startTime': 'Время начала',
+  'reschedule.fields.duration': 'Длительность',
+  'reschedule.fields.venue': 'Площадка',
+  'reschedule.changes.title': 'Что изменится',
+  'reschedule.changes.notify': 'Уведомим {count} участников',
+  'reschedule.changes.notifyHint': 'Все приглашённые получат уведомление',
+  'reschedule.changes.votes': 'Текущие голоса сохранятся',
+  'reschedule.changes.votesHint': 'Ответы «иду», «под вопросом», «не иду» останутся',
+  'reschedule.changes.payments': 'Оплаты останутся привязанными',
+  'reschedule.changes.paymentsHint': 'Все оплаты останутся за событием',
+  'reschedule.submit': 'Подтвердить перенос',
+  'reschedule.submitting': 'Сохраняем…',
+
+  // Cancel (/events/[id]/cancel)
+  'cancel.title': 'Отмена события',
+  'cancel.reason.label': 'Причина отмены',
+  'cancel.reason.placeholder': 'Укажите причину отмены события',
+  'cancel.reason.counter': '{len}/200',
+  'cancel.happens.title': 'Что произойдёт',
+  'cancel.happens.notify': '{count} игроков получат уведомление',
+  'cancel.happens.notifyHint': 'Все участники будут оповещены об отмене',
+  'cancel.happens.refunds': '{count} оплат потребуют возврат',
+  'cancel.happens.refundsHint': 'Оплаты, сделанные за событие, нужно будет вернуть',
+  'cancel.happens.arena': 'Площадка останется неоплаченной',
+  'cancel.happens.arenaHint': 'Бронь на площадку будет отменена без оплаты',
+  'cancel.submit': 'Отменить событие',
+  'cancel.confirm': 'Точно отменить событие?',
+  'cancel.close': 'Закрыть',
+  'cancel.disabled.notEditable': 'Событие нельзя изменить',
+
   // Common
   'common.empty': 'Пока ничего нет',
   'common.loading': 'Загружаем',
