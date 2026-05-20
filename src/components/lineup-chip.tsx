@@ -12,7 +12,6 @@ type Props = {
   name: string;
   photoUrl?: string | null;
   subtitle?: string;
-  variant?: 'pool' | 'zone';
   forOverlay?: boolean;
 };
 
@@ -31,21 +30,14 @@ function GripIcon({ color = '#B6B3AC' }: { color?: string }) {
   );
 }
 
-export function LineupChip({
-  id,
-  name,
-  photoUrl,
-  subtitle,
-  variant = 'zone',
-  forOverlay = false,
-}: Props) {
+export function LineupChip({ id, name, photoUrl, subtitle, forOverlay = false }: Props) {
   const drag = useDraggable({ id, disabled: forOverlay });
 
   const wrapStyle: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing['6'],
-    padding: `${spacing['6']}px ${spacing['10']}px ${spacing['6']}px ${spacing['4']}px`,
+    padding: `${spacing['4']}px ${spacing['8']}px ${spacing['4']}px ${spacing['2']}px`,
     background: colors.bg,
     border: `1px solid ${colors.line}`,
     borderRadius: radius.pill,
@@ -54,13 +46,13 @@ export function LineupChip({
     userSelect: 'none',
     opacity: drag.isDragging && !forOverlay ? 0.35 : 1,
     transform: forOverlay ? 'scale(1.03)' : undefined,
-    width: variant === 'pool' ? '100%' : undefined,
-    maxWidth: variant === 'pool' ? '100%' : 240,
+    width: '100%',
+    boxSizing: 'border-box',
   };
 
   const handleStyle: CSSProperties = {
     flexShrink: 0,
-    width: 28,
+    width: 22,
     height: 36,
     display: 'inline-flex',
     alignItems: 'center',
@@ -96,7 +88,7 @@ export function LineupChip({
       >
         <GripIcon />
       </span>
-      <Avatar src={photoUrl ?? null} name={name} size={32} />
+      <Avatar src={photoUrl ?? null} name={name} size={28} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={nameStyle}>{name}</div>
         {subtitle ? <div style={subStyle}>{subtitle}</div> : null}

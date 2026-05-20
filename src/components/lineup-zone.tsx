@@ -32,12 +32,14 @@ export function LineupZone({
     border: drop.isOver ? `2px dashed ${colors.headerAccent}` : `1px dashed ${baseBorder}`,
     background: drop.isOver ? 'rgba(232, 79, 0, 0.06)' : '#FAFAF8',
     borderRadius: radius.md,
-    padding: spacing['12'],
-    minHeight: 96,
+    padding: spacing['8'],
+    minHeight: 120,
     transition: 'background 120ms ease, border-color 120ms ease',
     display: 'flex',
     flexDirection: 'column',
     gap: spacing['8'],
+    flex: 1,
+    minWidth: 0,
   };
 
   const header: CSSProperties = {
@@ -68,7 +70,7 @@ export function LineupZone({
 
   const listStyle: CSSProperties = {
     display: 'flex',
-    flexWrap: 'wrap',
+    flexDirection: 'column',
     gap: spacing['6'],
   };
 

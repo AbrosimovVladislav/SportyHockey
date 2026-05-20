@@ -21,6 +21,7 @@ import { useEvent } from '@/hooks/use-event';
 import { useSetLineup } from '@/hooks/use-set-lineup';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
+import { useTgSwipes } from '@/hooks/use-tg-swipes';
 import { formatEventDateRange } from '@/lib/event-format';
 import { formatName } from '@/lib/format-name';
 import { colors } from '@/theme/colors';
@@ -52,6 +53,7 @@ export default function EventLineupPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? '';
   useTgHeader('#FFFFFF');
+  useTgSwipes(true);
 
   const ev = useEvent(id);
   const data = ev.data;
@@ -149,14 +151,13 @@ export default function EventLineupPage() {
 
   const activeAttendee = activeId ? byId.get(activeId) : null;
 
-  const renderChip = (a: EventAttendee, variant: 'pool' | 'zone' = 'zone') => (
+  const renderChip = (a: EventAttendee) => (
     <LineupChip
       key={a.user_id}
       id={a.user_id}
       name={formatName(a)}
       photoUrl={a.photo_url}
       subtitle={playerSubtitle(a, t as (k: never) => string)}
-      variant={variant}
     />
   );
 
@@ -166,24 +167,26 @@ export default function EventLineupPage() {
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div style={content}>
-          <LineupZone
-            id="light"
-            title={t('lineup.teams.light')}
-            count={groups.light.length}
-            empty={groups.light.length === 0}
-            emptyHint={t('lineup.dropHint')}
-          >
-            {groups.light.map((a) => renderChip(a, 'zone'))}
-          </LineupZone>
-          <LineupZone
-            id="dark"
-            title={t('lineup.teams.dark')}
-            count={groups.dark.length}
-            empty={groups.dark.length === 0}
-            emptyHint={t('lineup.dropHint')}
-          >
-            {groups.dark.map((a) => renderChip(a, 'zone'))}
-          </LineupZone>
+          <div style={{ display: 'flex', gap: spacing['10'], alignItems: 'stretch' }}>
+            <LineupZone
+              id="light"
+              title={t('lineup.teams.light')}
+              count={groups.light.length}
+              empty={groups.light.length === 0}
+              emptyHint={t('lineup.dropHint')}
+            >
+              {groups.light.map((a) => renderChip(a))}
+            </LineupZone>
+            <LineupZone
+              id="dark"
+              title={t('lineup.teams.dark')}
+              count={groups.dark.length}
+              empty={groups.dark.length === 0}
+              emptyHint={t('lineup.dropHint')}
+            >
+              {groups.dark.map((a) => renderChip(a))}
+            </LineupZone>
+          </div>
 
           <PoolSection
             signedTitle={t('lineup.pool.signed')}
@@ -191,7 +194,7 @@ export default function EventLineupPage() {
             signed={groups.signed}
             unsigned={groups.unsigned}
             emptyHint={t('lineup.poolEmpty')}
-            renderChip={(a) => renderChip(a, 'pool')}
+            renderChip={(a) => renderChip(a)}
           />
         </div>
 

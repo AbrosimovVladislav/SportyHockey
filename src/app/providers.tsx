@@ -6,6 +6,7 @@ import {
   init,
   expandViewport,
   mountMiniApp,
+  mountSwipeBehavior,
   setMiniAppHeaderColor,
   setMiniAppBackgroundColor,
   backButton,
@@ -36,6 +37,7 @@ async function bootstrapTelegram(): Promise<void> {
     if (setMiniAppHeaderColor.isAvailable()) setMiniAppHeaderColor('#FFFFFF');
     if (setMiniAppBackgroundColor.isAvailable()) setMiniAppBackgroundColor('#FFFFFF');
     if (backButton.mount.isAvailable()) backButton.mount();
+    if (mountSwipeBehavior.isAvailable()) mountSwipeBehavior();
   } catch (e) {
     if (process.env.NODE_ENV === 'development') {
       console.warn('[tma] init skipped — not in Telegram:', e);
