@@ -299,6 +299,7 @@ export type Database = {
           event_id: string | null
           height: number | null
           id: string
+          mime_type: string | null
           storage_path: string
           team_id: string
           type: string | null
@@ -310,6 +311,7 @@ export type Database = {
           event_id?: string | null
           height?: number | null
           id?: string
+          mime_type?: string | null
           storage_path: string
           team_id: string
           type?: string | null
@@ -321,6 +323,7 @@ export type Database = {
           event_id?: string | null
           height?: number | null
           id?: string
+          mime_type?: string | null
           storage_path?: string
           team_id?: string
           type?: string | null
