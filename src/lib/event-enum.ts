@@ -9,3 +9,17 @@ export function asEventStatus(v: string | null): EventStatus {
   if (v === 'completed') return 'completed';
   return 'scheduled';
 }
+
+// Эффективный статус: если событие не отменено и его время окончания в прошлом — считаем завершённым.
+export function effectiveEventStatus(
+  raw: string | null,
+  endsAt: string | null,
+  now: Date = new Date(),
+): EventStatus {
+  const status = asEventStatus(raw);
+  if (status !== 'scheduled') return status;
+  if (!endsAt) return status;
+  const endsTs = new Date(endsAt).getTime();
+  if (Number.isNaN(endsTs)) return status;
+  return endsTs < now.getTime() ? 'completed' : 'scheduled';
+}

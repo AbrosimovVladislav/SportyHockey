@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { AuthError, requireOrganizer, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
-import { asEventStatus, asEventType } from '@/lib/event-enum';
+import { asEventType, effectiveEventStatus } from '@/lib/event-enum';
 import { loadAttendance } from '@/lib/event-attendance';
 import { asMemberRole } from '@/lib/role';
 import { notifyEventCancelled, notifyEventUpdated } from '@/lib/notify';
@@ -161,12 +161,16 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const costPerPlayer =
       event.cost_per_player != null ? Number(event.cost_per_player) : null;
     const arenaCost = event.arena_cost != null ? Number(event.arena_cost) : null;
-    const going = attendees.filter((a) => a.vote === 'going');
+    // В «финансовый ростер» попадают: голосовавшие going, реально пришедшие (showed_up=true),
+    // а также все, кто внёс деньги — даже если не записывался.
+    const roster = attendees.filter(
+      (a) => a.vote === 'going' || a.showed_up === true || (a.paid_amount ?? 0) > 0,
+    );
     let paid_count = 0;
     let partial_count = 0;
     let debt_count = 0;
     let collected = 0;
-    for (const a of going) {
+    for (const a of roster) {
       const amount = a.paid_amount ?? 0;
       collected += amount;
       if (costPerPlayer == null || costPerPlayer === 0) {
@@ -200,7 +204,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       venue_text: event.venue_text,
       cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
       arena_cost: event.arena_cost != null ? Number(event.arena_cost) : null,
-      status: asEventStatus(event.status),
+      status: effectiveEventStatus(event.status, event.ends_at),
       description: event.description,
       created_by: event.created_by,
       attendance: attendanceMap.get(event.id) ?? { going: 0, maybe: 0, not_going: 0 },

@@ -18,6 +18,8 @@ type Props = {
   weekDay?: string;
   count?: number;
   total?: number;
+  completed?: boolean;
+  completedLabel?: string;
   onClick?: () => void;
 };
 
@@ -37,6 +39,8 @@ export function EventCard({
   weekDay,
   count,
   total,
+  completed,
+  completedLabel,
   onClick,
 }: Props) {
   const isWeek = weekDate != null;
@@ -55,6 +59,19 @@ export function EventCard({
     cursor: onClick ? 'pointer' : 'default',
     textAlign: 'left',
     color: colors.text,
+    opacity: completed ? 0.75 : 1,
+  };
+
+  const badgeStyle: CSSProperties = {
+    display: 'inline-block',
+    marginTop: 4,
+    padding: '2px 6px',
+    fontSize: 11,
+    fontWeight: 600,
+    color: colors.textSecondary,
+    background: colors.bgMuted,
+    borderRadius: 6,
+    lineHeight: 1.2,
   };
 
   const timeCol: CSSProperties = {
@@ -124,6 +141,9 @@ export function EventCard({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={titleStyle}>{title}</div>
         {venue ? <div style={venueStyle}>{venue}</div> : null}
+        {completed && completedLabel ? (
+          <span style={badgeStyle}>{completedLabel}</span>
+        ) : null}
       </div>
       {count != null && total != null ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing['8'], flexShrink: 0 }}>

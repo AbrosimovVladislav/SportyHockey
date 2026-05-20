@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { AuthError, requireOrganizer, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
-import { asEventStatus, asEventType } from '@/lib/event-enum';
+import { asEventType, effectiveEventStatus } from '@/lib/event-enum';
 import { loadAttendance } from '@/lib/event-attendance';
 import { getUserTeamId } from '@/lib/user-team';
 import { notifyEventCreated } from '@/lib/notify';
@@ -79,7 +79,7 @@ export async function GET(req: Request): Promise<Response> {
       venue_text: r.venue_text,
       cost_per_player: r.cost_per_player != null ? Number(r.cost_per_player) : null,
       arena_cost: r.arena_cost != null ? Number(r.arena_cost) : null,
-      status: asEventStatus(r.status),
+      status: effectiveEventStatus(r.status, r.ends_at),
       attendance: attendanceMap.get(r.id) ?? { going: 0, maybe: 0, not_going: 0 },
     }));
 

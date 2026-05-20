@@ -160,40 +160,39 @@ export default function EventAttendeesPage() {
           />
         ) : null}
 
-        <Group
-          title={t('rosterDay.sections.signed')}
-          attendees={groups.going}
-          renderRight={(a, isLast) => (
-            <PlayerActions
-              attendee={a}
-              cost={cost}
-              isOrganizer={isOrganizer}
-              isMe={a.user_id === myUserId}
-              tPaid={t('rosterDay.actions.paid')}
-              tWas={t('rosterDay.actions.was')}
-              tClaimCta={t('rosterDay.paymentClaim.cta')}
-              tClaimSent={t('rosterDay.paymentClaim.sent')}
-              onPay={() => setPaying({ attendee: a })}
-              onWas={() => setAttendance.mutate({ user_id: a.user_id, showed_up: !(a.showed_up ?? false) })}
-              onClaim={() => paymentClaim.mutate()}
-              claimPending={paymentClaim.isPending}
-              isLast={isLast}
-            />
-          )}
-          renderSubtitle={(a) => playerSubtitle(a, t as (k: never) => string)}
-        />
-        <Group
-          title={t('rosterDay.sections.noAnswer')}
-          attendees={groups.noAnswer}
-          renderRight={() => null}
-          renderSubtitle={(a) => playerSubtitle(a, t as (k: never) => string)}
-        />
-        <Group
-          title={t('rosterDay.sections.notGoing')}
-          attendees={groups.notGoing}
-          renderRight={() => null}
-          renderSubtitle={(a) => playerSubtitle(a, t as (k: never) => string)}
-        />
+        {(['going', 'noAnswer', 'notGoing'] as const).map((g) => (
+          <Group
+            key={g}
+            title={
+              g === 'going'
+                ? t('rosterDay.sections.signed')
+                : g === 'noAnswer'
+                  ? t('rosterDay.sections.noAnswer')
+                  : t('rosterDay.sections.notGoing')
+            }
+            attendees={groups[g]}
+            renderRight={(a, isLast) => (
+              <PlayerActions
+                attendee={a}
+                cost={cost}
+                isOrganizer={isOrganizer}
+                isMe={a.user_id === myUserId}
+                tPaid={t('rosterDay.actions.paid')}
+                tWas={t('rosterDay.actions.was')}
+                tClaimCta={t('rosterDay.paymentClaim.cta')}
+                tClaimSent={t('rosterDay.paymentClaim.sent')}
+                onPay={() => setPaying({ attendee: a })}
+                onWas={() =>
+                  setAttendance.mutate({ user_id: a.user_id, showed_up: !(a.showed_up ?? false) })
+                }
+                onClaim={() => paymentClaim.mutate()}
+                claimPending={paymentClaim.isPending}
+                isLast={isLast}
+              />
+            )}
+            renderSubtitle={(a) => playerSubtitle(a, t as (k: never) => string)}
+          />
+        ))}
       </div>
 
       {paying ? (

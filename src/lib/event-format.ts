@@ -89,6 +89,7 @@ type GroupedEvents = {
   today: EventDto[];
   week: EventDto[];
   later: EventDto[];
+  completed: EventDto[];
 };
 
 // Возвращает диапазон [startOfDay, startOfNextDay) для переданной даты.
@@ -113,18 +114,28 @@ export function groupEvents(events: EventDto[], now: Date = new Date()): Grouped
   const tomorrowStart = new Date(todayStart);
   tomorrowStart.setDate(tomorrowStart.getDate() + 1);
   const weekEnd = endOfThisWeek(now);
+  const nowTs = now.getTime();
 
   const today: EventDto[] = [];
   const week: EventDto[] = [];
   const later: EventDto[] = [];
+  const completed: EventDto[] = [];
 
   for (const ev of events) {
-    const t = new Date(ev.starts_at).getTime();
-    if (t < todayStart.getTime()) continue;
-    if (t < tomorrowStart.getTime()) today.push(ev);
-    else if (t < weekEnd.getTime()) week.push(ev);
+    const startsTs = new Date(ev.starts_at).getTime();
+    const endsTs = ev.ends_at ? new Date(ev.ends_at).getTime() : startsTs;
+    if (ev.status === 'completed' || endsTs < nowTs) {
+      completed.push(ev);
+      continue;
+    }
+    if (startsTs < tomorrowStart.getTime()) today.push(ev);
+    else if (startsTs < weekEnd.getTime()) week.push(ev);
     else later.push(ev);
   }
 
-  return { today, week, later };
+  completed.sort(
+    (a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime(),
+  );
+
+  return { today, week, later, completed };
 }

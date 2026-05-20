@@ -251,53 +251,73 @@ export default function EventDetailPage() {
     );
   }
 
+  const isCompleted = data.status === 'completed';
+
   return (
     <div style={wrap}>
       {renderHeader()}
 
       {/* SHEET */}
       <div style={sheet}>
-        {/* VOTE */}
-        <SectionCard padding={spacing['10']}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing['6'],
-            }}
-          >
+        {isCompleted ? (
+          <SectionCard padding={spacing['10']}>
             <span
               style={{
+                display: 'inline-block',
+                padding: '4px 8px',
+                borderRadius: radius.sm,
+                background: colors.bgMuted,
+                color: colors.textSecondary,
                 fontSize: 12,
-                fontWeight: 500,
-                color: colors.text,
-                flex: 1,
-                minWidth: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                fontWeight: 600,
               }}
             >
-              {voteQuestion}
+              {t('eventDetail.status.completed')}
             </span>
-            <div style={{ display: 'flex', gap: spacing['4'], flexShrink: 0 }}>
-              <VotePill
-                active={myVote === 'going'}
-                kind="going"
-                label={t('eventDetail.vote.going')}
-                onClick={() => handleVote('going')}
-                disabled={vote.isPending}
-              />
-              <VotePill
-                active={myVote === 'not_going'}
-                kind="notGoing"
-                label={t('eventDetail.vote.notGoing')}
-                onClick={() => handleVote('not_going')}
-                disabled={vote.isPending}
-              />
+          </SectionCard>
+        ) : (
+          /* VOTE */
+          <SectionCard padding={spacing['10']}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing['6'],
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: colors.text,
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {voteQuestion}
+              </span>
+              <div style={{ display: 'flex', gap: spacing['4'], flexShrink: 0 }}>
+                <VotePill
+                  active={myVote === 'going'}
+                  kind="going"
+                  label={t('eventDetail.vote.going')}
+                  onClick={() => handleVote('going')}
+                  disabled={vote.isPending}
+                />
+                <VotePill
+                  active={myVote === 'not_going'}
+                  kind="notGoing"
+                  label={t('eventDetail.vote.notGoing')}
+                  onClick={() => handleVote('not_going')}
+                  disabled={vote.isPending}
+                />
+              </div>
             </div>
-          </div>
-        </SectionCard>
+          </SectionCard>
+        )}
 
         {/* СОСТАВ И ЯВКА */}
         <SectionCard padding={spacing['12']}>

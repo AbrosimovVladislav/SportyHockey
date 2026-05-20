@@ -49,6 +49,8 @@ export const ru = {
   'schedule.sections.today': 'Сегодня',
   'schedule.sections.week': 'Эта неделя',
   'schedule.sections.later': 'Далее',
+  'schedule.sections.completed': 'Завершённые',
+  'schedule.completed': 'Завершено',
   'schedule.empty': 'Событий пока нет',
   'schedule.calendarSoon': 'Календарь скоро',
   'schedule.fabLabel': 'Создать событие',
@@ -107,6 +109,7 @@ export const ru = {
   'eventDetail.links.media.subtitle': '{count} файлов',
   'eventDetail.errors.notFound': 'Событие не найдено',
   'eventDetail.soon': 'Скоро',
+  'eventDetail.status.completed': 'Завершено',
 
   // Roster day (/events/[id]/attendees)
   'rosterDay.title.training': 'Состав тренировки',

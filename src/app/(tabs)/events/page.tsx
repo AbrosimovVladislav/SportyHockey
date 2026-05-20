@@ -89,7 +89,10 @@ export default function EventsPage() {
   const teamSize = events.data?.team_size ?? 0;
   const groups = useMemo(() => groupEvents(filtered), [filtered]);
   const isEmpty =
-    groups.today.length === 0 && groups.week.length === 0 && groups.later.length === 0;
+    groups.today.length === 0 &&
+    groups.week.length === 0 &&
+    groups.later.length === 0 &&
+    groups.completed.length === 0;
 
   const filterOptions = [
     { id: 'all' as const, label: t('schedule.filters.all') },
@@ -137,6 +140,26 @@ export default function EventsPage() {
         weekDay={wd.day}
         count={ev.attendance.going}
         total={teamSize}
+        onClick={() => router.push(`/events/${ev.id}`)}
+      />
+    );
+  };
+
+  const renderCardCompleted = (ev: EventDto) => {
+    const wd = formatWeekDate(ev.starts_at);
+    return (
+      <EventCard
+        key={ev.id}
+        kind={kindOf(ev)}
+        title={titleFor(ev)}
+        venue={venueFor(ev)}
+        timePrimary={formatTime(ev.starts_at)}
+        weekDate={wd.date}
+        weekDay={wd.day}
+        count={ev.attendance.going}
+        total={teamSize}
+        completed
+        completedLabel={t('schedule.completed')}
         onClick={() => router.push(`/events/${ev.id}`)}
       />
     );
@@ -221,6 +244,12 @@ export default function EventsPage() {
                   <>
                     <SectionHeader title={t('schedule.sections.later')} />
                     <div style={list}>{groups.later.map(renderCardWeek)}</div>
+                  </>
+                )}
+                {groups.completed.length > 0 && (
+                  <>
+                    <SectionHeader title={t('schedule.sections.completed')} />
+                    <div style={list}>{groups.completed.map(renderCardCompleted)}</div>
                   </>
                 )}
               </>
