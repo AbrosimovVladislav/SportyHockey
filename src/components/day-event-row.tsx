@@ -15,6 +15,7 @@ type Props = {
   count: number;
   total: number;
   completed?: boolean;
+  completedLabel?: string;
   onClick?: () => void;
 };
 
@@ -27,6 +28,7 @@ export function DayEventRow({
   count,
   total,
   completed = false,
+  completedLabel,
   onClick,
 }: Props) {
   const wrap: CSSProperties = {
@@ -34,14 +36,15 @@ export function DayEventRow({
     alignItems: 'center',
     gap: spacing['12'],
     padding: `${spacing['12']}px ${spacing['12']}px`,
-    background: colors.bg,
+    background: completed ? colors.bgMuted : colors.bg,
     borderRadius: radius.lg,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
+    boxShadow: completed
+      ? 'none'
+      : '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
     border: 'none',
     width: '100%',
     textAlign: 'left',
     cursor: onClick ? 'pointer' : 'default',
-    opacity: completed ? 0.75 : 1,
   };
 
   const timeCol: CSSProperties = {
@@ -57,7 +60,7 @@ export function DayEventRow({
   const timeStart: CSSProperties = {
     fontSize: 15,
     fontWeight: 700,
-    color: colors.text,
+    color: completed ? colors.textSecondary : colors.text,
   };
   const timeEnd: CSSProperties = {
     fontSize: 12,
@@ -69,12 +72,12 @@ export function DayEventRow({
     width: 40,
     height: 40,
     borderRadius: 20,
-    background: colors.bgMuted,
+    background: completed ? colors.bg : colors.bgMuted,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    color: colors.text,
+    color: completed ? colors.textSecondary : colors.text,
   };
 
   const titleCol: CSSProperties = {
@@ -82,15 +85,22 @@ export function DayEventRow({
     minWidth: 0,
     display: 'flex',
     flexDirection: 'column',
-    gap: 2,
+    gap: 3,
+  };
+  const titleRow: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing['6'],
+    minWidth: 0,
   };
   const titleStyle: CSSProperties = {
     fontSize: 15,
     fontWeight: 700,
-    color: colors.text,
+    color: completed ? colors.textSecondary : colors.text,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+    minWidth: 0,
   };
   const subtitleStyle: CSSProperties = {
     fontSize: 12,
@@ -98,6 +108,20 @@ export function DayEventRow({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+  };
+  const completedPill: CSSProperties = {
+    flexShrink: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '2px 6px',
+    borderRadius: 4,
+    background: colors.text,
+    color: colors.textInverse,
+    fontSize: 9,
+    fontWeight: 700,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+    lineHeight: 1.2,
   };
 
   const right: CSSProperties = {
@@ -109,12 +133,20 @@ export function DayEventRow({
   const countStyle: CSSProperties = {
     fontSize: 14,
     fontWeight: 700,
-    color: count > 0 ? colors.success : colors.textSecondary,
+    color: completed
+      ? colors.textTertiary
+      : count > 0
+        ? colors.success
+        : colors.textSecondary,
     fontVariantNumeric: 'tabular-nums',
   };
 
   const Icon: ReactNode =
-    kind === 'game' ? <IconStick size={20} color={colors.text} /> : <IconWhistle size={20} color={colors.text} />;
+    kind === 'game' ? (
+      <IconStick size={20} color={completed ? colors.textSecondary : colors.text} />
+    ) : (
+      <IconWhistle size={20} color={completed ? colors.textSecondary : colors.text} />
+    );
 
   return (
     <button type="button" className="pressable" onClick={onClick} style={wrap}>
@@ -124,7 +156,12 @@ export function DayEventRow({
       </div>
       <span style={iconWrap}>{Icon}</span>
       <div style={titleCol}>
-        <span style={titleStyle}>{title}</span>
+        <div style={titleRow}>
+          <span style={titleStyle}>{title}</span>
+          {completed && completedLabel ? (
+            <span style={completedPill}>{completedLabel}</span>
+          ) : null}
+        </div>
         {subtitle ? <span style={subtitleStyle}>{subtitle}</span> : null}
       </div>
       <span style={right}>

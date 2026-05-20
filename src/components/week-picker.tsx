@@ -9,11 +9,21 @@ type Props = {
   label: string;
   onPrev: () => void;
   onNext: () => void;
+  onLabelClick?: () => void;
   prevAriaLabel: string;
   nextAriaLabel: string;
+  labelAriaLabel?: string;
 };
 
-export function WeekPicker({ label, onPrev, onNext, prevAriaLabel, nextAriaLabel }: Props) {
+export function WeekPicker({
+  label,
+  onPrev,
+  onNext,
+  onLabelClick,
+  prevAriaLabel,
+  nextAriaLabel,
+  labelAriaLabel,
+}: Props) {
   const wrap: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
@@ -44,6 +54,10 @@ export function WeekPicker({ label, onPrev, onNext, prevAriaLabel, nextAriaLabel
     fontWeight: 700,
     color: colors.text,
     lineHeight: 1.2,
+    background: 'transparent',
+    border: 'none',
+    padding: `${spacing['4']}px ${spacing['8']}px`,
+    cursor: onLabelClick ? 'pointer' : 'default',
   };
 
   return (
@@ -57,10 +71,17 @@ export function WeekPicker({ label, onPrev, onNext, prevAriaLabel, nextAriaLabel
       >
         <IconChevronLeft size={20} color={colors.text} />
       </button>
-      <span style={center}>
+      <button
+        type="button"
+        className="pressable"
+        onClick={onLabelClick}
+        disabled={!onLabelClick}
+        aria-label={labelAriaLabel}
+        style={center}
+      >
         {label}
         <IconChevronDown size={14} color={colors.textSecondary} />
-      </span>
+      </button>
       <button
         type="button"
         className="pressable"

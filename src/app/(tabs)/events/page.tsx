@@ -12,6 +12,7 @@ import { FAB } from '@/components/fab';
 import { WeekPicker } from '@/components/week-picker';
 import { WeekDays } from '@/components/week-days';
 import { DayEventRow } from '@/components/day-event-row';
+import { MonthSheet, dayKey } from '@/components/month-sheet';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { IconBell } from '@/components/icons';
 import { useEvents } from '@/hooks/use-events';
@@ -91,6 +92,7 @@ export default function EventsPage() {
     () => startOfWeek(calendarSelected),
     [calendarSelected],
   );
+  const [monthSheetOpen, setMonthSheetOpen] = useState(false);
 
   const isOrganizer = useMemo(
     () => me.data?.memberships.some((m) => m.role === 'organizer') ?? false,
@@ -194,13 +196,26 @@ export default function EventsPage() {
     ] as const
   );
 
+  const eventDayKeys = useMemo(() => {
+    const set = new Set<string>();
+    const list = events.data?.events ?? [];
+    const filtered =
+      filter === 'all' ? list : list.filter((e) => e.type === filter);
+    for (const e of filtered) set.add(dayKey(new Date(e.starts_at)));
+    return set;
+  }, [events.data, filter]);
+
   const calendarWeekDays = useMemo(
     () =>
       Array.from({ length: 7 }, (_, i) => {
         const date = addDays(calendarWeekStart, i);
-        return { date, shortLabel: t(dayShortKey[i]) };
+        return {
+          date,
+          shortLabel: t(dayShortKey[i]),
+          hasEvents: eventDayKeys.has(dayKey(date)),
+        };
       }),
-    [calendarWeekStart, t],
+    [calendarWeekStart, t, eventDayKeys],
   );
 
   const calendarEvents = useMemo(() => {
@@ -213,6 +228,11 @@ export default function EventsPage() {
       (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
     );
   }, [events.data, calendarSelected, filter]);
+
+  const monthSheetDayShort = useMemo(
+    () => dayShortKey.map((k) => t(k)),
+    [t],
+  );
 
   const sheet: CSSProperties = {
     background: colors.bg,
@@ -250,8 +270,10 @@ export default function EventsPage() {
               label={weekRangeLabel(calendarWeekStart)}
               prevAriaLabel={t('schedule.calendar.prevWeek')}
               nextAriaLabel={t('schedule.calendar.nextWeek')}
+              labelAriaLabel={t('schedule.calendar.openPicker')}
               onPrev={() => setCalendarSelected((d) => addDays(d, -7))}
               onNext={() => setCalendarSelected((d) => addDays(d, 7))}
+              onLabelClick={() => setMonthSheetOpen(true)}
             />
             <WeekDays
               days={calendarWeekDays}
@@ -284,11 +306,22 @@ export default function EventsPage() {
                     count={ev.attendance.going}
                     total={teamSize}
                     completed={ev.status === 'completed'}
+                    completedLabel={t('schedule.completed')}
                     onClick={() => router.push(`/events/${ev.id}`)}
                   />
                 ))
               )}
             </div>
+            <MonthSheet
+              open={monthSheetOpen}
+              onClose={() => setMonthSheetOpen(false)}
+              selected={calendarSelected}
+              onSelect={setCalendarSelected}
+              eventDayKeys={eventDayKeys}
+              dayShortLabels={monthSheetDayShort}
+              prevMonthAriaLabel={t('schedule.calendar.prevMonth')}
+              nextMonthAriaLabel={t('schedule.calendar.nextMonth')}
+            />
           </>
         ) : (
           <>

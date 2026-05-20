@@ -9,6 +9,7 @@ import { isSameDay } from '@/lib/event-format';
 type DayItem = {
   date: Date;
   shortLabel: string;
+  hasEvents?: boolean;
 };
 
 type Props = {
@@ -45,6 +46,11 @@ export function WeekDays({ days, selected, onSelect }: Props) {
           color: colors.textSecondary,
           letterSpacing: '0.04em',
         };
+        const pillWrap: CSSProperties = {
+          position: 'relative',
+          width: 36,
+          height: 36,
+        };
         const numberPill: CSSProperties = {
           width: 36,
           height: 36,
@@ -58,6 +64,16 @@ export function WeekDays({ days, selected, onSelect }: Props) {
           background: active ? colors.headerBg : 'transparent',
           fontVariantNumeric: 'tabular-nums',
         };
+        const dot: CSSProperties = {
+          position: 'absolute',
+          bottom: 3,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 4,
+          height: 4,
+          borderRadius: '50%',
+          background: active ? colors.textInverse : colors.headerAccent,
+        };
         return (
           <button
             key={d.date.toISOString()}
@@ -68,7 +84,10 @@ export function WeekDays({ days, selected, onSelect }: Props) {
             aria-pressed={active}
           >
             <span style={label}>{d.shortLabel}</span>
-            <span style={numberPill}>{d.date.getDate()}</span>
+            <span style={pillWrap}>
+              <span style={numberPill}>{d.date.getDate()}</span>
+              {d.hasEvents ? <span style={dot} /> : null}
+            </span>
           </button>
         );
       })}
