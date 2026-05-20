@@ -9,17 +9,18 @@ import { radius } from '@/theme/radius';
 
 type Props = {
   dragId: string;
-  name: string;
+  firstName: string | null;
+  lastName: string | null;
   photoUrl?: string | null;
   jersey?: number | null;
-  roleLabel?: string | null;
+  positionLabel?: string | null;
   forOverlay?: boolean;
 };
 
-function GripDots({ color = '#B6B3AC' }: { color?: string }) {
+function GripDots() {
   return (
     <svg width={10} height={14} viewBox="0 0 10 14" aria-hidden focusable={false}>
-      <g fill={color}>
+      <g fill="#B6B3AC">
         <circle cx={3} cy={3} r={1.1} />
         <circle cx={7} cy={3} r={1.1} />
         <circle cx={3} cy={7} r={1.1} />
@@ -31,25 +32,37 @@ function GripDots({ color = '#B6B3AC' }: { color?: string }) {
   );
 }
 
-export function LinePlayerChip({
+export function RosterCard({
   dragId,
-  name,
+  firstName,
+  lastName,
   photoUrl,
   jersey,
-  roleLabel,
+  positionLabel,
   forOverlay = false,
 }: Props) {
   const drag = useDraggable({ id: dragId, disabled: forOverlay });
 
+  const displayFirst = firstName ?? '';
+  const displayLast = lastName ?? '';
+  const subtitle =
+    jersey != null && positionLabel
+      ? `#${jersey} · ${positionLabel}`
+      : jersey != null
+        ? `#${jersey}`
+        : positionLabel ?? '';
+
   const wrap: CSSProperties = {
+    position: 'relative',
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: spacing['6'],
-    padding: `${spacing['4']}px ${spacing['6']}px ${spacing['4']}px ${spacing['4']}px`,
+    gap: 4,
+    padding: `${spacing['8']}px ${spacing['6']}px ${spacing['8']}px`,
     background: colors.bg,
     border: `1px solid ${colors.line}`,
     borderRadius: radius.md,
-    minHeight: 44,
+    minHeight: 102,
     boxShadow: forOverlay ? '0 8px 24px rgba(0,0,0,0.18)' : '0 1px 2px rgba(0,0,0,0.04)',
     userSelect: 'none',
     opacity: drag.isDragging && !forOverlay ? 0.35 : 1,
@@ -59,49 +72,36 @@ export function LinePlayerChip({
   };
 
   const handle: CSSProperties = {
-    flexShrink: 0,
-    width: 14,
-    height: 28,
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    width: 20,
+    height: 20,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'grab',
     touchAction: 'none',
-    color: colors.textTertiary,
-  };
-
-  const textCol: CSSProperties = {
-    flex: 1,
-    minWidth: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 1,
-  };
-
-  const roleStyle: CSSProperties = {
-    fontSize: 10,
-    fontWeight: 600,
-    color: colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    lineHeight: 1,
+    borderRadius: radius.sm,
   };
 
   const nameStyle: CSSProperties = {
     fontSize: 12,
     fontWeight: 600,
     color: colors.text,
-    whiteSpace: 'nowrap',
+    textAlign: 'center',
+    lineHeight: 1.2,
+    width: '100%',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    lineHeight: 1.15,
+    whiteSpace: 'nowrap',
   };
 
-  const jerseyStyle: CSSProperties = {
+  const subStyle: CSSProperties = {
     fontSize: 10,
     color: colors.textSecondary,
     fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1,
+    lineHeight: 1.1,
   };
 
   return (
@@ -114,12 +114,10 @@ export function LinePlayerChip({
       >
         <GripDots />
       </span>
-      <Avatar src={photoUrl ?? null} name={name} size={26} />
-      <div style={textCol}>
-        {roleLabel ? <span style={roleStyle}>{roleLabel}</span> : null}
-        {jersey != null ? <span style={jerseyStyle}>#{jersey}</span> : null}
-        <span style={nameStyle}>{name}</span>
-      </div>
+      <Avatar src={photoUrl ?? null} name={`${displayFirst} ${displayLast}`} size={36} />
+      <div style={{ ...nameStyle }}>{displayFirst || '—'}</div>
+      {displayLast ? <div style={nameStyle}>{displayLast}</div> : null}
+      {subtitle ? <div style={subStyle}>{subtitle}</div> : null}
     </div>
   );
 }

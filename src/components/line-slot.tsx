@@ -20,17 +20,17 @@ export function LineSlot({ id, roleLabel, filled, children }: Props) {
   const wrap: CSSProperties = {
     flex: 1,
     minWidth: 0,
-    minHeight: 56,
+    minHeight: 102,
     borderRadius: radius.md,
     border: drop.isOver
       ? `2px dashed ${colors.headerAccent}`
       : filled
-        ? `1px solid ${baseBorder}`
+        ? 'none'
         : `1px dashed ${baseBorder}`,
     background: drop.isOver
       ? 'rgba(232, 79, 0, 0.06)'
       : filled
-        ? colors.bg
+        ? 'transparent'
         : '#FAFAF8',
     padding: filled ? 0 : spacing['6'],
     display: 'flex',

@@ -92,13 +92,12 @@ export type PlayerPosition = 'forward' | 'defender' | 'goalie';
 
 export type TeamSide = 'light' | 'dark';
 
+export type LineIndex = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type ForwardRole = 'lw' | 'c' | 'rw';
+export type DefenseRole = 'ld' | 'rd';
 export type LineSlot =
-  | 'f1_lw' | 'f1_c' | 'f1_rw'
-  | 'f2_lw' | 'f2_c' | 'f2_rw'
-  | 'f3_lw' | 'f3_c' | 'f3_rw'
-  | 'd1_ld' | 'd1_rd'
-  | 'd2_ld' | 'd2_rd'
-  | 'd3_ld' | 'd3_rd'
+  | `f${LineIndex}_${ForwardRole}`
+  | `d${LineIndex}_${DefenseRole}`
   | 'g';
 
 export type EventLineEntry = {

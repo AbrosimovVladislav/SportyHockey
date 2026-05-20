@@ -2,24 +2,15 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { AuthError, requireOrganizer } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
+import { LINE_SLOT_REGEX } from '@/lib/event-lines';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const SlotEnum = z.enum([
-  'f1_lw', 'f1_c', 'f1_rw',
-  'f2_lw', 'f2_c', 'f2_rw',
-  'f3_lw', 'f3_c', 'f3_rw',
-  'd1_ld', 'd1_rd',
-  'd2_ld', 'd2_rd',
-  'd3_ld', 'd3_rd',
-  'g',
-]);
-
 const Body = z.object({
   user_id: z.string().uuid(),
   team_side: z.enum(['light', 'dark']),
-  slot: SlotEnum.nullable(),
+  slot: z.string().regex(LINE_SLOT_REGEX).nullable(),
 });
 
 type Params = { params: Promise<{ id: string }> };

@@ -86,7 +86,7 @@ export default function EventAttendeesPage() {
     };
   }, [data]);
 
-  const headerTitle = isTraining ? t('rosterDay.title.training') : t('rosterDay.title.game');
+  const headerTitle = t('rosterDay.title.attendees');
 
   const venueName = data?.venue?.name ?? data?.venue_text ?? '';
   const subtitle = data

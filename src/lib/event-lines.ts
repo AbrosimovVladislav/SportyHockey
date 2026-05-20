@@ -1,27 +1,27 @@
-import type { LineSlot } from '@/types/api';
+import type { DefenseRole, ForwardRole, LineIndex, LineSlot } from '@/types/api';
 
-export const FORWARD_LINES = [1, 2, 3] as const;
-export const DEFENSE_LINES = [1, 2, 3] as const;
-
-export const LINE_SLOTS: readonly LineSlot[] = [
-  'f1_lw', 'f1_c', 'f1_rw',
-  'f2_lw', 'f2_c', 'f2_rw',
-  'f3_lw', 'f3_c', 'f3_rw',
-  'd1_ld', 'd1_rd',
-  'd2_ld', 'd2_rd',
-  'd3_ld', 'd3_rd',
-  'g',
-];
+export const MAX_LINE_INDEX = 9;
+export const LINE_SLOT_REGEX = /^(f[1-9]_(lw|c|rw)|d[1-9]_(ld|rd)|g)$/;
 
 export function asLineSlot(value: string | null | undefined): LineSlot | null {
   if (!value) return null;
-  return (LINE_SLOTS as readonly string[]).includes(value) ? (value as LineSlot) : null;
+  return LINE_SLOT_REGEX.test(value) ? (value as LineSlot) : null;
 }
 
-export function forwardSlot(line: 1 | 2 | 3, role: 'lw' | 'c' | 'rw'): LineSlot {
+export function forwardSlot(line: LineIndex, role: ForwardRole): LineSlot {
   return `f${line}_${role}` as LineSlot;
 }
 
-export function defenseSlot(pair: 1 | 2 | 3, role: 'ld' | 'rd'): LineSlot {
+export function defenseSlot(pair: LineIndex, role: DefenseRole): LineSlot {
   return `d${pair}_${role}` as LineSlot;
+}
+
+export function parseForwardIndex(slot: LineSlot): LineIndex | null {
+  const m = /^f([1-9])_/.exec(slot);
+  return m ? (Number(m[1]) as LineIndex) : null;
+}
+
+export function parseDefenseIndex(slot: LineSlot): LineIndex | null {
+  const m = /^d([1-9])_/.exec(slot);
+  return m ? (Number(m[1]) as LineIndex) : null;
 }

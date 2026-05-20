@@ -7,6 +7,7 @@ import {
   DragOverlay,
   PointerSensor,
   TouchSensor,
+  pointerWithin,
   useDroppable,
   useSensor,
   useSensors,
@@ -16,8 +17,8 @@ import {
 import { ContentTabs } from '@/components/content-tabs';
 import { LightHeader } from '@/components/light-header';
 import { LineupChip } from '@/components/lineup-chip';
-import { LinePlayerChip } from '@/components/line-player-chip';
 import { LineupZone } from '@/components/lineup-zone';
+import { RosterCard } from '@/components/roster-card';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { LinesView } from './lines-view';
 import { useEvent } from '@/hooks/use-event';
@@ -186,7 +187,19 @@ export default function EventLineupPage() {
         ]
       : [];
 
-  const renderTeamChip = (a: EventAttendee): ReactNode => (
+  const renderTeamCard = (a: EventAttendee): ReactNode => (
+    <RosterCard
+      key={a.user_id}
+      dragId={a.user_id}
+      firstName={a.first_name}
+      lastName={a.last_name}
+      photoUrl={a.photo_url}
+      jersey={a.jersey_number}
+      positionLabel={positionLabel(a.position, t as (k: never) => string)}
+    />
+  );
+
+  const renderPoolChip = (a: EventAttendee): ReactNode => (
     <LineupChip
       key={a.user_id}
       id={a.user_id}
@@ -208,7 +221,12 @@ export default function EventLineupPage() {
         />
       ) : null}
 
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
         {currentTab === 'teams' ? (
           <div
             style={{
@@ -226,7 +244,7 @@ export default function EventLineupPage() {
                 empty={teamGroups.light.length === 0}
                 emptyHint={t('lineup.dropHint')}
               >
-                {teamGroups.light.map(renderTeamChip)}
+                {teamGroups.light.map(renderTeamCard)}
               </LineupZone>
               <LineupZone
                 id="dark"
@@ -235,7 +253,7 @@ export default function EventLineupPage() {
                 empty={teamGroups.dark.length === 0}
                 emptyHint={t('lineup.dropHint')}
               >
-                {teamGroups.dark.map(renderTeamChip)}
+                {teamGroups.dark.map(renderTeamCard)}
               </LineupZone>
             </div>
 
@@ -245,7 +263,7 @@ export default function EventLineupPage() {
               signed={teamGroups.signed}
               unsigned={teamGroups.unsigned}
               emptyHint={t('lineup.poolEmpty')}
-              renderChip={renderTeamChip}
+              renderChip={renderPoolChip}
             />
           </div>
         ) : (
@@ -259,28 +277,22 @@ export default function EventLineupPage() {
         )}
 
         <DragOverlay dropAnimation={null}>
-          {activeAttendee
-            ? currentTab === 'teams'
-              ? (
-                  <LineupChip
-                    id={activeAttendee.user_id}
-                    name={formatName(activeAttendee)}
-                    photoUrl={activeAttendee.photo_url}
-                    subtitle={playerSubtitle(activeAttendee, t as (k: never) => string)}
-                    forOverlay
-                  />
-                )
-              : (
-                  <LinePlayerChip
-                    dragId={activeAttendee.user_id}
-                    name={formatName(activeAttendee)}
-                    photoUrl={activeAttendee.photo_url}
-                    jersey={activeAttendee.jersey_number}
-                    roleLabel={null}
-                    forOverlay
-                  />
-                )
-            : null}
+          {activeAttendee ? (
+            <div style={{ width: 132 }}>
+              <RosterCard
+                dragId={activeAttendee.user_id}
+                firstName={activeAttendee.first_name}
+                lastName={activeAttendee.last_name}
+                photoUrl={activeAttendee.photo_url}
+                jersey={activeAttendee.jersey_number}
+                positionLabel={positionLabel(
+                  activeAttendee.position,
+                  t as (k: never) => string,
+                )}
+                forOverlay
+              />
+            </div>
+          ) : null}
         </DragOverlay>
       </DndContext>
     </div>
