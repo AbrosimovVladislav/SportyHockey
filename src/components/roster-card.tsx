@@ -18,25 +18,6 @@ type Props = {
   forOverlay?: boolean;
 };
 
-function GripDots({ size = 'md' }: { size?: 'md' | 'lg' }) {
-  const big = size === 'lg';
-  const width = big ? 18 : 12;
-  const height = big ? 28 : 18;
-  const r = big ? 1.7 : 1.2;
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden focusable={false}>
-      <g fill="#9C9994">
-        <circle cx={width * 0.3} cy={height * 0.2} r={r} />
-        <circle cx={width * 0.7} cy={height * 0.2} r={r} />
-        <circle cx={width * 0.3} cy={height * 0.5} r={r} />
-        <circle cx={width * 0.7} cy={height * 0.5} r={r} />
-        <circle cx={width * 0.3} cy={height * 0.8} r={r} />
-        <circle cx={width * 0.7} cy={height * 0.8} r={r} />
-      </g>
-    </svg>
-  );
-}
-
 export function RosterCard({
   dragId,
   firstName,
@@ -159,19 +140,9 @@ export function RosterCard({
     gap: 4,
     padding: `${spacing['8']}px ${spacing['6']}px ${spacing['8']}px`,
     minHeight: 102,
-  };
-  const handle: CSSProperties = {
-    position: 'absolute',
-    top: 2,
-    left: 2,
-    width: 28,
-    height: 28,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'grab',
-    touchAction: 'none',
-    borderRadius: radius.sm,
+    cursor: forOverlay ? 'grabbing' : 'grab',
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
   };
   const nameStyle: CSSProperties = {
     fontSize: 12,
@@ -191,15 +162,13 @@ export function RosterCard({
     lineHeight: 1.1,
   };
   return (
-    <div ref={forOverlay ? undefined : drag.setNodeRef} style={wrap}>
-      <span
-        style={handle}
-        aria-label="Перетащить"
-        {...(forOverlay ? {} : drag.listeners)}
-        {...(forOverlay ? {} : drag.attributes)}
-      >
-        <GripDots />
-      </span>
+    <div
+      ref={forOverlay ? undefined : drag.setNodeRef}
+      style={wrap}
+      {...(forOverlay ? {} : drag.listeners)}
+      {...(forOverlay ? {} : drag.attributes)}
+      {...pressHandlers}
+    >
       <Avatar src={photoUrl ?? null} name={`${displayFirst} ${displayLast}`} size={36} />
       <div style={nameStyle}>{displayFirst || '—'}</div>
       {displayLast ? <div style={nameStyle}>{displayLast}</div> : null}
