@@ -82,6 +82,7 @@ export type EventDto = {
   venue_text: string | null;
   cost_per_player: number | null;
   arena_cost: number | null;
+  opponent_name: string | null;
   status: EventStatus;
   attendance: AttendanceCount;
 };
@@ -98,7 +99,9 @@ export type DefenseRole = 'ld' | 'rd';
 export type LineSlot =
   | `f${LineIndex}_${ForwardRole}`
   | `d${LineIndex}_${DefenseRole}`
-  | 'g';
+  | 'g'
+  | 'g1'
+  | 'g2';
 
 export type EventLineEntry = {
   team_side: TeamSide;
@@ -186,6 +189,7 @@ export type CreateEventRequest = {
   title?: string;
   cost_per_player?: number;
   arena_cost?: number;
+  opponent_name?: string;
 };
 
 export type UpdateEventRequest = {
@@ -196,6 +200,7 @@ export type UpdateEventRequest = {
   title?: string | null;
   cost_per_player?: number | null;
   arena_cost?: number | null;
+  opponent_name?: string | null;
   status?: 'scheduled' | 'cancelled';
 };
 

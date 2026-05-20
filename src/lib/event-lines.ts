@@ -1,7 +1,7 @@
 import type { DefenseRole, ForwardRole, LineIndex, LineSlot } from '@/types/api';
 
 export const MAX_LINE_INDEX = 9;
-export const LINE_SLOT_REGEX = /^(f[1-9]_(lw|c|rw)|d[1-9]_(ld|rd)|g)$/;
+export const LINE_SLOT_REGEX = /^(f[1-9]_(lw|c|rw)|d[1-9]_(ld|rd)|g[12]?)$/;
 
 export function asLineSlot(value: string | null | undefined): LineSlot | null {
   if (!value) return null;

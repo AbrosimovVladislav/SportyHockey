@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { DarkHeader } from '@/components/dark-header';
 import { GlassButton } from '@/components/glass-button';
 import { ListRow } from '@/components/list-row';
+import { Avatar } from '@/components/avatar';
 import { AvatarStack } from '@/components/avatar-stack';
 import { ProgressBar } from '@/components/progress-bar';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
@@ -154,11 +155,24 @@ export default function EventDetailPage() {
 
   const fund = useMemo(() => {
     if (!data) return null;
+    const isCompletedNow = data.status === 'completed';
+    if (isCompletedNow) {
+      const target = data.arena_cost ?? 0;
+      const got = data.payments.collected;
+      if (target === 0 && got === 0) return null;
+      return { target, got, mode: 'collected' as const };
+    }
     if (!data.arena_cost || !data.cost_per_player) return null;
     const target = data.arena_cost;
     const got = data.attendance.going * data.cost_per_player;
-    return { target, got };
+    return { target, got, mode: 'target' as const };
   }, [data]);
+
+  const ourTeamName = useMemo(() => {
+    if (!data || !me.data) return '';
+    const m = me.data.memberships.find((x) => x.team_id === data.team_id);
+    return m?.team_name ?? '';
+  }, [data, me.data]);
 
   const wrap: CSSProperties = {
     background: colors.bg,
@@ -259,6 +273,82 @@ export default function EventDetailPage() {
 
       {/* SHEET */}
       <div style={sheet}>
+        {!isTraining && (ourTeamName || data.opponent_name) ? (
+          <SectionCard padding={spacing['12']}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing['8'],
+              }}
+            >
+              <div
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: spacing['6'],
+                }}
+              >
+                <Avatar src={null} name={ourTeamName || '—'} size={44} />
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: colors.text,
+                    textAlign: 'center',
+                    lineHeight: 1.25,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    width: '100%',
+                  }}
+                >
+                  {ourTeamName || '—'}
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: colors.textTertiary,
+                  letterSpacing: '0.05em',
+                  flexShrink: 0,
+                }}
+              >
+                {t('eventDetail.vs')}
+              </span>
+              <div
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: spacing['6'],
+                }}
+              >
+                <Avatar src={null} name={data.opponent_name || '—'} size={44} />
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: colors.text,
+                    textAlign: 'center',
+                    lineHeight: 1.25,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    width: '100%',
+                  }}
+                >
+                  {data.opponent_name || '—'}
+                </span>
+              </div>
+            </div>
+          </SectionCard>
+        ) : null}
+
         {isCompleted ? (
           <SectionCard padding={spacing['10']}>
             <span
@@ -424,10 +514,17 @@ export default function EventDetailPage() {
                   <IconRuble size={16} color={colors.primary} />
                 </span>
                 <span style={{ fontSize: 14, color: colors.text }}>
-                  {interp(t('eventDetail.attendees.target'), {
-                    got: formatRub(fund.got),
-                    target: formatRub(fund.target),
-                  })}
+                  {interp(
+                    t(
+                      fund.mode === 'collected'
+                        ? 'eventDetail.attendees.collected'
+                        : 'eventDetail.attendees.target',
+                    ),
+                    {
+                      got: formatRub(fund.got),
+                      target: formatRub(fund.target),
+                    },
+                  )}
                 </span>
               </div>
             </>
@@ -437,8 +534,12 @@ export default function EventDetailPage() {
         {/* ССЫЛКИ */}
         <ListRow
           icon={<IconShirt size={20} color={colors.iconFg} />}
-          title={t('eventDetail.links.teams.title')}
-          subtitle={t('eventDetail.links.teams.subtitle')}
+          title={
+            isTraining
+              ? t('eventDetail.links.teams.title')
+              : t('eventDetail.links.teams.game.title')
+          }
+          subtitle={isTraining ? t('eventDetail.links.teams.subtitle') : undefined}
           onClick={() => router.push(`/events/${id}/lineup`)}
         />
         <ListRow

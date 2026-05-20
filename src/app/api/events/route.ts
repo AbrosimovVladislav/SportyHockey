@@ -24,6 +24,7 @@ const CreateBody = z.object({
   title: z.string().trim().min(1).max(100).optional(),
   cost_per_player: z.number().nonnegative().optional(),
   arena_cost: z.number().nonnegative().optional(),
+  opponent_name: z.string().trim().min(1).max(100).optional(),
 });
 
 type VenueRow = Pick<EventVenue, 'id' | 'name' | 'address'>;
@@ -49,7 +50,7 @@ export async function GET(req: Request): Promise<Response> {
       sb
         .from('events')
         .select(
-          'id, type, title, starts_at, ends_at, venue_text, cost_per_player, arena_cost, status, venue:venues(id, name, address)',
+          'id, type, title, starts_at, ends_at, venue_text, cost_per_player, arena_cost, opponent_name, status, venue:venues(id, name, address)',
         )
         .eq('team_id', teamId)
         .neq('status', 'cancelled')
@@ -79,6 +80,7 @@ export async function GET(req: Request): Promise<Response> {
       venue_text: r.venue_text,
       cost_per_player: r.cost_per_player != null ? Number(r.cost_per_player) : null,
       arena_cost: r.arena_cost != null ? Number(r.arena_cost) : null,
+      opponent_name: r.opponent_name ?? null,
       status: effectiveEventStatus(r.status, r.ends_at),
       attendance: attendanceMap.get(r.id) ?? { going: 0, maybe: 0, not_going: 0 },
     }));
@@ -144,6 +146,7 @@ export async function POST(req: Request): Promise<Response> {
         title: parsed.data.title ?? null,
         cost_per_player: cost,
         arena_cost: arenaCost,
+        opponent_name: parsed.data.type === 'game' ? parsed.data.opponent_name ?? null : null,
       })
       .select('id')
       .single();

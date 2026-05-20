@@ -47,6 +47,7 @@ type FormState = {
   arenaTouched: boolean;
   cost: string;
   costTouched: boolean;
+  opponent: string;
 };
 
 const INITIAL_DURATION = '01:30';
@@ -62,6 +63,7 @@ const INITIAL_STATE: FormState = {
   arenaTouched: false,
   cost: '',
   costTouched: false,
+  opponent: '',
 };
 
 function durationStrToMinutes(s: string): number {
@@ -324,6 +326,8 @@ export default function EventNewPage() {
       title: form.details.trim() || undefined,
       cost_per_player: Number.isFinite(costNum) && costNum >= 0 ? costNum : undefined,
       arena_cost: Number.isFinite(arenaNum) && arenaNum >= 0 ? arenaNum : undefined,
+      opponent_name:
+        form.type === 'game' && form.opponent.trim() ? form.opponent.trim() : undefined,
     };
     createEvent.mutate(body);
   };
@@ -422,6 +426,26 @@ export default function EventNewPage() {
             </div>
           </div>
         </div>
+
+        {form.type === 'game' ? (
+          <>
+            <SectionLabel>{t('eventNew.sections.opponent')}</SectionLabel>
+            <Input
+              type="text"
+              value={form.opponent}
+              onChange={(e) => set('opponent', e.currentTarget.value)}
+              placeholder={t('eventNew.fields.opponent.placeholder')}
+              maxLength={100}
+              style={{
+                background: colors.bg,
+                border: `1px solid ${colors.divider}`,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                fontSize: 17,
+                fontWeight: 600,
+              }}
+            />
+          </>
+        ) : null}
 
         <SectionLabel>{t('eventNew.sections.details')}</SectionLabel>
         <Textarea

@@ -103,6 +103,11 @@ export default function EventLineupPage() {
     return { light, dark, signed, unsigned };
   }, [attendees]);
 
+  const gameRoster = useMemo(
+    () => attendees.filter((a) => a.vote === 'going' || a.showed_up === true),
+    [attendees],
+  );
+
   const linesIndex = useMemo(() => {
     const m = new Map<string, { team_side: TeamSide; slot: LineSlotKey }>();
     for (const l of lines) m.set(l.user_id, { team_side: l.team_side, slot: l.slot });
@@ -113,11 +118,27 @@ export default function EventLineupPage() {
     setActiveId(String(e.active.id));
   };
 
+  const isGame = data?.type === 'game';
+
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
     const userId = String(e.active.id);
     const overId = e.over?.id ? String(e.over.id) : null;
     if (!overId) return;
+
+    if (isGame) {
+      if (overId === 'pool_lines') {
+        if (!linesIndex.has(userId)) return;
+        setLine.mutate({ user_id: userId, team_side: 'light', slot: null });
+        return;
+      }
+      const slot = asLineSlot(overId);
+      if (!slot) return;
+      const current = linesIndex.get(userId);
+      if (current && current.slot === slot) return;
+      setLine.mutate({ user_id: userId, team_side: 'light', slot });
+      return;
+    }
 
     if (activeTab === 'teams') {
       const current = byId.get(userId)?.team_side ?? null;
@@ -185,6 +206,9 @@ export default function EventLineupPage() {
   const activeAttendee = activeId ? byId.get(activeId) : null;
   const showTabs = data.type === 'training';
   const currentTab: TabId = showTabs ? activeTab : 'teams';
+  const pageTitle = isGame ? t('lineup.title.game') : t('lineup.title');
+  const overlayLayout: 'horizontal' | 'vertical' =
+    isGame || currentTab !== 'teams' ? 'vertical' : 'horizontal';
 
   const tabs =
     showTabs
@@ -220,7 +244,7 @@ export default function EventLineupPage() {
 
   return (
     <div style={root}>
-      <LightHeader title={t('lineup.title')} subtitle={subtitle} onBack={onBack} />
+      <LightHeader title={pageTitle} subtitle={subtitle} onBack={onBack} />
 
       {showTabs ? (
         <ContentTabs
@@ -236,7 +260,14 @@ export default function EventLineupPage() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        {currentTab === 'teams' ? (
+        {isGame ? (
+          <LinesView
+            side="light"
+            teamPlayers={gameRoster}
+            lines={lines}
+            isGame
+          />
+        ) : currentTab === 'teams' ? (
           <div
             style={{
               padding: `${spacing['8']}px ${spacing['16']}px 0`,
@@ -287,7 +318,7 @@ export default function EventLineupPage() {
 
         <DragOverlay dropAnimation={null}>
           {activeAttendee ? (
-            <div style={{ width: currentTab === 'teams' ? 240 : 132 }}>
+            <div style={{ width: overlayLayout === 'horizontal' ? 240 : 132 }}>
               <RosterCard
                 dragId={activeAttendee.user_id}
                 firstName={activeAttendee.first_name}
@@ -295,11 +326,11 @@ export default function EventLineupPage() {
                 photoUrl={activeAttendee.photo_url}
                 jersey={activeAttendee.jersey_number}
                 positionLabel={
-                  currentTab === 'teams'
+                  overlayLayout === 'horizontal'
                     ? positionLabelShort(activeAttendee.position, t as (k: never) => string)
                     : positionLabel(activeAttendee.position, t as (k: never) => string)
                 }
-                layout={currentTab === 'teams' ? 'horizontal' : 'vertical'}
+                layout={overlayLayout}
                 forOverlay
               />
             </div>

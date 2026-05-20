@@ -29,7 +29,7 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
 
     const { data: event, error: evErr } = await sb
       .from('events')
-      .select('id, team_id')
+      .select('id, team_id, type')
       .eq('id', eventId)
       .maybeSingle();
     if (evErr) {
@@ -39,12 +39,16 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
       return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
     }
 
+    const isGame = event.type === 'game';
+    // Для игры стороны нет — нормализуем к 'light'.
+    const sideForStorage = isGame ? 'light' : parsed.data.team_side;
+
     if (parsed.data.slot === null) {
       const { error: delErr } = await sb
         .from('event_lines')
         .delete()
         .eq('event_id', event.id)
-        .eq('team_side', parsed.data.team_side)
+        .eq('team_side', sideForStorage)
         .eq('user_id', parsed.data.user_id);
       if (delErr) {
         return NextResponse.json({ error: delErr.message }, { status: 500 });
@@ -52,21 +56,34 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
       return NextResponse.json({ ok: true });
     }
 
-    const { data: lineup } = await sb
-      .from('event_lineups')
-      .select('team_side')
-      .eq('event_id', event.id)
-      .eq('user_id', parsed.data.user_id)
-      .maybeSingle();
-    if (!lineup || lineup.team_side !== parsed.data.team_side) {
-      return NextResponse.json({ error: 'Игрок не в этой команде' }, { status: 400 });
+    if (isGame) {
+      const { data: att } = await sb
+        .from('event_attendances')
+        .select('vote, showed_up')
+        .eq('event_id', event.id)
+        .eq('user_id', parsed.data.user_id)
+        .maybeSingle();
+      const isEligible = att && (att.vote === 'going' || att.showed_up === true);
+      if (!isEligible) {
+        return NextResponse.json({ error: 'Игрок не идёт на игру' }, { status: 400 });
+      }
+    } else {
+      const { data: lineup } = await sb
+        .from('event_lineups')
+        .select('team_side')
+        .eq('event_id', event.id)
+        .eq('user_id', parsed.data.user_id)
+        .maybeSingle();
+      if (!lineup || lineup.team_side !== parsed.data.team_side) {
+        return NextResponse.json({ error: 'Игрок не в этой команде' }, { status: 400 });
+      }
     }
 
     const { error: delPrevErr } = await sb
       .from('event_lines')
       .delete()
       .eq('event_id', event.id)
-      .eq('team_side', parsed.data.team_side)
+      .eq('team_side', sideForStorage)
       .or(`user_id.eq.${parsed.data.user_id},slot.eq.${parsed.data.slot}`);
     if (delPrevErr) {
       return NextResponse.json({ error: delPrevErr.message }, { status: 500 });
@@ -74,7 +91,7 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
 
     const { error: insErr } = await sb.from('event_lines').insert({
       event_id: event.id,
-      team_side: parsed.data.team_side,
+      team_side: sideForStorage,
       slot: parsed.data.slot,
       user_id: parsed.data.user_id,
       updated_at: new Date().toISOString(),

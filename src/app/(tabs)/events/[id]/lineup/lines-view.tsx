@@ -28,6 +28,7 @@ type Props = {
   side: TeamSide;
   teamPlayers: EventAttendee[];
   lines: EventLineEntry[];
+  isGame?: boolean;
 };
 
 function positionLabel(pos: PlayerPosition | null, t: (k: never) => string): string | null {
@@ -38,7 +39,7 @@ function positionLabel(pos: PlayerPosition | null, t: (k: never) => string): str
   return null;
 }
 
-export function LinesView({ side, teamPlayers, lines }: Props) {
+export function LinesView({ side, teamPlayers, lines, isGame = false }: Props) {
   const t = useT();
 
   const linesForSide = useMemo(
@@ -102,7 +103,7 @@ export function LinesView({ side, teamPlayers, lines }: Props) {
     return (
       <div style={{ padding: `${spacing['24']}px ${spacing['16']}px` }}>
         <span style={{ fontSize: 13, color: colors.textSecondary }}>
-          {t('lineup.lines.noTeamHint')}
+          {isGame ? t('lineup.lines.poolEmptyGame') : t('lineup.lines.noTeamHint')}
         </span>
       </div>
     );
@@ -198,14 +199,23 @@ export function LinesView({ side, teamPlayers, lines }: Props) {
 
       <section style={section}>
         <SectionHead
-          title={t('lineup.lines.goalie')}
+          title={isGame ? t('lineup.lines.goaliePair') : t('lineup.lines.goalie')}
           canRemove={false}
           onRemove={() => {}}
           removeLabel=""
         />
         <div style={row}>
-          {renderSlot('g', t('lineup.role.g'))}
-          <div style={{ flex: 1 }} />
+          {isGame ? (
+            <>
+              {renderSlot('g1', t('lineup.role.g'))}
+              {renderSlot('g2', t('lineup.role.g'))}
+            </>
+          ) : (
+            <>
+              {renderSlot('g', t('lineup.role.g'))}
+              <div style={{ flex: 1 }} />
+            </>
+          )}
         </div>
       </section>
 

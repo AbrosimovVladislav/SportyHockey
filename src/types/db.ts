@@ -158,6 +158,7 @@ export type Database = {
           description: string | null
           ends_at: string | null
           id: string
+          opponent_name: string | null
           starts_at: string
           status: string | null
           team_id: string
@@ -175,6 +176,7 @@ export type Database = {
           description?: string | null
           ends_at?: string | null
           id?: string
+          opponent_name?: string | null
           starts_at: string
           status?: string | null
           team_id: string
@@ -192,6 +194,7 @@ export type Database = {
           description?: string | null
           ends_at?: string | null
           id?: string
+          opponent_name?: string | null
           starts_at?: string
           status?: string | null
           team_id?: string
