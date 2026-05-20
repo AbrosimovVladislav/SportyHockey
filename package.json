@@ -10,6 +10,7 @@
     "set-webhook": "node --env-file=.env.local scripts/set-webhook.mjs"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
     "@supabase/supabase-js": "^2.105.4",
     "@tanstack/react-query": "^5.100.10",
     "@telegram-apps/sdk-react": "^3.3.9",

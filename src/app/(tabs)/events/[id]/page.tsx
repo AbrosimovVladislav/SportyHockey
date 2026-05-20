@@ -439,7 +439,7 @@ export default function EventDetailPage() {
           icon={<IconShirt size={20} color={colors.iconFg} />}
           title={t('eventDetail.links.teams.title')}
           subtitle={t('eventDetail.links.teams.subtitle')}
-          onClick={() => alert(t('eventDetail.soon'))}
+          onClick={() => router.push(`/events/${id}/lineup`)}
         />
         <ListRow
           icon={<IconStats size={20} color={colors.iconFg} />}
