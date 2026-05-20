@@ -4,6 +4,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LightHeader } from '@/components/light-header';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
+import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
 import { MediaUploadCard } from '@/components/media-upload-card';
 import { MediaGrid } from '@/components/media-grid';
 import { MediaViewer } from '@/components/media-viewer';
@@ -38,6 +39,8 @@ export default function EventMediaPage() {
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [sortSheetOpen, setSortSheetOpen] = useState(false);
 
   const meId = me.data?.user.id ?? null;
   const isOrganizer = useMemo(() => {
@@ -47,7 +50,15 @@ export default function EventMediaPage() {
     );
   }, [ev.data, me.data]);
 
-  const items: MediaItemDto[] = media.data?.items ?? [];
+  const rawItems: MediaItemDto[] = media.data?.items ?? [];
+  const items: MediaItemDto[] = useMemo(() => {
+    const sorted = rawItems.slice().sort((a, b) => {
+      const at = Date.parse(a.created_at) || 0;
+      const bt = Date.parse(b.created_at) || 0;
+      return sortOrder === 'newest' ? bt - at : at - bt;
+    });
+    return sorted;
+  }, [rawItems, sortOrder]);
 
   const root: CSSProperties = {
     background: colors.bg,
@@ -166,8 +177,10 @@ export default function EventMediaPage() {
     background: 'transparent',
     border: 'none',
     padding: '6px 0',
-    cursor: 'default',
+    cursor: 'pointer',
   };
+  const sortLabel =
+    sortOrder === 'newest' ? t('media.list.sortNewest') : t('media.list.sortOldest');
 
   return (
     <div style={root}>
@@ -202,10 +215,15 @@ export default function EventMediaPage() {
             <span style={listTitle}>{t('media.list.title')}</span>
             <span style={countPill}>{items.length}</span>
           </div>
-          <span style={sortChip}>
-            {t('media.list.sortNewest')}
+          <button
+            type="button"
+            className="pressable"
+            onClick={() => setSortSheetOpen(true)}
+            style={sortChip}
+          >
+            {sortLabel}
             <IconChevronDown size={12} color={colors.textSecondary} />
-          </span>
+          </button>
         </div>
 
         {media.isLoading ? (
@@ -239,7 +257,32 @@ export default function EventMediaPage() {
           nextAriaLabel={t('media.viewer.next')}
           closeAriaLabel={t('media.viewer.close')}
           deleteAriaLabel={t('media.viewer.delete')}
+          shareAriaLabel={t('media.viewer.share')}
+          shareErrorLabel={t('media.viewer.shareError')}
         />
+
+        <BottomSheet
+          open={sortSheetOpen}
+          onClose={() => setSortSheetOpen(false)}
+          title={t('media.list.sortTitle')}
+        >
+          <BottomSheetOption
+            label={t('media.list.sortNewest')}
+            active={sortOrder === 'newest'}
+            onClick={() => {
+              setSortOrder('newest');
+              setSortSheetOpen(false);
+            }}
+          />
+          <BottomSheetOption
+            label={t('media.list.sortOldest')}
+            active={sortOrder === 'oldest'}
+            onClick={() => {
+              setSortOrder('oldest');
+              setSortSheetOpen(false);
+            }}
+          />
+        </BottomSheet>
       </div>
     </div>
   );

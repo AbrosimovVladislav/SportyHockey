@@ -201,12 +201,16 @@ export const ru = {
   'media.upload.error': 'Не удалось загрузить',
   'media.list.title': 'Фото',
   'media.list.sortNewest': 'По новизне',
+  'media.list.sortOldest': 'Сначала старые',
+  'media.list.sortTitle': 'Сортировка',
   'media.list.empty': 'Фото пока нет',
   'media.viewer.close': 'Закрыть',
   'media.viewer.prev': 'Предыдущая',
   'media.viewer.next': 'Следующая',
   'media.viewer.delete': 'Удалить',
   'media.viewer.deleteConfirm': 'Удалить это фото?',
+  'media.viewer.share': 'Поделиться',
+  'media.viewer.shareError': 'Не удалось поделиться',
   'media.errors.notFound': 'Событие не найдено',
 
   // Common

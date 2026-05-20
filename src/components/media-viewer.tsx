@@ -1,7 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, type CSSProperties } from 'react';
-import { IconChevronLeft, IconChevronRight, IconClose, IconTrash } from './icons';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconClose,
+  IconShare,
+  IconTrash,
+} from './icons';
 import { colors } from '@/theme/colors';
 import type { MediaItemDto } from '@/types/api';
 
@@ -17,7 +23,56 @@ type Props = {
   nextAriaLabel: string;
   closeAriaLabel: string;
   deleteAriaLabel: string;
+  shareAriaLabel: string;
+  shareErrorLabel: string;
 };
+
+function extFromMime(mime: string | null): string {
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/webp') return 'webp';
+  return 'jpg';
+}
+
+async function shareMedia(item: MediaItemDto): Promise<void> {
+  const filename = `photo.${extFromMime(item.mime_type)}`;
+  // 1) Web Share Level 2: shared file (iOS Safari, Android Chrome)
+  if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    try {
+      const res = await fetch(item.url);
+      const blob = await res.blob();
+      const file = new File([blob], filename, {
+        type: blob.type || item.mime_type || 'image/jpeg',
+      });
+      const data: ShareData = { files: [file] };
+      const canShare =
+        'canShare' in navigator &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare(data);
+      if (canShare) {
+        await navigator.share(data);
+        return;
+      }
+    } catch (err) {
+      if ((err as DOMException)?.name === 'AbortError') return;
+    }
+    // 2) Web Share Level 1 (URL share)
+    try {
+      await navigator.share({ url: item.url });
+      return;
+    } catch (err) {
+      if ((err as DOMException)?.name === 'AbortError') return;
+    }
+  }
+  // 3) Fallback: качаем как файл
+  const a = document.createElement('a');
+  a.href = item.url;
+  a.download = filename;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 export function MediaViewer({
   open,
@@ -31,8 +86,25 @@ export function MediaViewer({
   nextAriaLabel,
   closeAriaLabel,
   deleteAriaLabel,
+  shareAriaLabel,
+  shareErrorLabel,
 }: Props) {
   const current = items[index];
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+
+  const handleShare = useCallback(async () => {
+    if (!current || sharing) return;
+    setShareError(null);
+    setSharing(true);
+    try {
+      await shareMedia(current);
+    } catch {
+      setShareError(shareErrorLabel);
+    } finally {
+      setSharing(false);
+    }
+  }, [current, sharing, shareErrorLabel]);
 
   const goPrev = useCallback(() => {
     if (items.length === 0) return;
@@ -103,10 +175,15 @@ export function MediaViewer({
     color: colors.textInverse,
     cursor: 'pointer',
   };
-  const deleteBtn: CSSProperties = {
+  const topToolbar: CSSProperties = {
     position: 'absolute',
     top: 16,
     left: 16,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+  };
+  const toolbarBtn: CSSProperties = {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -117,6 +194,20 @@ export function MediaViewer({
     justifyContent: 'center',
     color: colors.textInverse,
     cursor: 'pointer',
+  };
+  const errorBanner: CSSProperties = {
+    position: 'absolute',
+    top: 64,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: 'rgba(0,0,0,0.6)',
+    color: colors.textInverse,
+    fontSize: 12,
+    fontWeight: 600,
+    padding: '6px 10px',
+    borderRadius: 8,
+    maxWidth: '80%',
+    textAlign: 'center',
   };
   const arrowBtn = (side: 'left' | 'right'): CSSProperties => {
     const base: CSSProperties = {
@@ -163,17 +254,30 @@ export function MediaViewer({
       >
         <IconClose size={20} color={colors.textInverse} />
       </button>
-      {removable ? (
+      <div style={topToolbar}>
         <button
           type="button"
           className="pressable"
-          aria-label={deleteAriaLabel}
-          onClick={() => onDelete(current)}
-          style={deleteBtn}
+          aria-label={shareAriaLabel}
+          onClick={handleShare}
+          disabled={sharing}
+          style={{ ...toolbarBtn, opacity: sharing ? 0.6 : 1 }}
         >
-          <IconTrash size={20} color={colors.textInverse} />
+          <IconShare size={20} color={colors.textInverse} />
         </button>
-      ) : null}
+        {removable ? (
+          <button
+            type="button"
+            className="pressable"
+            aria-label={deleteAriaLabel}
+            onClick={() => onDelete(current)}
+            style={toolbarBtn}
+          >
+            <IconTrash size={20} color={colors.textInverse} />
+          </button>
+        ) : null}
+      </div>
+      {shareError ? <div style={errorBanner}>{shareError}</div> : null}
 
       <div style={imgWrap}>
         {/* eslint-disable-next-line @next/next/no-img-element */}

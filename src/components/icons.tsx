@@ -239,6 +239,37 @@ export const IconCloudUp = ({ size = 24, color = 'currentColor', ...p }: IconPro
   </svg>
 );
 
+export const IconShare = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
+    <path
+      d="M12 3v13M8 7l4-4 4 4"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M6 12H5a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2v-6a2 2 0 00-2-2h-1"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const IconSort = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
+    <path
+      d="M7 4v16m0 0l-3-3m3 3l3-3M17 20V4m0 0l-3 3m3-3l3 3"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export const IconTrash = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
     <path
