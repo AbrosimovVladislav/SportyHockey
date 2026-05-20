@@ -242,6 +242,7 @@ export type UpdateEventRequest = {
   duration_minutes?: number;
   venue_id?: string;
   title?: string | null;
+  description?: string | null;
   cost_per_player?: number | null;
   arena_cost?: number | null;
   opponent_name?: string | null;

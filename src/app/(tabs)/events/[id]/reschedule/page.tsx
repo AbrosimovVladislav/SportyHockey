@@ -6,6 +6,8 @@ import { LightHeader } from '@/components/light-header';
 import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
 import { CardField } from '@/components/card-field';
 import { Button } from '@/components/button';
+import { Input } from '@/components/input';
+import { Textarea } from '@/components/textarea';
 import { EventSummaryCard } from '@/components/event-summary-card';
 import { InfoListCard } from '@/components/info-list-card';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
@@ -125,7 +127,12 @@ type FormState = {
   time: string;
   durationStr: string;
   venueId: string | null;
+  title: string;
+  description: string;
 };
+
+const TITLE_LIMIT = 100;
+const DESCRIPTION_LIMIT = 2000;
 
 export default function EventReschedulePage() {
   const t = useT();
@@ -154,6 +161,8 @@ export default function EventReschedulePage() {
       time: toLocalTime(data.starts_at),
       durationStr: minutesToDurationStr(durationMinutes(data.starts_at, data.ends_at)),
       venueId: data.venue?.id ?? null,
+      title: data.title ?? '',
+      description: data.description ?? '',
     };
   }, [data]);
 
@@ -195,6 +204,12 @@ export default function EventReschedulePage() {
     fontWeight: 600,
     color: colors.textSecondary,
     margin: `${spacing['8']}px 0 ${spacing['4']}px`,
+  };
+  const fieldLabel: CSSProperties = {
+    fontSize: 12,
+    fontWeight: 500,
+    color: colors.textSecondary,
+    marginBottom: spacing['4'],
   };
 
   if (ev.isLoading || !data || !form) {
@@ -246,9 +261,11 @@ export default function EventReschedulePage() {
   }
 
   const isGame = data.type === 'game';
-  const summaryTitle = isGame
-    ? t('reschedule.summary.game')
-    : t('reschedule.summary.training');
+  const summaryTitle = data.title?.trim()
+    ? data.title
+    : isGame
+      ? t('reschedule.summary.game')
+      : t('reschedule.summary.training');
   const venueName = data.venue?.name ?? data.venue_text ?? null;
 
   const notifyCount = data.attendees.filter(
@@ -283,11 +300,18 @@ export default function EventReschedulePage() {
 
   const durationMins = durationStrToMinutes(form.durationStr);
   const initialMins = durationStrToMinutes(initialForm!.durationStr);
-  const changed =
+  const titleTrimmed = form.title.trim();
+  const descriptionTrimmed = form.description.trim();
+  const initialTitleTrimmed = initialForm!.title.trim();
+  const initialDescriptionTrimmed = initialForm!.description.trim();
+  const scheduleChanged =
     form.date !== initialForm!.date ||
     form.time !== initialForm!.time ||
-    durationMins !== initialMins ||
-    form.venueId !== initialForm!.venueId;
+    durationMins !== initialMins;
+  const venueChanged = form.venueId !== initialForm!.venueId;
+  const titleChanged = titleTrimmed !== initialTitleTrimmed;
+  const descriptionChanged = descriptionTrimmed !== initialDescriptionTrimmed;
+  const changed = scheduleChanged || venueChanged || titleChanged || descriptionChanged;
 
   const valid =
     Boolean(form.date) && Boolean(form.time) && durationMins > 0 && Boolean(form.venueId);
@@ -297,11 +321,20 @@ export default function EventReschedulePage() {
   const onSubmit = () => {
     if (!form.venueId) return;
     setError(null);
-    const body: UpdateEventRequest = {
-      starts_at: combineDateTime(form.date, form.time),
-      duration_minutes: durationMins,
-      venue_id: form.venueId,
-    };
+    const body: UpdateEventRequest = {};
+    if (scheduleChanged) {
+      body.starts_at = combineDateTime(form.date, form.time);
+      body.duration_minutes = durationMins;
+    }
+    if (venueChanged) {
+      body.venue_id = form.venueId;
+    }
+    if (titleChanged) {
+      body.title = titleTrimmed ? titleTrimmed : null;
+    }
+    if (descriptionChanged) {
+      body.description = descriptionTrimmed ? descriptionTrimmed : null;
+    }
     update.mutate(body, {
       onSuccess: () => router.replace(`/events/${id}`),
       onError: (e) =>
@@ -377,6 +410,47 @@ export default function EventReschedulePage() {
           placeholder={t('eventNew.fields.venue.placeholder')}
           onClick={() => setVenueOpen(true)}
         />
+
+        <div style={sectionLabel}>{t('reschedule.sections.details')}</div>
+
+        <div>
+          <div style={fieldLabel}>{t('reschedule.fields.eventTitle')}</div>
+          <Input
+            type="text"
+            value={form.title}
+            onChange={(e) =>
+              setField('title', e.currentTarget.value.slice(0, TITLE_LIMIT))
+            }
+            placeholder={t('reschedule.fields.eventTitle.placeholder')}
+            maxLength={TITLE_LIMIT}
+            style={{
+              background: colors.bg,
+              border: `1px solid ${colors.divider}`,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              fontSize: 17,
+              fontWeight: 600,
+            }}
+          />
+        </div>
+
+        <div>
+          <div style={fieldLabel}>{t('reschedule.fields.description')}</div>
+          <Textarea
+            value={form.description}
+            onChange={(e) =>
+              setField('description', e.currentTarget.value.slice(0, DESCRIPTION_LIMIT))
+            }
+            placeholder={t('reschedule.fields.description.placeholder')}
+            maxLength={DESCRIPTION_LIMIT}
+            rows={3}
+            style={{
+              background: colors.bg,
+              border: `1px solid ${colors.divider}`,
+              minHeight: 88,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            }}
+          />
+        </div>
 
         <InfoListCard
           title={t('reschedule.changes.title')}

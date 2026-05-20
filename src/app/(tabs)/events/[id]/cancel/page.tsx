@@ -117,7 +117,11 @@ export default function EventCancelPage() {
   }
 
   const isGame = data.type === 'game';
-  const summaryTitle = isGame ? t('reschedule.summary.game') : t('reschedule.summary.training');
+  const summaryTitle = data.title?.trim()
+    ? data.title
+    : isGame
+      ? t('reschedule.summary.game')
+      : t('reschedule.summary.training');
   const venueName = data.venue?.name ?? data.venue_text ?? null;
 
   const notifyCount = data.team_size;

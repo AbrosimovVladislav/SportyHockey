@@ -215,18 +215,23 @@ export const ru = {
 
   // Event menu (контекстное меню на /events/[id])
   'eventMenu.title': 'Действия',
-  'eventMenu.reschedule': 'Перенести',
+  'eventMenu.reschedule': 'Изменить',
   'eventMenu.cancel': 'Отменить',
 
-  // Reschedule (/events/[id]/reschedule)
-  'reschedule.title': 'Перенос события',
+  // Edit event (/events/[id]/reschedule)
+  'reschedule.title': 'Изменить событие',
   'reschedule.summary.training': 'Тренировка',
   'reschedule.summary.game': 'Игра',
-  'reschedule.sections.newTime': 'Новое время и место',
-  'reschedule.fields.newDate': 'Новая дата',
+  'reschedule.sections.newTime': 'Время и место',
+  'reschedule.sections.details': 'Детали события',
+  'reschedule.fields.newDate': 'Дата',
   'reschedule.fields.startTime': 'Время начала',
   'reschedule.fields.duration': 'Длительность',
   'reschedule.fields.venue': 'Площадка',
+  'reschedule.fields.eventTitle': 'Название',
+  'reschedule.fields.eventTitle.placeholder': 'Например: Товарищеский матч',
+  'reschedule.fields.description': 'Описание',
+  'reschedule.fields.description.placeholder': 'Что важно знать игрокам',
   'reschedule.changes.title': 'Что изменится',
   'reschedule.changes.notify': 'Уведомим {count} участников',
   'reschedule.changes.notifyHint': 'Все приглашённые получат уведомление',
@@ -234,7 +239,7 @@ export const ru = {
   'reschedule.changes.votesHint': 'Ответы «иду», «под вопросом», «не иду» останутся',
   'reschedule.changes.payments': 'Оплаты останутся привязанными',
   'reschedule.changes.paymentsHint': 'Все оплаты останутся за событием',
-  'reschedule.submit': 'Подтвердить перенос',
+  'reschedule.submit': 'Сохранить изменения',
   'reschedule.submitting': 'Сохраняем…',
 
   // Cancel (/events/[id]/cancel)

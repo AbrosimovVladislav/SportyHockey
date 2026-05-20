@@ -59,6 +59,7 @@ const UpdateBody = z.object({
   duration_minutes: z.number().int().positive().max(720).optional(),
   venue_id: z.string().uuid().optional(),
   title: z.string().trim().min(1).max(100).nullable().optional(),
+  description: z.string().trim().max(2000).nullable().optional(),
   cost_per_player: z.number().nonnegative().nullable().optional(),
   arena_cost: z.number().nonnegative().nullable().optional(),
   opponent_name: z.string().trim().max(100).nullable().optional(),
@@ -299,6 +300,9 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
 
     if (d.type !== undefined) patch.type = d.type;
     if (d.title !== undefined) patch.title = d.title;
+    if (d.description !== undefined) {
+      patch.description = d.description && d.description.length > 0 ? d.description : null;
+    }
     if (d.cost_per_player !== undefined) patch.cost_per_player = d.cost_per_player;
     if (d.arena_cost !== undefined) patch.arena_cost = d.arena_cost;
     if (d.opponent_name !== undefined) {
