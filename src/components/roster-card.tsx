@@ -79,12 +79,12 @@ export function RosterCard({
       alignItems: 'center',
       gap: spacing['10'],
       padding: `${spacing['10']}px ${spacing['12']}px ${spacing['10']}px ${spacing['8']}px`,
-      minHeight: 92,
+      minHeight: 84,
     };
     const handle: CSSProperties = {
       flexShrink: 0,
-      width: 32,
-      height: 64,
+      width: 28,
+      height: 56,
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -98,24 +98,23 @@ export function RosterCard({
       minWidth: 0,
       display: 'flex',
       flexDirection: 'column',
-      gap: 1,
+      gap: 2,
     };
     const nameStyle: CSSProperties = {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: 600,
       color: colors.text,
       lineHeight: 1.2,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
+      overflowWrap: 'break-word',
     };
     const subStyle: CSSProperties = {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textSecondary,
       fontVariantNumeric: 'tabular-nums',
       lineHeight: 1.2,
       marginTop: 2,
     };
+    const fullName = [displayFirst, displayLast].filter(Boolean).join(' ').trim() || '—';
     return (
       <div ref={forOverlay ? undefined : drag.setNodeRef} style={wrap}>
         <span
@@ -126,10 +125,9 @@ export function RosterCard({
         >
           <GripDots size="lg" />
         </span>
-        <Avatar src={photoUrl ?? null} name={`${displayFirst} ${displayLast}`} size={44} />
+        <Avatar src={photoUrl ?? null} name={fullName} size={44} />
         <div style={textCol}>
-          <div style={nameStyle}>{displayFirst || '—'}</div>
-          {displayLast ? <div style={nameStyle}>{displayLast}</div> : null}
+          <div style={nameStyle}>{fullName}</div>
           {subtitle ? <div style={subStyle}>{subtitle}</div> : null}
         </div>
       </div>
