@@ -69,10 +69,9 @@ export function LineupZone({
   };
 
   const listStyle: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    display: 'flex',
+    flexDirection: 'column',
     gap: spacing['6'],
-    alignContent: 'start',
   };
 
   return (

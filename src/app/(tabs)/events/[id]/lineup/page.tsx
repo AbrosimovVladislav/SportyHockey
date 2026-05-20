@@ -196,6 +196,7 @@ export default function EventLineupPage() {
       photoUrl={a.photo_url}
       jersey={a.jersey_number}
       positionLabel={positionLabel(a.position, t as (k: never) => string)}
+      layout="horizontal"
     />
   );
 
@@ -278,7 +279,7 @@ export default function EventLineupPage() {
 
         <DragOverlay dropAnimation={null}>
           {activeAttendee ? (
-            <div style={{ width: 132 }}>
+            <div style={{ width: currentTab === 'teams' ? 240 : 132 }}>
               <RosterCard
                 dragId={activeAttendee.user_id}
                 firstName={activeAttendee.first_name}
@@ -289,6 +290,7 @@ export default function EventLineupPage() {
                   activeAttendee.position,
                   t as (k: never) => string,
                 )}
+                layout={currentTab === 'teams' ? 'horizontal' : 'vertical'}
                 forOverlay
               />
             </div>

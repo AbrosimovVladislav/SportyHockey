@@ -14,19 +14,24 @@ type Props = {
   photoUrl?: string | null;
   jersey?: number | null;
   positionLabel?: string | null;
+  layout?: 'horizontal' | 'vertical';
   forOverlay?: boolean;
 };
 
-function GripDots() {
+function GripDots({ size = 'md' }: { size?: 'md' | 'lg' }) {
+  const big = size === 'lg';
+  const width = big ? 18 : 12;
+  const height = big ? 28 : 18;
+  const r = big ? 1.7 : 1.2;
   return (
-    <svg width={10} height={14} viewBox="0 0 10 14" aria-hidden focusable={false}>
-      <g fill="#B6B3AC">
-        <circle cx={3} cy={3} r={1.1} />
-        <circle cx={7} cy={3} r={1.1} />
-        <circle cx={3} cy={7} r={1.1} />
-        <circle cx={7} cy={7} r={1.1} />
-        <circle cx={3} cy={11} r={1.1} />
-        <circle cx={7} cy={11} r={1.1} />
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden focusable={false}>
+      <g fill="#9C9994">
+        <circle cx={width * 0.3} cy={height * 0.2} r={r} />
+        <circle cx={width * 0.7} cy={height * 0.2} r={r} />
+        <circle cx={width * 0.3} cy={height * 0.5} r={r} />
+        <circle cx={width * 0.7} cy={height * 0.5} r={r} />
+        <circle cx={width * 0.3} cy={height * 0.8} r={r} />
+        <circle cx={width * 0.7} cy={height * 0.8} r={r} />
       </g>
     </svg>
   );
@@ -39,6 +44,7 @@ export function RosterCard({
   photoUrl,
   jersey,
   positionLabel,
+  layout = 'vertical',
   forOverlay = false,
 }: Props) {
   const drag = useDraggable({ id: dragId, disabled: forOverlay });
@@ -52,31 +58,100 @@ export function RosterCard({
         ? `#${jersey}`
         : positionLabel ?? '';
 
-  const wrap: CSSProperties = {
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-    padding: `${spacing['8']}px ${spacing['6']}px ${spacing['8']}px`,
+  const baseWrap: CSSProperties = {
     background: colors.bg,
     border: `1px solid ${colors.line}`,
     borderRadius: radius.md,
-    minHeight: 102,
     boxShadow: forOverlay ? '0 8px 24px rgba(0,0,0,0.18)' : '0 1px 2px rgba(0,0,0,0.04)',
     userSelect: 'none',
     opacity: drag.isDragging && !forOverlay ? 0.35 : 1,
     transform: forOverlay ? 'scale(1.03)' : undefined,
     width: '100%',
     boxSizing: 'border-box',
+    position: 'relative',
   };
 
+  if (layout === 'horizontal') {
+    const wrap: CSSProperties = {
+      ...baseWrap,
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing['10'],
+      padding: `${spacing['10']}px ${spacing['12']}px ${spacing['10']}px ${spacing['8']}px`,
+      minHeight: 92,
+    };
+    const handle: CSSProperties = {
+      flexShrink: 0,
+      width: 32,
+      height: 64,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'grab',
+      touchAction: 'none',
+      borderRadius: radius.sm,
+      marginLeft: -4,
+    };
+    const textCol: CSSProperties = {
+      flex: 1,
+      minWidth: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 1,
+    };
+    const nameStyle: CSSProperties = {
+      fontSize: 13,
+      fontWeight: 600,
+      color: colors.text,
+      lineHeight: 1.2,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    };
+    const subStyle: CSSProperties = {
+      fontSize: 11,
+      color: colors.textSecondary,
+      fontVariantNumeric: 'tabular-nums',
+      lineHeight: 1.2,
+      marginTop: 2,
+    };
+    return (
+      <div ref={forOverlay ? undefined : drag.setNodeRef} style={wrap}>
+        <span
+          style={handle}
+          aria-label="Перетащить"
+          {...(forOverlay ? {} : drag.listeners)}
+          {...(forOverlay ? {} : drag.attributes)}
+        >
+          <GripDots size="lg" />
+        </span>
+        <Avatar src={photoUrl ?? null} name={`${displayFirst} ${displayLast}`} size={44} />
+        <div style={textCol}>
+          <div style={nameStyle}>{displayFirst || '—'}</div>
+          {displayLast ? <div style={nameStyle}>{displayLast}</div> : null}
+          {subtitle ? <div style={subStyle}>{subtitle}</div> : null}
+        </div>
+      </div>
+    );
+  }
+
+  // vertical
+  const wrap: CSSProperties = {
+    ...baseWrap,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    padding: `${spacing['8']}px ${spacing['6']}px ${spacing['8']}px`,
+    minHeight: 102,
+  };
   const handle: CSSProperties = {
     position: 'absolute',
-    top: 4,
-    left: 4,
-    width: 20,
-    height: 20,
+    top: 2,
+    left: 2,
+    width: 28,
+    height: 28,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -84,7 +159,6 @@ export function RosterCard({
     touchAction: 'none',
     borderRadius: radius.sm,
   };
-
   const nameStyle: CSSProperties = {
     fontSize: 12,
     fontWeight: 600,
@@ -96,14 +170,12 @@ export function RosterCard({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   };
-
   const subStyle: CSSProperties = {
     fontSize: 10,
     color: colors.textSecondary,
     fontVariantNumeric: 'tabular-nums',
     lineHeight: 1.1,
   };
-
   return (
     <div ref={forOverlay ? undefined : drag.setNodeRef} style={wrap}>
       <span
@@ -115,7 +187,7 @@ export function RosterCard({
         <GripDots />
       </span>
       <Avatar src={photoUrl ?? null} name={`${displayFirst} ${displayLast}`} size={36} />
-      <div style={{ ...nameStyle }}>{displayFirst || '—'}</div>
+      <div style={nameStyle}>{displayFirst || '—'}</div>
       {displayLast ? <div style={nameStyle}>{displayLast}</div> : null}
       {subtitle ? <div style={subStyle}>{subtitle}</div> : null}
     </div>
