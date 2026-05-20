@@ -237,7 +237,7 @@ export default function EventLineupPage() {
               gap: spacing['16'],
             }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
+            <div style={{ display: 'flex', gap: spacing['10'], alignItems: 'stretch' }}>
               <LineupZone
                 id="light"
                 title={t('lineup.teams.light')}

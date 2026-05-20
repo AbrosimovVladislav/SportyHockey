@@ -77,44 +77,44 @@ export function RosterCard({
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing['10'],
-      padding: `${spacing['10']}px ${spacing['12']}px ${spacing['10']}px ${spacing['8']}px`,
+      gap: spacing['8'],
+      padding: `${spacing['8']}px ${spacing['10']}px ${spacing['8']}px ${spacing['6']}px`,
       minHeight: 84,
     };
     const handle: CSSProperties = {
       flexShrink: 0,
-      width: 28,
-      height: 56,
+      width: 22,
+      height: 48,
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
       cursor: 'grab',
       touchAction: 'none',
       borderRadius: radius.sm,
-      marginLeft: -4,
     };
     const textCol: CSSProperties = {
       flex: 1,
       minWidth: 0,
       display: 'flex',
       flexDirection: 'column',
-      gap: 2,
+      gap: 0,
     };
     const nameStyle: CSSProperties = {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: 600,
       color: colors.text,
       lineHeight: 1.2,
       overflowWrap: 'break-word',
+      wordBreak: 'break-word',
     };
     const subStyle: CSSProperties = {
-      fontSize: 12,
+      fontSize: 11,
       color: colors.textSecondary,
       fontVariantNumeric: 'tabular-nums',
       lineHeight: 1.2,
       marginTop: 2,
+      overflowWrap: 'break-word',
     };
-    const fullName = [displayFirst, displayLast].filter(Boolean).join(' ').trim() || '—';
     return (
       <div ref={forOverlay ? undefined : drag.setNodeRef} style={wrap}>
         <span
@@ -123,11 +123,12 @@ export function RosterCard({
           {...(forOverlay ? {} : drag.listeners)}
           {...(forOverlay ? {} : drag.attributes)}
         >
-          <GripDots size="lg" />
+          <GripDots size="md" />
         </span>
-        <Avatar src={photoUrl ?? null} name={fullName} size={44} />
+        <Avatar src={photoUrl ?? null} name={`${displayFirst} ${displayLast}`} size={40} />
         <div style={textCol}>
-          <div style={nameStyle}>{fullName}</div>
+          <div style={nameStyle}>{displayFirst || '—'}</div>
+          {displayLast ? <div style={nameStyle}>{displayLast}</div> : null}
           {subtitle ? <div style={subStyle}>{subtitle}</div> : null}
         </div>
       </div>
