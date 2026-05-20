@@ -90,6 +90,8 @@ export type EventVote = 'going' | 'maybe' | 'not_going';
 
 export type PlayerPosition = 'forward' | 'defender' | 'goalie';
 
+export type TeamSide = 'light' | 'dark';
+
 export type EventAttendee = {
   user_id: string;
   first_name: string | null;
@@ -103,6 +105,7 @@ export type EventAttendee = {
   showed_up: boolean | null;
   paid_amount: number | null;
   payment_claim: boolean;
+  team_side: TeamSide | null;
 };
 
 export type EventPaymentSummary = {
@@ -131,6 +134,13 @@ export type SetAttendanceRequest = {
   user_id: string;
   showed_up: boolean;
 };
+
+export type SetLineupRequest = {
+  user_id: string;
+  team_side: TeamSide | null;
+};
+
+export type SetLineupResponse = { ok: true };
 
 export type PaymentClaimResponse = { ok: true };
 

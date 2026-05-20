@@ -141,18 +141,12 @@ export const ru = {
 
   // Lineup (/events/[id]/lineup)
   'lineup.title': 'Состав',
-  'lineup.tabs.teams': 'По командам',
-  'lineup.tabs.lines': 'По звеньям',
   'lineup.teams.light': 'Светлые',
   'lineup.teams.dark': 'Тёмные',
-  'lineup.lines.first': 'Первое звено',
-  'lineup.lines.second': 'Второе звено',
-  'lineup.lines.third': 'Третье звено',
-  'lineup.lines.fourth': 'Четвёртое звено',
-  'lineup.pool': 'Все игроки',
+  'lineup.pool.signed': 'Записались',
+  'lineup.pool.notSigned': 'Не записаны',
   'lineup.dropHint': 'Перетащите игрока сюда',
   'lineup.poolEmpty': 'Все игроки распределены',
-  'lineup.count': '{count} игроков',
 
   // Common
   'common.empty': 'Пока ничего нет',

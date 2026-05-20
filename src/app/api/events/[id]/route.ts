@@ -14,6 +14,7 @@ import type {
   EventVenue,
   EventVote,
   PlayerPosition,
+  TeamSide,
 } from '@/types/api';
 
 const VOTE_ORDER: Record<string, number> = {
@@ -30,6 +31,11 @@ function asVote(value: string | null | undefined): EventVote | null {
 
 function asPosition(value: string | null | undefined): PlayerPosition | null {
   if (value === 'forward' || value === 'defender' || value === 'goalie') return value;
+  return null;
+}
+
+function asTeamSide(value: string | null | undefined): TeamSide | null {
+  if (value === 'light' || value === 'dark') return value;
   return null;
 }
 
@@ -131,6 +137,19 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       if (p.user_id) paidByUser.set(p.user_id, Number(p.amount));
     }
 
+    const { data: lineupRows, error: lineupErr } = await sb
+      .from('event_lineups')
+      .select('user_id, team_side')
+      .eq('event_id', event.id);
+    if (lineupErr) {
+      return NextResponse.json({ error: lineupErr.message }, { status: 500 });
+    }
+    const lineupByUser = new Map<string, TeamSide>();
+    for (const r of lineupRows ?? []) {
+      const side = asTeamSide(r.team_side);
+      if (side) lineupByUser.set(r.user_id, side);
+    }
+
     const attendees: EventAttendee[] = (members ?? []).map((m) => {
       const u = Array.isArray(m.users) ? m.users[0] : m.users;
       const att = attByUser.get(m.user_id);
@@ -147,6 +166,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
         showed_up: att?.showed_up ?? null,
         paid_amount: paidByUser.get(m.user_id) ?? null,
         payment_claim: att?.payment_claim ?? false,
+        team_side: lineupByUser.get(m.user_id) ?? null,
       };
     });
     attendees.sort((a, b) => {
