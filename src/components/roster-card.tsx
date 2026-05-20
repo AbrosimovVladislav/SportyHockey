@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { Avatar } from './avatar';
 import { colors } from '@/theme/colors';
@@ -48,6 +48,7 @@ export function RosterCard({
   forOverlay = false,
 }: Props) {
   const drag = useDraggable({ id: dragId, disabled: forOverlay });
+  const [pressed, setPressed] = useState(false);
 
   const displayFirst = firstName ?? '';
   const displayLast = lastName ?? '';
@@ -61,18 +62,39 @@ export function RosterCard({
         ? `#${jersey}`
         : positionLabel ?? '';
 
+  const isPressed = pressed && !drag.isDragging && !forOverlay;
   const baseWrap: CSSProperties = {
     background: colors.bg,
-    border: `1px solid ${colors.line}`,
+    border: `1px solid ${isPressed ? colors.headerAccent : colors.line}`,
     borderRadius: radius.md,
-    boxShadow: forOverlay ? '0 8px 24px rgba(0,0,0,0.18)' : '0 1px 2px rgba(0,0,0,0.04)',
+    boxShadow: forOverlay
+      ? '0 8px 24px rgba(0,0,0,0.18)'
+      : isPressed
+        ? `0 6px 16px rgba(232, 79, 0, 0.18)`
+        : '0 1px 2px rgba(0,0,0,0.04)',
     userSelect: 'none',
+    WebkitUserSelect: 'none',
+    WebkitTouchCallout: 'none',
     opacity: drag.isDragging && !forOverlay ? 0.35 : 1,
-    transform: forOverlay ? 'scale(1.03)' : undefined,
+    transform: forOverlay
+      ? 'scale(1.03)'
+      : isPressed
+        ? 'scale(0.98)'
+        : undefined,
+    transition: 'transform 100ms ease, box-shadow 120ms ease, border-color 120ms ease',
     width: '100%',
     boxSizing: 'border-box',
     position: 'relative',
   };
+
+  const pressHandlers = forOverlay
+    ? {}
+    : {
+        onPointerDown: () => setPressed(true),
+        onPointerUp: () => setPressed(false),
+        onPointerCancel: () => setPressed(false),
+        onPointerLeave: () => setPressed(false),
+      };
 
   if (layout === 'horizontal') {
     const wrap: CSSProperties = {
@@ -85,6 +107,7 @@ export function RosterCard({
       minHeight: 84,
       cursor: forOverlay ? 'grabbing' : 'grab',
       touchAction: 'manipulation',
+      WebkitTapHighlightColor: 'transparent',
     };
     const textCol: CSSProperties = {
       flex: 1,
@@ -115,6 +138,7 @@ export function RosterCard({
         style={wrap}
         {...(forOverlay ? {} : drag.listeners)}
         {...(forOverlay ? {} : drag.attributes)}
+        {...pressHandlers}
       >
         <Avatar src={photoUrl ?? null} name={`${displayFirst} ${displayLast}`} size={44} />
         <div style={textCol}>

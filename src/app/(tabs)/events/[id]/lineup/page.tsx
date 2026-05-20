@@ -78,7 +78,7 @@ export default function EventLineupPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 600, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 400, tolerance: 8 } }),
   );
 
   const attendees = useMemo(() => data?.attendees ?? [], [data]);
