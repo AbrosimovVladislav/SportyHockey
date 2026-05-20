@@ -87,12 +87,6 @@ export function DayEventRow({
     flexDirection: 'column',
     gap: 3,
   };
-  const titleRow: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing['6'],
-    minWidth: 0,
-  };
   const titleStyle: CSSProperties = {
     fontSize: 15,
     fontWeight: 700,
@@ -110,7 +104,7 @@ export function DayEventRow({
     whiteSpace: 'nowrap',
   };
   const completedPill: CSSProperties = {
-    flexShrink: 0,
+    alignSelf: 'flex-start',
     display: 'inline-flex',
     alignItems: 'center',
     padding: '2px 6px',
@@ -122,6 +116,7 @@ export function DayEventRow({
     letterSpacing: '0.04em',
     textTransform: 'uppercase',
     lineHeight: 1.2,
+    marginTop: 2,
   };
 
   const right: CSSProperties = {
@@ -156,13 +151,11 @@ export function DayEventRow({
       </div>
       <span style={iconWrap}>{Icon}</span>
       <div style={titleCol}>
-        <div style={titleRow}>
-          <span style={titleStyle}>{title}</span>
-          {completed && completedLabel ? (
-            <span style={completedPill}>{completedLabel}</span>
-          ) : null}
-        </div>
+        <span style={titleStyle}>{title}</span>
         {subtitle ? <span style={subtitleStyle}>{subtitle}</span> : null}
+        {completed && completedLabel ? (
+          <span style={completedPill}>{completedLabel}</span>
+        ) : null}
       </div>
       <span style={right}>
         <span style={countStyle}>
