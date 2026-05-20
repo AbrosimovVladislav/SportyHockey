@@ -110,6 +110,45 @@ export type Database = {
           },
         ]
       }
+      event_lines: {
+        Row: {
+          event_id: string
+          team_side: string
+          slot: string
+          user_id: string
+          updated_at: string
+        }
+        Insert: {
+          event_id: string
+          team_side: string
+          slot: string
+          user_id: string
+          updated_at?: string
+        }
+        Update: {
+          event_id?: string
+          team_side?: string
+          slot?: string
+          user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_lines_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_lines_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           arena_cost: number | null

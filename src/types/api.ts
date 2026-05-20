@@ -92,6 +92,21 @@ export type PlayerPosition = 'forward' | 'defender' | 'goalie';
 
 export type TeamSide = 'light' | 'dark';
 
+export type LineSlot =
+  | 'f1_lw' | 'f1_c' | 'f1_rw'
+  | 'f2_lw' | 'f2_c' | 'f2_rw'
+  | 'f3_lw' | 'f3_c' | 'f3_rw'
+  | 'd1_ld' | 'd1_rd'
+  | 'd2_ld' | 'd2_rd'
+  | 'd3_ld' | 'd3_rd'
+  | 'g';
+
+export type EventLineEntry = {
+  team_side: TeamSide;
+  slot: LineSlot;
+  user_id: string;
+};
+
 export type EventAttendee = {
   user_id: string;
   first_name: string | null;
@@ -123,6 +138,7 @@ export type EventDetailDto = EventDto & {
   team_size: number;
   attendees: EventAttendee[];
   payments: EventPaymentSummary;
+  lines: EventLineEntry[];
 };
 
 export type SetPaymentRequest = {
@@ -141,6 +157,14 @@ export type SetLineupRequest = {
 };
 
 export type SetLineupResponse = { ok: true };
+
+export type SetLineRequest = {
+  user_id: string;
+  team_side: TeamSide;
+  slot: LineSlot | null;
+};
+
+export type SetLineResponse = { ok: true };
 
 export type PaymentClaimResponse = { ok: true };
 

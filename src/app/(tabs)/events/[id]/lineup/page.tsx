@@ -13,23 +13,28 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
+import { ContentTabs } from '@/components/content-tabs';
 import { LightHeader } from '@/components/light-header';
 import { LineupChip } from '@/components/lineup-chip';
+import { LinePlayerChip } from '@/components/line-player-chip';
 import { LineupZone } from '@/components/lineup-zone';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
+import { LinesView } from './lines-view';
 import { useEvent } from '@/hooks/use-event';
+import { useSetLine } from '@/hooks/use-set-line';
 import { useSetLineup } from '@/hooks/use-set-lineup';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useTgSwipes } from '@/hooks/use-tg-swipes';
+import { asLineSlot } from '@/lib/event-lines';
 import { formatEventDateRange } from '@/lib/event-format';
 import { formatName } from '@/lib/format-name';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
-import type { EventAttendee, PlayerPosition, TeamSide } from '@/types/api';
+import type { EventAttendee, LineSlot as LineSlotKey, PlayerPosition, TeamSide } from '@/types/api';
 
-type ZoneId = TeamSide | 'pool';
+type TabId = 'teams' | 'lines_light' | 'lines_dark';
 
 function positionLabel(pos: PlayerPosition | null, t: (k: never) => string): string | null {
   if (!pos) return null;
@@ -58,7 +63,9 @@ export default function EventLineupPage() {
   const ev = useEvent(id);
   const data = ev.data;
   const setLineup = useSetLineup(id);
+  const setLine = useSetLine(id);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>('teams');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -66,13 +73,14 @@ export default function EventLineupPage() {
   );
 
   const attendees = useMemo(() => data?.attendees ?? [], [data]);
+  const lines = useMemo(() => data?.lines ?? [], [data]);
   const byId = useMemo(() => {
     const m = new Map<string, EventAttendee>();
     for (const a of attendees) m.set(a.user_id, a);
     return m;
   }, [attendees]);
 
-  const groups = useMemo(() => {
+  const teamGroups = useMemo(() => {
     const light: EventAttendee[] = [];
     const dark: EventAttendee[] = [];
     const signed: EventAttendee[] = [];
@@ -86,6 +94,12 @@ export default function EventLineupPage() {
     return { light, dark, signed, unsigned };
   }, [attendees]);
 
+  const linesIndex = useMemo(() => {
+    const m = new Map<string, { team_side: TeamSide; slot: LineSlotKey }>();
+    for (const l of lines) m.set(l.user_id, { team_side: l.team_side, slot: l.slot });
+    return m;
+  }, [lines]);
+
   const handleDragStart = (e: DragStartEvent) => {
     setActiveId(String(e.active.id));
   };
@@ -93,25 +107,35 @@ export default function EventLineupPage() {
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
     const userId = String(e.active.id);
-    const overId = e.over?.id ? (String(e.over.id) as ZoneId) : undefined;
+    const overId = e.over?.id ? String(e.over.id) : null;
     if (!overId) return;
-    const current = byId.get(userId)?.team_side ?? null;
-    const next: TeamSide | null =
-      overId === 'light' || overId === 'dark' ? overId : null;
-    if (current === next) return;
-    setLineup.mutate({ user_id: userId, team_side: next });
+
+    if (activeTab === 'teams') {
+      const current = byId.get(userId)?.team_side ?? null;
+      const next: TeamSide | null =
+        overId === 'light' || overId === 'dark' ? overId : null;
+      if (current === next) return;
+      setLineup.mutate({ user_id: userId, team_side: next });
+      return;
+    }
+
+    const side: TeamSide = activeTab === 'lines_light' ? 'light' : 'dark';
+    if (overId === 'pool_lines') {
+      if (!linesIndex.has(userId)) return;
+      setLine.mutate({ user_id: userId, team_side: side, slot: null });
+      return;
+    }
+    const slot = asLineSlot(overId);
+    if (!slot) return;
+    const current = linesIndex.get(userId);
+    if (current && current.team_side === side && current.slot === slot) return;
+    setLine.mutate({ user_id: userId, team_side: side, slot });
   };
 
   const root: CSSProperties = {
     background: colors.bg,
     minHeight: '100dvh',
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
-  };
-  const content: CSSProperties = {
-    padding: `${spacing['8']}px ${spacing['16']}px 0`,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: spacing['16'],
   };
 
   const onBack = () => {
@@ -150,8 +174,19 @@ export default function EventLineupPage() {
   }
 
   const activeAttendee = activeId ? byId.get(activeId) : null;
+  const showTabs = data.type === 'training';
+  const currentTab: TabId = showTabs ? activeTab : 'teams';
 
-  const renderChip = (a: EventAttendee) => (
+  const tabs =
+    showTabs
+      ? [
+          { id: 'teams' as const, label: t('lineup.tabs.teams') },
+          { id: 'lines_light' as const, label: t('lineup.tabs.linesLight') },
+          { id: 'lines_dark' as const, label: t('lineup.tabs.linesDark') },
+        ]
+      : [];
+
+  const renderTeamChip = (a: EventAttendee): ReactNode => (
     <LineupChip
       key={a.user_id}
       id={a.user_id}
@@ -165,56 +200,94 @@ export default function EventLineupPage() {
     <div style={root}>
       <LightHeader title={t('lineup.title')} subtitle={subtitle} onBack={onBack} />
 
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div style={content}>
-          <div style={{ display: 'flex', gap: spacing['10'], alignItems: 'stretch' }}>
-            <LineupZone
-              id="light"
-              title={t('lineup.teams.light')}
-              count={groups.light.length}
-              empty={groups.light.length === 0}
-              emptyHint={t('lineup.dropHint')}
-            >
-              {groups.light.map((a) => renderChip(a))}
-            </LineupZone>
-            <LineupZone
-              id="dark"
-              title={t('lineup.teams.dark')}
-              count={groups.dark.length}
-              empty={groups.dark.length === 0}
-              emptyHint={t('lineup.dropHint')}
-            >
-              {groups.dark.map((a) => renderChip(a))}
-            </LineupZone>
-          </div>
+      {showTabs ? (
+        <ContentTabs
+          tabs={tabs}
+          activeId={currentTab}
+          onChange={(id) => setActiveTab(id as TabId)}
+        />
+      ) : null}
 
-          <PoolSection
-            signedTitle={t('lineup.pool.signed')}
-            unsignedTitle={t('lineup.pool.notSigned')}
-            signed={groups.signed}
-            unsigned={groups.unsigned}
-            emptyHint={t('lineup.poolEmpty')}
-            renderChip={(a) => renderChip(a)}
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        {currentTab === 'teams' ? (
+          <div
+            style={{
+              padding: `${spacing['8']}px ${spacing['16']}px 0`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: spacing['16'],
+            }}
+          >
+            <div style={{ display: 'flex', gap: spacing['10'], alignItems: 'stretch' }}>
+              <LineupZone
+                id="light"
+                title={t('lineup.teams.light')}
+                count={teamGroups.light.length}
+                empty={teamGroups.light.length === 0}
+                emptyHint={t('lineup.dropHint')}
+              >
+                {teamGroups.light.map(renderTeamChip)}
+              </LineupZone>
+              <LineupZone
+                id="dark"
+                title={t('lineup.teams.dark')}
+                count={teamGroups.dark.length}
+                empty={teamGroups.dark.length === 0}
+                emptyHint={t('lineup.dropHint')}
+              >
+                {teamGroups.dark.map(renderTeamChip)}
+              </LineupZone>
+            </div>
+
+            <PoolTeamsSection
+              signedTitle={t('lineup.pool.signed')}
+              unsignedTitle={t('lineup.pool.notSigned')}
+              signed={teamGroups.signed}
+              unsigned={teamGroups.unsigned}
+              emptyHint={t('lineup.poolEmpty')}
+              renderChip={renderTeamChip}
+            />
+          </div>
+        ) : (
+          <LinesView
+            side={currentTab === 'lines_light' ? 'light' : 'dark'}
+            teamPlayers={
+              currentTab === 'lines_light' ? teamGroups.light : teamGroups.dark
+            }
+            lines={lines}
           />
-        </div>
+        )}
 
         <DragOverlay dropAnimation={null}>
-          {activeAttendee ? (
-            <LineupChip
-              id={activeAttendee.user_id}
-              name={formatName(activeAttendee)}
-              photoUrl={activeAttendee.photo_url}
-              subtitle={playerSubtitle(activeAttendee, t as (k: never) => string)}
-              forOverlay
-            />
-          ) : null}
+          {activeAttendee
+            ? currentTab === 'teams'
+              ? (
+                  <LineupChip
+                    id={activeAttendee.user_id}
+                    name={formatName(activeAttendee)}
+                    photoUrl={activeAttendee.photo_url}
+                    subtitle={playerSubtitle(activeAttendee, t as (k: never) => string)}
+                    forOverlay
+                  />
+                )
+              : (
+                  <LinePlayerChip
+                    dragId={activeAttendee.user_id}
+                    name={formatName(activeAttendee)}
+                    photoUrl={activeAttendee.photo_url}
+                    jersey={activeAttendee.jersey_number}
+                    roleLabel={null}
+                    forOverlay
+                  />
+                )
+            : null}
         </DragOverlay>
       </DndContext>
     </div>
   );
 }
 
-function PoolSection({
+function PoolTeamsSection({
   signedTitle,
   unsignedTitle,
   signed,

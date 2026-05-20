@@ -47,6 +47,14 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
       return NextResponse.json({ error: 'Игрок не в команде' }, { status: 404 });
     }
 
+    const { data: prev } = await sb
+      .from('event_lineups')
+      .select('team_side')
+      .eq('event_id', event.id)
+      .eq('user_id', parsed.data.user_id)
+      .maybeSingle();
+    const previousSide = prev?.team_side ?? null;
+
     if (parsed.data.team_side === null) {
       const { error: delErr } = await sb
         .from('event_lineups')
@@ -55,6 +63,14 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
         .eq('user_id', parsed.data.user_id);
       if (delErr) {
         return NextResponse.json({ error: delErr.message }, { status: 500 });
+      }
+      const { error: delLinesErr } = await sb
+        .from('event_lines')
+        .delete()
+        .eq('event_id', event.id)
+        .eq('user_id', parsed.data.user_id);
+      if (delLinesErr) {
+        return NextResponse.json({ error: delLinesErr.message }, { status: 500 });
       }
     } else {
       const { error: upErr } = await sb
@@ -70,6 +86,17 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
         );
       if (upErr) {
         return NextResponse.json({ error: upErr.message }, { status: 500 });
+      }
+      if (previousSide && previousSide !== parsed.data.team_side) {
+        const { error: delLinesErr } = await sb
+          .from('event_lines')
+          .delete()
+          .eq('event_id', event.id)
+          .eq('user_id', parsed.data.user_id)
+          .eq('team_side', previousSide);
+        if (delLinesErr) {
+          return NextResponse.json({ error: delLinesErr.message }, { status: 500 });
+        }
       }
     }
 

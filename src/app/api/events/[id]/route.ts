@@ -7,9 +7,11 @@ import { loadAttendance } from '@/lib/event-attendance';
 import { asMemberRole } from '@/lib/role';
 import { notifyEventCancelled, notifyEventUpdated } from '@/lib/notify';
 import type { TablesUpdate } from '@/types/db';
+import { asLineSlot } from '@/lib/event-lines';
 import type {
   EventAttendee,
   EventDetailDto,
+  EventLineEntry,
   EventPaymentSummary,
   EventVenue,
   EventVote,
@@ -150,6 +152,20 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       if (side) lineupByUser.set(r.user_id, side);
     }
 
+    const { data: lineRows, error: lineErr } = await sb
+      .from('event_lines')
+      .select('team_side, slot, user_id')
+      .eq('event_id', event.id);
+    if (lineErr) {
+      return NextResponse.json({ error: lineErr.message }, { status: 500 });
+    }
+    const lines: EventLineEntry[] = [];
+    for (const r of lineRows ?? []) {
+      const side = asTeamSide(r.team_side);
+      const slot = asLineSlot(r.slot);
+      if (side && slot) lines.push({ team_side: side, slot, user_id: r.user_id });
+    }
+
     const attendees: EventAttendee[] = (members ?? []).map((m) => {
       const u = Array.isArray(m.users) ? m.users[0] : m.users;
       const att = attByUser.get(m.user_id);
@@ -231,6 +247,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       team_size: attendees.length,
       attendees,
       payments,
+      lines,
     };
     return NextResponse.json(dto);
   } catch (e) {
