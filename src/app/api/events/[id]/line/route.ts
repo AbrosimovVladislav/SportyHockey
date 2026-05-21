@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireOrganizer } from '@/lib/auth';
+import { AuthError, requireUser, assertTeamMember } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { LINE_SLOT_REGEX } from '@/lib/event-lines';
 
@@ -17,7 +17,7 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: Request, { params }: Params): Promise<Response> {
   try {
-    const ctx = await requireOrganizer(req);
+    const user = await requireUser(req);
     const { id: eventId } = await params;
     const json = await req.json().catch(() => null);
     const parsed = Body.safeParse(json);
@@ -35,9 +35,10 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
     if (evErr) {
       return NextResponse.json({ error: evErr.message }, { status: 500 });
     }
-    if (!event || event.team_id !== ctx.team_id) {
+    if (!event) {
       return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
     }
+    await assertTeamMember(user.id, event.team_id);
 
     const isGame = event.type === 'game';
     // Для игры стороны нет — нормализуем к 'light'.

@@ -22,7 +22,7 @@ import {
   IconSparkle,
 } from '@/components/icons';
 import { useEvent } from '@/hooks/use-event';
-import { useMe } from '@/hooks/use-me';
+import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useVenues } from '@/hooks/use-venues';
@@ -141,18 +141,12 @@ export default function EventReschedulePage() {
   const id = params?.id ?? '';
   useTgHeader('#FFFFFF');
 
-  const me = useMe();
   const ev = useEvent(id);
   const venuesQuery = useVenues();
   const update = useUpdateEvent(id);
 
   const data = ev.data;
-  const isOrganizer = useMemo(() => {
-    if (!data || !me.data) return false;
-    return me.data.memberships.some(
-      (m) => m.team_id === data.team_id && m.role === 'organizer',
-    );
-  }, [data, me.data]);
+  const { isOrganizer, isLoading: meLoading } = useIsOrganizer(data?.team_id);
 
   const initialForm = useMemo<FormState | null>(() => {
     if (!data) return null;
@@ -175,10 +169,10 @@ export default function EventReschedulePage() {
   }, [initialForm, form]);
 
   useEffect(() => {
-    if (data && me.data && !isOrganizer) {
+    if (data && !meLoading && !isOrganizer) {
       router.replace(`/events/${id}`);
     }
-  }, [data, me.data, isOrganizer, id, router]);
+  }, [data, meLoading, isOrganizer, id, router]);
 
   const venues: VenueDto[] = venuesQuery.data?.venues ?? [];
   const selectedVenue =

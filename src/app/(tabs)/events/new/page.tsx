@@ -20,7 +20,7 @@ import {
   IconLocation,
   IconSparkle,
 } from '@/components/icons';
-import { useMe } from '@/hooks/use-me';
+import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useVenues } from '@/hooks/use-venues';
 import { apiFetch, ApiError } from '@/lib/api-client';
@@ -233,23 +233,18 @@ export default function EventNewPage() {
   const router = useRouter();
   const qc = useQueryClient();
 
-  const me = useMe();
+  const { isOrganizer, isLoading: meLoading } = useIsOrganizer();
   const venuesQuery = useVenues();
-
-  const isOrganizer = useMemo(
-    () => me.data?.memberships.some((m) => m.role === 'organizer') ?? false,
-    [me.data],
-  );
 
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [error, setError] = useState<string | null>(null);
   const [venueOpen, setVenueOpen] = useState(false);
 
   useEffect(() => {
-    if (me.data && !isOrganizer) {
+    if (!meLoading && !isOrganizer) {
       router.replace('/events');
     }
-  }, [me.data, isOrganizer, router]);
+  }, [meLoading, isOrganizer, router]);
 
   const venues: VenueDto[] = useMemo(() => venuesQuery.data?.venues ?? [], [venuesQuery.data]);
 

@@ -29,6 +29,7 @@ import { useEvent } from '@/hooks/use-event';
 import { useEventResult } from '@/hooks/use-event-result';
 import { useVoteEvent } from '@/hooks/use-vote-event';
 import { useMe } from '@/hooks/use-me';
+import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { formatEventDateRange } from '@/lib/event-format';
@@ -152,12 +153,7 @@ export default function EventDetailPage() {
   const isGame = data?.type === 'game';
   const eventResult = useEventResult(isGame ? id : undefined);
 
-  const isOrganizer = useMemo(() => {
-    if (!data || !me.data) return false;
-    return me.data.memberships.some(
-      (m) => m.team_id === data.team_id && m.role === 'organizer',
-    );
-  }, [data, me.data]);
+  const { isOrganizer } = useIsOrganizer(data?.team_id);
   const canEditEvent = isOrganizer && data?.status === 'scheduled';
   const myVote = useMemo<EventAttendee['vote'] | undefined>(() => {
     if (!data || !me.data) return undefined;
@@ -438,8 +434,8 @@ export default function EventDetailPage() {
               {t('eventDetail.status.completed')}
             </span>
           </SectionCard>
-        ) : (
-          /* VOTE */
+        ) : isOrganizer ? (
+          /* VOTE (organizer — компактный) */
           <SectionCard padding={spacing['10']}>
             <div
               style={{
@@ -480,44 +476,60 @@ export default function EventDetailPage() {
               </div>
             </div>
           </SectionCard>
+        ) : (
+          /* VOTE (player — большой блок) */
+          <PlayerVoteBlock
+            question={
+              isTraining
+                ? t('eventDetail.vote.player.question.training')
+                : t('eventDetail.vote.player.question.game')
+            }
+            goingLabel={t('eventDetail.vote.player.going')}
+            notGoingLabel={t('eventDetail.vote.player.notGoing')}
+            myVote={myVote === 'going' || myVote === 'not_going' ? myVote : null}
+            disabled={vote.isPending}
+            onVote={handleVote}
+          />
         )}
 
-        {/* СОСТАВ И ЯВКА */}
-        <SectionCard padding={spacing['12']}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: spacing['10'],
-            }}
-          >
-            <span style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>
-              {t('eventDetail.attendance.title')}
-            </span>
-            <IconInfo size={16} color={colors.textTertiary} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: spacing['12'] }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <StatusCircle kind="going" count={data.attendance.going} />
-              <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
-                {t('eventDetail.attendance.going')}
+        {/* СОСТАВ И ЯВКА — только organizer */}
+        {isOrganizer ? (
+          <SectionCard padding={spacing['12']}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: spacing['10'],
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>
+                {t('eventDetail.attendance.title')}
               </span>
+              <IconInfo size={16} color={colors.textTertiary} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <StatusCircle kind="notGoing" count={data.attendance.not_going} />
-              <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
-                {t('eventDetail.attendance.notGoing')}
-              </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: spacing['12'] }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <StatusCircle kind="going" count={data.attendance.going} />
+                <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
+                  {t('eventDetail.attendance.going')}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <StatusCircle kind="notGoing" count={data.attendance.not_going} />
+                <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
+                  {t('eventDetail.attendance.notGoing')}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <StatusCircle kind="noAnswer" count={Math.max(0, noAnswer)} />
+                <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
+                  {t('eventDetail.attendance.noAnswer')}
+                </span>
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <StatusCircle kind="noAnswer" count={Math.max(0, noAnswer)} />
-              <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
-                {t('eventDetail.attendance.noAnswer')}
-              </span>
-            </div>
-          </div>
-        </SectionCard>
+          </SectionCard>
+        ) : null}
 
         {/* УЧАСТНИКИ И ВЗНОСЫ */}
         <button
@@ -545,7 +557,9 @@ export default function EventDetailPage() {
             }}
           >
             <span style={{ fontSize: 17, fontWeight: 700, color: colors.text }}>
-              {t('eventDetail.attendees.title')}
+              {isOrganizer
+                ? t('eventDetail.attendees.title')
+                : t('eventDetail.attendees.titlePlayer')}
             </span>
             <IconChevronRight />
           </div>
@@ -557,7 +571,7 @@ export default function EventDetailPage() {
             })}
           </div>
           {goingAttendees.length > 0 ? (
-            <div style={{ marginBottom: fund ? spacing['12'] : 0 }}>
+            <div style={{ marginBottom: isOrganizer && fund ? spacing['12'] : 0 }}>
               <AvatarStack
                 items={goingAttendees.map((a) => ({
                   src: a.photo_url,
@@ -566,7 +580,7 @@ export default function EventDetailPage() {
               />
             </div>
           ) : null}
-          {fund ? (
+          {isOrganizer && fund ? (
             <>
               <div style={{ marginBottom: spacing['10'] }}>
                 <ProgressBar value={fund.got} total={fund.target} />
@@ -695,6 +709,124 @@ export default function EventDetailPage() {
         </BottomSheet>
       ) : null}
     </div>
+  );
+}
+
+type PlayerVoteBlockProps = {
+  question: string;
+  goingLabel: string;
+  notGoingLabel: string;
+  myVote: 'going' | 'not_going' | null;
+  disabled: boolean;
+  onVote: (next: 'going' | 'not_going') => void;
+};
+
+function PlayerVoteBlock({
+  question,
+  goingLabel,
+  notGoingLabel,
+  myVote,
+  disabled,
+  onVote,
+}: PlayerVoteBlockProps) {
+  const card: CSSProperties = {
+    background: colors.bg,
+    borderRadius: radius.lg,
+    padding: `${spacing['20']}px ${spacing['16']}px`,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing['16'],
+    alignItems: 'stretch',
+  };
+  const title: CSSProperties = {
+    fontSize: 20,
+    fontWeight: 700,
+    color: colors.text,
+    textAlign: 'center',
+    lineHeight: 1.3,
+  };
+  const stack: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing['8'],
+  };
+  return (
+    <div style={card}>
+      <span style={title}>{question}</span>
+      <div style={stack}>
+        <PlayerVoteButton
+          kind="going"
+          active={myVote === 'going'}
+          label={goingLabel}
+          disabled={disabled}
+          onClick={() => onVote('going')}
+        />
+        <PlayerVoteButton
+          kind="notGoing"
+          active={myVote === 'not_going'}
+          label={notGoingLabel}
+          disabled={disabled}
+          onClick={() => onVote('not_going')}
+        />
+      </div>
+    </div>
+  );
+}
+
+type PlayerVoteButtonProps = {
+  kind: 'going' | 'notGoing';
+  active: boolean;
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+};
+
+function PlayerVoteButton({ kind, active, label, disabled, onClick }: PlayerVoteButtonProps) {
+  const isGoing = kind === 'going';
+  const activeBg = isGoing ? colors.primary : colors.bgMuted;
+  const activeColor = isGoing ? colors.textInverse : colors.text;
+  const inactiveBorder = isGoing ? colors.primary : colors.border;
+  const inactiveColor = isGoing ? colors.primary : colors.textSecondary;
+  const Icon = isGoing ? IconCheck : IconClose;
+  const iconColor = active ? activeColor : inactiveColor;
+
+  const style: CSSProperties = {
+    width: '100%',
+    minHeight: 56,
+    borderRadius: radius.md,
+    padding: `${spacing['12']}px ${spacing['20']}px`,
+    background: active ? activeBg : colors.bg,
+    color: active ? activeColor : inactiveColor,
+    border: active ? 'none' : `1.5px solid ${inactiveBorder}`,
+    fontSize: 16,
+    fontWeight: 600,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing['8'],
+  };
+
+  const iconWrap: CSSProperties = {
+    width: 22,
+    height: 22,
+    borderRadius: '50%',
+    border: `1.5px solid ${iconColor}`,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  };
+
+  return (
+    <button type="button" className="pressable" onClick={onClick} disabled={disabled} style={style}>
+      <span style={iconWrap}>
+        <Icon size={14} color={iconColor} />
+      </span>
+      {label}
+    </button>
   );
 }
 

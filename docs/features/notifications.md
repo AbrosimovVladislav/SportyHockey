@@ -6,11 +6,13 @@
 ## Фичи
 
 ### v0.1
-- **Новое событие.** Бот шлёт каждому игроку команды личное сообщение с деталями события и inline-кнопками голосования (см. [voting-attendance.md](voting-attendance.md)).
-- **Изменение события.** Бот пушит обновление тем, кто проголосовал.
-- **Отмена события.** Пуш всем, кто голосовал `+` или `?`.
-- **Напоминание о голосовании.** За N часов до дедлайна — тем, кто не ответил.
-- **Welcome-сообщение.** Когда игрок впервые жмёт `/start` через invite-link — бот добавляет в команду и приветствует, ставит запись в `team_memberships`.
+- ✅ **Новое событие (итерация 20).** При успешном `POST /api/events` `notifyEventCreated` шлёт каждому игроку команды (role=player, с `users.telegram_id`) DM с карточкой события (тип, дата/время, площадка, взнос) и inline-кнопками «✅ Иду / ❌ Не иду» + web_app-кнопка «Открыть в Mini App».
+- ✅ **Голосование из бота (итерация 20).** Callback handlers в `src/lib/bot.ts` на pattern `vote:going|not_going:<event_id>`: toggle vote в `event_attendances`, `editMessageReplyMarkup` обновляет кнопки с ✓ у активного варианта, `answerCallbackQuery` показывает toast «Записано: иду / не иду / Голос снят». Доступно как через DM при создании события, так и через команду `/events`.
+- ✅ **Команда `/events` в боте (итерация 20).** Возвращает ближайшие 5 событий всех команд пользователя (не отменённые, `starts_at >= now`) — отдельной карточкой на каждое событие, с теми же кнопками голосования.
+- ✅ **Напоминание о голосовании (итерация 20).** Vercel Cron `0 15 * * *` (18:00 МСК) — `/api/cron/voting-reminder` шлёт игрокам без голоса DM «Голосование закрывается — успей ответить» с inline-кнопками. Окно — события `starts_at` в `[now, now+24h]`. Дедуп через интервал самого крона (раз в сутки).
+- **Изменение события.** Бот пушит обновление тем, кто проголосовал. (Не реализовано)
+- **Отмена события.** Пуш всем, кто голосовал `+` или `?`. (Не реализовано)
+- **Welcome-сообщение.** Когда игрок впервые жмёт `/start` через invite-link — бот добавляет в команду и приветствует, ставит запись в `team_memberships`. (✅ есть в `joinTeamByDeeplink`.)
 
 ### v0.2
 - Дайджест: каждое утро организатору — список ближайших событий + долги
@@ -22,7 +24,9 @@
 - WhatsApp-канал (зеркало)
 
 ## Связанные файлы
-- [TODO] заполнится по мере реализации
-- `src/app/api/bot/route.ts` (webhook handler)
-- `src/lib/bot.ts` (Telegraf instance, команды, сцены)
-- `src/app/api/cron/voting-reminders/route.ts` (Vercel Cron)
+- `src/app/api/bot/route.ts` — webhook handler (валидация секретного токена, передача в grammy)
+- `src/lib/bot.ts` — grammy `Bot`: `/start` deeplink, `/events` команда, callback handlers голосования
+- `src/lib/bot-event-card.ts` — общий билдер карточки события + inline-клавиатуры (используется в рассылке, callback'е и cron)
+- `src/lib/notify.ts` — `notifyEventCreated`, `sendVotingReminder`, `notifyPaymentClaim`
+- `src/app/api/cron/voting-reminder/route.ts` — Vercel Cron endpoint
+- `vercel.json` — расписание крона

@@ -18,7 +18,7 @@ import { MonthSheet, dayKey } from '@/components/month-sheet';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { IconBell } from '@/components/icons';
 import { useEvents } from '@/hooks/use-events';
-import { useMe } from '@/hooks/use-me';
+import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { colors } from '@/theme/colors';
@@ -81,7 +81,7 @@ export default function EventsPage() {
   const router = useRouter();
   useTgHeader('#233F30');
 
-  const me = useMe();
+  const { isOrganizer } = useIsOrganizer();
   const events = useEvents();
   const [tab, setTab] = useState<TabId>('list');
   const [filter, setFilter] = useState<FilterId>('all');
@@ -95,11 +95,6 @@ export default function EventsPage() {
     [calendarSelected],
   );
   const [monthSheetOpen, setMonthSheetOpen] = useState(false);
-
-  const isOrganizer = useMemo(
-    () => me.data?.memberships.some((m) => m.role === 'organizer') ?? false,
-    [me.data],
-  );
 
   const filtered = useMemo<EventDto[]>(() => {
     const list = events.data?.events ?? [];

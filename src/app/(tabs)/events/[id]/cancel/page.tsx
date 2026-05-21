@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LightHeader } from '@/components/light-header';
 import { Button } from '@/components/button';
@@ -14,7 +14,7 @@ import {
   IconLocation,
 } from '@/components/icons';
 import { useEvent } from '@/hooks/use-event';
-import { useMe } from '@/hooks/use-me';
+import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useUpdateEvent } from '@/hooks/use-update-event';
@@ -37,20 +37,20 @@ export default function EventCancelPage() {
   const id = params?.id ?? '';
   useTgHeader('#FFFFFF');
 
-  const me = useMe();
   const ev = useEvent(id);
   const update = useUpdateEvent(id);
 
   const data = ev.data;
-  const isOrganizer = useMemo(() => {
-    if (!data || !me.data) return false;
-    return me.data.memberships.some(
-      (m) => m.team_id === data.team_id && m.role === 'organizer',
-    );
-  }, [data, me.data]);
+  const { isOrganizer, isLoading: meLoading } = useIsOrganizer(data?.team_id);
 
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (data && !meLoading && !isOrganizer) {
+      router.replace(`/events/${id}`);
+    }
+  }, [data, meLoading, isOrganizer, id, router]);
 
   const onBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) router.back();
@@ -92,7 +92,10 @@ export default function EventCancelPage() {
       </div>
     );
   }
-  if (!isOrganizer || data.status !== 'scheduled') {
+  if (!isOrganizer) {
+    return null;
+  }
+  if (data.status !== 'scheduled') {
     return (
       <div style={root}>
         <LightHeader title={t('cancel.title')} onBack={onBack} />

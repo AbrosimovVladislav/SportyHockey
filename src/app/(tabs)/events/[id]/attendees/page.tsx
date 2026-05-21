@@ -13,6 +13,7 @@ import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { IconCheck, IconRuble } from '@/components/icons';
 import { useEvent } from '@/hooks/use-event';
 import { useMe } from '@/hooks/use-me';
+import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useSetPayment } from '@/hooks/use-set-payment';
 import { useSetAttendance } from '@/hooks/use-set-attendance';
 import { usePaymentClaim } from '@/hooks/use-payment-claim';
@@ -68,13 +69,10 @@ export default function EventAttendeesPage() {
 
   const data = ev.data as EventDetailDto | undefined;
   const isTraining = data?.type !== 'game';
-  const isOrganizer = useMemo(
-    () => me.data?.memberships.some((m) => m.role === 'organizer') ?? false,
-    [me.data],
-  );
+  const { isOrganizer } = useIsOrganizer(data?.team_id);
 
   const cost = data?.cost_per_player ?? null;
-  const showFinance = cost != null && cost > 0;
+  const showFinance = isOrganizer && cost != null && cost > 0;
 
   const [paying, setPaying] = useState<PayingFor>(null);
 
@@ -87,7 +85,11 @@ export default function EventAttendeesPage() {
     };
   }, [data]);
 
-  const headerTitle = t('rosterDay.title.attendees');
+  const headerTitle = isOrganizer
+    ? t('rosterDay.title.attendees')
+    : isTraining
+      ? t('rosterDay.title.attendees.training.player')
+      : t('rosterDay.title.attendees.game.player');
 
   const venueName = data?.venue?.name ?? data?.venue_text ?? '';
   const subtitle = data
@@ -451,34 +453,9 @@ function PlayerActions({
   const paidLabel =
     paidVariant === 'partial' ? `${paid.toLocaleString('ru-RU')} ₽` : tPaid;
 
-  const tiles = (
-    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-      <ActionTile
-        icon={<IconCheck size={20} color={attendee.showed_up ? colors.textInverse : colors.navInactive} />}
-        label={tWas}
-        active={!!attendee.showed_up}
-        activeColor={colors.headerAccent}
-        onClick={isOrganizer ? onWas : undefined}
-      />
-      <ActionTile
-        icon={
-          <IconRuble
-            size={20}
-            color={paidActive ? colors.textInverse : colors.navInactive}
-          />
-        }
-        label={paidLabel}
-        active={paidActive}
-        activeColor={paidActiveColor}
-        onClick={isOrganizer ? onPay : undefined}
-      />
-    </div>
-  );
-
-  if (!isOrganizer && isMe && paidVariant !== 'full' && cost != null && cost > 0) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-        {tiles}
+  if (!isOrganizer) {
+    if (isMe && paidVariant !== 'full' && cost != null && cost > 0) {
+      return (
         <button
           type="button"
           onClick={onClaim}
@@ -496,9 +473,32 @@ function PlayerActions({
         >
           {attendee.payment_claim ? tClaimSent : tClaimCta}
         </button>
-      </div>
-    );
+      );
+    }
+    return null;
   }
 
-  return tiles;
+  return (
+    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+      <ActionTile
+        icon={<IconCheck size={20} color={attendee.showed_up ? colors.textInverse : colors.navInactive} />}
+        label={tWas}
+        active={!!attendee.showed_up}
+        activeColor={colors.headerAccent}
+        onClick={onWas}
+      />
+      <ActionTile
+        icon={
+          <IconRuble
+            size={20}
+            color={paidActive ? colors.textInverse : colors.navInactive}
+          />
+        }
+        label={paidLabel}
+        active={paidActive}
+        activeColor={paidActiveColor}
+        onClick={onPay}
+      />
+    </div>
+  );
 }

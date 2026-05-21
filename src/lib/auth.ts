@@ -79,3 +79,19 @@ export async function requireOrganizer(req: Request): Promise<OrganizerContext> 
   }
   return { ...user, team_id: data.team_id };
 }
+
+export async function assertTeamMember(userId: string, teamId: string): Promise<void> {
+  const sb = supabaseServer();
+  const { data, error } = await sb
+    .from('team_memberships')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('team_id', teamId)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`team member check failed: ${error.message}`);
+  }
+  if (!data) {
+    throw new AuthError('Событие не найдено', 403);
+  }
+}

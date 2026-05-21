@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/voting-reminder",
+      "schedule": "0 15 * * *"
+    }
+  ]
+}

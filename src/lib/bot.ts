@@ -1,6 +1,8 @@
 import 'server-only';
 import { Bot, InlineKeyboard, type Context } from 'grammy';
 import { supabaseServer } from '@/lib/supabase-server';
+import { buildEventCard, type BotEventVote } from '@/lib/bot-event-card';
+import { asEventType } from '@/lib/event-enum';
 
 let cachedBot: Bot | null = null;
 
@@ -24,7 +26,26 @@ export function getBot(): Bot {
   return bot;
 }
 
+const VOTE_CALLBACK_RE = /^vote:(going|not_going):([0-9a-f-]{36})$/i;
+
 function registerHandlers(bot: Bot): void {
+  bot.callbackQuery(VOTE_CALLBACK_RE, async (ctx) => {
+    const m = ctx.match;
+    if (!Array.isArray(m)) return;
+    const next = m[1] as 'going' | 'not_going';
+    const eventId = m[2];
+    if (!ctx.from) {
+      await ctx.answerCallbackQuery({ text: 'Нет данных пользователя' });
+      return;
+    }
+    await handleVoteCallback(ctx, eventId, next);
+  });
+
+  bot.command('events', async (ctx) => {
+    if (!ctx.from) return;
+    await sendUpcomingEvents(ctx);
+  });
+
   bot.command('start', async (ctx) => {
     const payload = (ctx.match ?? '').trim();
 
@@ -63,6 +84,195 @@ function openMiniAppKeyboard(): InlineKeyboard | null {
   const url = process.env.MINI_APP_URL;
   if (!url) return null;
   return new InlineKeyboard().webApp('Открыть Mini App', url);
+}
+
+async function handleVoteCallback(
+  ctx: Context,
+  eventId: string,
+  next: 'going' | 'not_going',
+): Promise<void> {
+  if (!ctx.from) {
+    await ctx.answerCallbackQuery({ text: 'Нет данных пользователя' });
+    return;
+  }
+  const sb = supabaseServer();
+
+  const { data: user } = await sb
+    .from('users')
+    .upsert(
+      {
+        telegram_id: ctx.from.id,
+        username: ctx.from.username ?? null,
+        first_name: ctx.from.first_name ?? null,
+        last_name: ctx.from.last_name ?? null,
+      },
+      { onConflict: 'telegram_id' },
+    )
+    .select('id')
+    .single();
+  if (!user) {
+    await ctx.answerCallbackQuery({ text: 'Не удалось определить пользователя' });
+    return;
+  }
+
+  const { data: event } = await sb
+    .from('events')
+    .select(
+      'id, team_id, type, title, starts_at, ends_at, cost_per_player, opponent_name, status, venue:venues(name)',
+    )
+    .eq('id', eventId)
+    .maybeSingle();
+  if (!event || event.status === 'cancelled') {
+    await ctx.answerCallbackQuery({ text: 'Событие недоступно' });
+    return;
+  }
+
+  const { data: mem } = await sb
+    .from('team_memberships')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('team_id', event.team_id)
+    .maybeSingle();
+  if (!mem) {
+    await ctx.answerCallbackQuery({ text: 'Ты не в этой команде' });
+    return;
+  }
+
+  const { data: prev } = await sb
+    .from('event_attendances')
+    .select('vote')
+    .eq('event_id', event.id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  const prevVote = (prev?.vote === 'going' || prev?.vote === 'not_going'
+    ? prev.vote
+    : null) as BotEventVote;
+
+  let finalVote: BotEventVote;
+  if (prevVote === next) {
+    await sb
+      .from('event_attendances')
+      .delete()
+      .eq('event_id', event.id)
+      .eq('user_id', user.id);
+    finalVote = null;
+  } else {
+    await sb.from('event_attendances').upsert(
+      {
+        event_id: event.id,
+        user_id: user.id,
+        vote: next,
+        voted_at: new Date().toISOString(),
+      },
+      { onConflict: 'event_id,user_id' },
+    );
+    finalVote = next;
+  }
+
+  const venueRaw = Array.isArray(event.venue) ? event.venue[0] : event.venue;
+  const card = buildEventCard({
+    eventId: event.id,
+    type: asEventType(event.type),
+    title: event.title,
+    starts_at: event.starts_at,
+    ends_at: event.ends_at,
+    venue_name: venueRaw?.name ?? null,
+    cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
+    opponent_name: event.opponent_name ?? null,
+    my_vote: finalVote,
+  });
+
+  try {
+    await ctx.editMessageReplyMarkup({ reply_markup: card.keyboard });
+  } catch (err) {
+    console.warn('[bot] editMessageReplyMarkup failed:', err);
+  }
+
+  const toast =
+    finalVote === 'going'
+      ? 'Записано: иду'
+      : finalVote === 'not_going'
+        ? 'Записано: не иду'
+        : 'Голос снят';
+  await ctx.answerCallbackQuery({ text: toast });
+}
+
+async function sendUpcomingEvents(ctx: Context): Promise<void> {
+  if (!ctx.from) return;
+  const sb = supabaseServer();
+
+  const { data: user } = await sb
+    .from('users')
+    .upsert(
+      {
+        telegram_id: ctx.from.id,
+        username: ctx.from.username ?? null,
+        first_name: ctx.from.first_name ?? null,
+        last_name: ctx.from.last_name ?? null,
+      },
+      { onConflict: 'telegram_id' },
+    )
+    .select('id')
+    .single();
+  if (!user) return;
+
+  const { data: memberships } = await sb
+    .from('team_memberships')
+    .select('team_id')
+    .eq('user_id', user.id);
+  const teamIds = (memberships ?? []).map((m) => m.team_id);
+  if (teamIds.length === 0) {
+    await ctx.reply('Тебя пока нет в команде. Попроси организатора прислать приглашение.');
+    return;
+  }
+
+  const { data: events } = await sb
+    .from('events')
+    .select(
+      'id, team_id, type, title, starts_at, ends_at, cost_per_player, opponent_name, venue:venues(name)',
+    )
+    .in('team_id', teamIds)
+    .neq('status', 'cancelled')
+    .gte('starts_at', new Date().toISOString())
+    .order('starts_at', { ascending: true })
+    .limit(5);
+  if (!events || events.length === 0) {
+    await ctx.reply('Ближайших событий нет.');
+    return;
+  }
+
+  const eventIds = events.map((e) => e.id);
+  const { data: votes } = await sb
+    .from('event_attendances')
+    .select('event_id, vote')
+    .eq('user_id', user.id)
+    .in('event_id', eventIds);
+  const voteMap = new Map<string, BotEventVote>(
+    (votes ?? []).map((v) => [
+      v.event_id,
+      (v.vote === 'going' || v.vote === 'not_going' ? v.vote : null) as BotEventVote,
+    ]),
+  );
+
+  for (const event of events) {
+    const venueRaw = Array.isArray(event.venue) ? event.venue[0] : event.venue;
+    const card = buildEventCard({
+      eventId: event.id,
+      type: asEventType(event.type),
+      title: event.title,
+      starts_at: event.starts_at,
+      ends_at: event.ends_at,
+      venue_name: venueRaw?.name ?? null,
+      cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
+      opponent_name: event.opponent_name ?? null,
+      my_vote: voteMap.get(event.id) ?? null,
+    });
+    try {
+      await ctx.reply(card.text, { reply_markup: card.keyboard });
+    } catch (err) {
+      console.error('[bot] /events reply failed:', err);
+    }
+  }
 }
 
 async function joinTeamByDeeplink(from: TelegramFrom, teamId: string): Promise<JoinResult> {

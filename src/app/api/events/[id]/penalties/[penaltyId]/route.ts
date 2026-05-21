@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireOrganizer } from '@/lib/auth';
+import { AuthError, requireUser, assertTeamMember } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType } from '@/lib/event-enum';
 import { isValidSideForEvent } from '@/lib/event-result';
@@ -20,7 +20,7 @@ const Body = z.object({
 
 export async function PATCH(req: Request, { params }: Params): Promise<Response> {
   try {
-    const ctx = await requireOrganizer(req);
+    const user = await requireUser(req);
     const { id, penaltyId } = await params;
     const json = await req.json().catch(() => null);
     const parsed = Body.safeParse(json);
@@ -35,9 +35,10 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       .select('id, team_id, type')
       .eq('id', id)
       .maybeSingle();
-    if (!ev || ev.team_id !== ctx.team_id) {
+    if (!ev) {
       return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
     }
+    await assertTeamMember(user.id, ev.team_id);
 
     const { data: pen } = await sb
       .from('event_penalties')
@@ -95,7 +96,7 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
 
 export async function DELETE(req: Request, { params }: Params): Promise<Response> {
   try {
-    const ctx = await requireOrganizer(req);
+    const user = await requireUser(req);
     const { id, penaltyId } = await params;
     const sb = supabaseServer();
 
@@ -104,9 +105,10 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
       .select('id, team_id')
       .eq('id', id)
       .maybeSingle();
-    if (!ev || ev.team_id !== ctx.team_id) {
+    if (!ev) {
       return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
     }
+    await assertTeamMember(user.id, ev.team_id);
 
     const { error } = await sb
       .from('event_penalties')

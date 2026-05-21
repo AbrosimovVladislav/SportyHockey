@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireOrganizer } from '@/lib/auth';
+import { AuthError, requireUser, assertTeamMember } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType } from '@/lib/event-enum';
 import { isValidSideForEvent } from '@/lib/event-result';
@@ -27,7 +27,7 @@ const Body = z.object({
 
 export async function POST(req: Request, { params }: Params): Promise<Response> {
   try {
-    const ctx = await requireOrganizer(req);
+    const user = await requireUser(req);
     const { id } = await params;
     const json = await req.json().catch(() => null);
     const parsed = Body.safeParse(json);
@@ -45,9 +45,10 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
     if (evErr) {
       return NextResponse.json({ error: evErr.message }, { status: 500 });
     }
-    if (!ev || ev.team_id !== ctx.team_id) {
+    if (!ev) {
       return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
     }
+    await assertTeamMember(user.id, ev.team_id);
 
     const isGame = asEventType(ev.type) === 'game';
     if (!isValidSideForEvent(d.team_side, isGame)) {
@@ -97,7 +98,7 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
         team_side: d.team_side,
         scorer_user_id: scorerId,
         time_seconds: d.time_seconds ?? null,
-        created_by: ctx.id,
+        created_by: user.id,
       })
       .select('id')
       .single();
