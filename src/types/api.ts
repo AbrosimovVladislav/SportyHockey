@@ -234,6 +234,7 @@ export type GoalParticipant = {
   username: string | null;
   photo_url: string | null;
   jersey_number: number | null;
+  position: PlayerPosition | null;
 };
 
 export type GoalDto = {

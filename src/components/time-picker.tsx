@@ -16,16 +16,13 @@ const SECONDS_PER_MINUTE = 60;
 
 // Простой пикер MM:SS на двух native <select>.
 // На iOS/Android отрисовывается как wheel-picker, на десктопе — обычный dropdown.
-export function TimePicker({ value, onChange, maxMinutes = 60, clearLabel }: Props) {
+export function TimePicker({ value, onChange, maxMinutes = 59, clearLabel }: Props) {
   const isSet = value != null;
   const m = isSet ? Math.min(Math.floor(value / SECONDS_PER_MINUTE), maxMinutes) : 0;
   const s = isSet ? value % SECONDS_PER_MINUTE : 0;
-  const isMaxMinute = m === maxMinutes;
-  const maxSecondsForMinute = isMaxMinute ? 0 : 59;
 
   const setM = (nextM: number) => {
-    const clampedS = nextM === maxMinutes ? 0 : s;
-    onChange(nextM * SECONDS_PER_MINUTE + clampedS);
+    onChange(nextM * SECONDS_PER_MINUTE + s);
   };
   const setS = (nextS: number) => {
     onChange(m * SECONDS_PER_MINUTE + nextS);
@@ -93,9 +90,8 @@ export function TimePicker({ value, onChange, maxMinutes = 60, clearLabel }: Pro
         onChange={(e) => setS(Number(e.currentTarget.value))}
         style={selectStyle}
         aria-label="seconds"
-        disabled={isMaxMinute}
       >
-        {Array.from({ length: maxSecondsForMinute + 1 }, (_, i) => (
+        {Array.from({ length: 60 }, (_, i) => (
           <option key={i} value={i}>
             {i.toString().padStart(2, '0')}
           </option>

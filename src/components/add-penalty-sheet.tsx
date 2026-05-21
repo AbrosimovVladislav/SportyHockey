@@ -10,8 +10,7 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { formatName } from '@/lib/format-name';
-import type { CreatePenaltyRequest, PenaltyDto, ResultSide } from '@/types/api';
-import type { EligiblePlayer } from './add-goal-sheet';
+import type { CreatePenaltyRequest, GoalParticipant, PenaltyDto, ResultSide } from '@/types/api';
 
 type Props = {
   open: boolean;
@@ -21,7 +20,7 @@ type Props = {
   sideBLabel: string;
   sideAValue: ResultSide;
   sideBValue: ResultSide;
-  players: EligiblePlayer[];
+  players: GoalParticipant[];
   initial: PenaltyDto | null;
   onSubmit: (body: CreatePenaltyRequest) => void;
   onDelete?: () => void;
@@ -29,15 +28,6 @@ type Props = {
   isDeleting?: boolean;
   error: string | null;
 };
-
-function playersForSide(all: EligiblePlayer[], side: ResultSide | null): EligiblePlayer[] {
-  if (!side) return [];
-  if (side === 'opponent') return [];
-  if (side === 'light' || side === 'dark') {
-    return all.filter((p) => p.team_side === side);
-  }
-  return all;
-}
 
 const MINUTES_OPTIONS = [2, 5, 10] as const;
 
@@ -82,15 +72,6 @@ export function AddPenaltySheet({
   }, [open, initial]);
 
   const ourSide = !isGame || side !== 'opponent';
-  const eligible = playersForSide(players, side);
-
-  const changeSide = (next: ResultSide) => {
-    if (side === next) return;
-    const nextEligible = playersForSide(players, next);
-    const ids = new Set(nextEligible.map((p) => p.user_id));
-    if (playerId && !ids.has(playerId)) setPlayerId(null);
-    setSide(next);
-  };
 
   const handleSubmit = () => {
     if (!side) return;
@@ -190,7 +171,7 @@ export function AddPenaltySheet({
             type="button"
             className="pressable"
             style={sideBtn(side === sideAValue)}
-            onClick={() => changeSide(sideAValue)}
+            onClick={() => setSide(sideAValue)}
           >
             {sideALabel}
           </button>
@@ -198,7 +179,7 @@ export function AddPenaltySheet({
             type="button"
             className="pressable"
             style={sideBtn(side === sideBValue)}
-            onClick={() => changeSide(sideBValue)}
+            onClick={() => setSide(sideBValue)}
           >
             {sideBLabel}
           </button>
@@ -308,7 +289,7 @@ export function AddPenaltySheet({
       <PlayerPicker
         open={pickerOpen}
         title={t('result.penalty.player')}
-        players={eligible}
+        players={players}
         currentId={playerId}
         onPick={(uid) => {
           setPlayerId(uid);
@@ -323,7 +304,7 @@ export function AddPenaltySheet({
 type PickerProps = {
   open: boolean;
   title: string;
-  players: EligiblePlayer[];
+  players: GoalParticipant[];
   currentId: string | null;
   onPick: (uid: string | null) => void;
   onClose: () => void;

@@ -4,54 +4,60 @@ import type { CSSProperties } from 'react';
 import { Avatar } from './avatar';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
+import { radius } from '@/theme/radius';
 import { formatName } from '@/lib/format-name';
 import type { PlayerPosition, PlayerResultStats } from '@/types/api';
 
 type Props = {
   stat: PlayerResultStats;
+  title: string;
   labels: {
     goals: string;
     assists: string;
     points: string;
-    pim: string;
     position: Record<PlayerPosition, string>;
   };
 };
 
-export function PlayerStatsRow({ stat, labels }: Props) {
+export function MvpCard({ stat, title, labels }: Props) {
   const wrap: CSSProperties = {
+    background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+    color: colors.textInverse,
+    borderRadius: radius.lg,
+    padding: spacing['16'],
     display: 'flex',
     alignItems: 'center',
     gap: spacing['12'],
-    padding: `${spacing['10']}px ${spacing['12']}px`,
+    boxShadow: '0 4px 14px rgba(26,92,53,0.25)',
   };
 
-  const body: CSSProperties = {
-    flex: 1,
-    minWidth: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
+  const titleStyle: CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    opacity: 0.85,
+    marginBottom: 4,
   };
 
   const name: CSSProperties = {
-    fontSize: 14,
-    fontWeight: 700,
-    color: colors.text,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    fontSize: 18,
+    fontWeight: 800,
+    color: colors.textInverse,
+    lineHeight: 1.15,
   };
 
-  const jerseyLine: CSSProperties = {
+  const sub: CSSProperties = {
     fontSize: 12,
     fontWeight: 500,
-    color: colors.textSecondary,
+    opacity: 0.85,
+    marginTop: 2,
   };
 
   const statsGrid: CSSProperties = {
     display: 'flex',
     gap: spacing['12'],
+    flexShrink: 0,
     alignItems: 'center',
   };
 
@@ -63,34 +69,34 @@ export function PlayerStatsRow({ stat, labels }: Props) {
   };
 
   const num: CSSProperties = {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: 800,
-    color: colors.text,
+    color: colors.textInverse,
     fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1.2,
+    lineHeight: 1.1,
   };
 
   const lbl: CSSProperties = {
     fontSize: 10,
     fontWeight: 600,
-    color: colors.textTertiary,
+    opacity: 0.85,
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
   };
 
-  const playerName = formatName(stat.user);
   const subParts: string[] = [];
   if (stat.user.jersey_number != null) subParts.push(`#${stat.user.jersey_number}`);
   else if (stat.user.username) subParts.push(`@${stat.user.username}`);
   if (stat.user.position) subParts.push(labels.position[stat.user.position]);
-  const jerseySub = subParts.join(' · ');
+  const subtitle = subParts.join(' · ');
 
   return (
     <div style={wrap}>
-      <Avatar src={stat.user.photo_url} name={playerName} size={36} />
-      <div style={body}>
-        <span style={name}>{playerName}</span>
-        {jerseySub ? <span style={jerseyLine}>{jerseySub}</span> : null}
+      <Avatar src={stat.user.photo_url} name={formatName(stat.user)} size={52} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={titleStyle}>{title}</div>
+        <div style={name}>{formatName(stat.user)}</div>
+        {subtitle ? <div style={sub}>{subtitle}</div> : null}
       </div>
       <div style={statsGrid}>
         <div style={col}>
@@ -102,14 +108,8 @@ export function PlayerStatsRow({ stat, labels }: Props) {
           <span style={lbl}>{labels.assists}</span>
         </div>
         <div style={col}>
-          <span style={{ ...num, color: colors.primary }}>{stat.points}</span>
+          <span style={num}>{stat.points}</span>
           <span style={lbl}>{labels.points}</span>
-        </div>
-        <div style={col}>
-          <span style={{ ...num, color: stat.penalty_minutes > 0 ? colors.warning : colors.textTertiary }}>
-            {stat.penalty_minutes}
-          </span>
-          <span style={lbl}>{labels.pim}</span>
         </div>
       </div>
     </div>

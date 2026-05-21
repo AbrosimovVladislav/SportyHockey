@@ -12,9 +12,15 @@ import type {
   GoalDto,
   GoalParticipant,
   PenaltyDto,
+  PlayerPosition,
   PlayerResultStats,
   ResultSide,
 } from '@/types/api';
+
+function asPosition(value: string | null | undefined): PlayerPosition | null {
+  if (value === 'forward' || value === 'defender' || value === 'goalie') return value;
+  return null;
+}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -55,7 +61,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
 
     const { data: members, error: memErr } = await sb
       .from('team_memberships')
-      .select('user_id, jersey_number, users(first_name, last_name, username, photo_url)')
+      .select('user_id, jersey_number, position, users(first_name, last_name, username, photo_url)')
       .eq('team_id', event.team_id);
     if (memErr) {
       return NextResponse.json({ error: memErr.message }, { status: 500 });
@@ -70,6 +76,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
         username: u?.username ?? null,
         photo_url: u?.photo_url ?? null,
         jersey_number: m.jersey_number ?? null,
+        position: asPosition(m.position),
       });
     }
 

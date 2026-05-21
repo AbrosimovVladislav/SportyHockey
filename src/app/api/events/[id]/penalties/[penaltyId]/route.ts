@@ -3,11 +3,7 @@ import { z } from 'zod';
 import { AuthError, requireOrganizer } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType } from '@/lib/event-enum';
-import {
-  isPlayerEligibleForSide,
-  isValidSideForEvent,
-  loadLineupMap,
-} from '@/lib/event-result';
+import { isValidSideForEvent } from '@/lib/event-result';
 import type { DeletePenaltyResponse, UpdatePenaltyResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
@@ -65,12 +61,14 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     }
 
     if (allowsPlayer && d.player_user_id) {
-      const lineup = await loadLineupMap(sb, ev.id);
-      if (!isPlayerEligibleForSide(d.player_user_id, d.team_side, isGame, lineup)) {
-        return NextResponse.json(
-          { error: 'Игрок не в составе на эту сторону' },
-          { status: 400 },
-        );
+      const { data: mem } = await sb
+        .from('team_memberships')
+        .select('id')
+        .eq('user_id', d.player_user_id)
+        .eq('team_id', ev.team_id)
+        .maybeSingle();
+      if (!mem) {
+        return NextResponse.json({ error: 'Игрок не в команде' }, { status: 400 });
       }
     }
 

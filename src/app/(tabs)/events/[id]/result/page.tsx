@@ -3,6 +3,14 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LightHeader } from '@/components/light-header';
+import { Button } from '@/components/button';
+import { MatchResultChip, outcomeForScore } from '@/components/match-result-chip';
+import { MvpCard } from '@/components/mvp-card';
+import { GoalsTimeline } from '@/components/goals-timeline';
+import { SideComparison } from '@/components/side-comparison';
+import { IconShare } from '@/components/icons';
+import { formatEventDateRange } from '@/lib/event-format';
+import { buildShareText, shareText } from '@/lib/share-result';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { ContentTabs } from '@/components/content-tabs';
 import { FAB } from '@/components/fab';
@@ -39,10 +47,9 @@ import type {
   CreateGoalRequest,
   CreatePenaltyRequest,
   GoalDto,
+  GoalParticipant,
   PenaltyDto,
-  TeamSide,
 } from '@/types/api';
-import type { EligiblePlayer } from '@/components/add-goal-sheet';
 
 type TabId = 'overview' | 'events';
 
@@ -64,6 +71,7 @@ export default function EventResultPage() {
   const delPenalty = useDeletePenalty(id);
 
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [isSharing, setIsSharing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [goalSheet, setGoalSheet] = useState<{ open: boolean; initial: GoalDto | null }>(
     { open: false, initial: null },
@@ -81,25 +89,30 @@ export default function EventResultPage() {
     );
   }, [ev.data, me.data]);
 
-  const players: EligiblePlayer[] = useMemo(() => {
+  const players: GoalParticipant[] = useMemo(() => {
     if (!ev.data) return [];
-    return ev.data.attendees
-      .filter((a) => a.team_side != null)
-      .map<EligiblePlayer>((a) => ({
-        user_id: a.user_id,
-        first_name: a.first_name,
-        last_name: a.last_name,
-        username: a.username,
-        photo_url: a.photo_url,
-        jersey_number: a.jersey_number,
-        team_side: a.team_side as TeamSide,
-      }));
+    return ev.data.attendees.map<GoalParticipant>((a) => ({
+      user_id: a.user_id,
+      first_name: a.first_name,
+      last_name: a.last_name,
+      username: a.username,
+      photo_url: a.photo_url,
+      jersey_number: a.jersey_number,
+      position: a.position,
+    }));
   }, [ev.data]);
 
   const onBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) router.back();
     else router.push(`/events/${id}`);
   };
+
+  const venueName = ev.data?.venue?.name ?? ev.data?.venue_text ?? '';
+  const subtitle = ev.data
+    ? [formatEventDateRange(ev.data.starts_at, ev.data.ends_at), venueName]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   const root: CSSProperties = {
     background: colors.bg,
@@ -115,7 +128,7 @@ export default function EventResultPage() {
   if (result.isLoading || ev.isLoading || !result.data || !ev.data) {
     return (
       <div style={root}>
-        <LightHeader title={t('result.title')} onBack={onBack} />
+        <LightHeader title={t('result.title')} subtitle={subtitle} onBack={onBack} />
         <div style={{ padding: `${spacing['24']}px ${spacing['16']}px` }}>
           <span style={{ ...typography.body, color: colors.textSecondary }}>
             {t('common.loading')}
@@ -127,7 +140,7 @@ export default function EventResultPage() {
   if (result.isError || ev.isError) {
     return (
       <div style={root}>
-        <LightHeader title={t('result.title')} onBack={onBack} />
+        <LightHeader title={t('result.title')} subtitle={subtitle} onBack={onBack} />
         <div style={{ padding: `${spacing['24']}px ${spacing['16']}px` }}>
           <span style={{ ...typography.body, color: colors.error }}>
             {t('eventDetail.errors.notFound')}
@@ -147,6 +160,33 @@ export default function EventResultPage() {
   // Нумерация голов остаётся стабильной (по исходному списку, отсортированному в API по created_at).
   const goalIndexById = new Map<string, number>();
   r.goals.forEach((g, idx) => goalIndexById.set(g.id, idx + 1));
+
+  const mvp = r.stats.find((s) => s.points > 0) ?? null;
+
+  const onShare = async () => {
+    setIsSharing(true);
+    const text = buildShareText(r, {
+      game: {
+        vs: ':',
+        outcome: {
+          win: t('result.outcome.win'),
+          draw: t('result.outcome.draw'),
+          loss: t('result.outcome.loss'),
+        },
+      },
+      training: { vs: ':' },
+      sectionGoals: t('result.share.goalsHeader'),
+      unknown: t('result.unknownPlayer'),
+      assistsPrefix: t('result.assistsPrefix'),
+    });
+    const outcome = await shareText(text, t('result.title'));
+    setIsSharing(false);
+    if (outcome === 'copied' && typeof window !== 'undefined') {
+      window.alert(t('result.share.copied'));
+    } else if (outcome === 'failed' && typeof window !== 'undefined') {
+      window.alert(t('result.share.failed'));
+    }
+  };
 
   type LogEntry =
     | { kind: 'goal'; created_at: string; goal: GoalDto }
@@ -269,6 +309,48 @@ export default function EventResultPage() {
 
         {activeTab === 'overview' ? (
           <>
+            {isGame ? (
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <MatchResultChip
+                  outcome={outcomeForScore(r.score.score_a, r.score.score_b)}
+                  labels={{
+                    win: t('result.outcome.win'),
+                    draw: t('result.outcome.draw'),
+                    loss: t('result.outcome.loss'),
+                  }}
+                />
+              </div>
+            ) : null}
+
+            {!isGame && (r.goals.length > 0 || r.penalties.length > 0) ? (
+              <SideComparison
+                goals={r.goals}
+                penalties={r.penalties}
+                sideAValue={r.score.side_a}
+                sideBValue={r.score.side_b}
+                sideALabel={sideALabel}
+                sideBLabel={sideBLabel}
+                labels={{ goals: t('result.compare.goals'), pim: t('result.compare.pim') }}
+              />
+            ) : null}
+
+            {mvp ? (
+              <MvpCard
+                stat={mvp}
+                title={t('result.mvp.title')}
+                labels={{
+                  goals: t('result.stats.goals'),
+                  assists: t('result.stats.assists'),
+                  points: t('result.stats.points'),
+                  position: {
+                    forward: t('result.position.forward'),
+                    defender: t('result.position.defender'),
+                    goalie: t('result.position.goalie'),
+                  },
+                }}
+              />
+            ) : null}
+
             {r.stats.length > 0 ? (
               <div>
                 <div style={sectionTitle}>{t('result.sections.stats')}</div>
@@ -287,18 +369,47 @@ export default function EventResultPage() {
                           assists: t('result.stats.assists'),
                           points: t('result.stats.points'),
                           pim: t('result.stats.pim'),
+                          position: {
+                            forward: t('result.position.forward'),
+                            defender: t('result.position.defender'),
+                            goalie: t('result.position.goalie'),
+                          },
                         }}
                       />
                     </div>
                   ))}
                 </div>
               </div>
-            ) : (
+            ) : null}
+
+            {r.goals.length > 0 ? (
+              <GoalsTimeline
+                goals={r.goals}
+                sideAValue={r.score.side_a}
+                title={t('result.timeline.title')}
+                noTimeLabel={t('result.timeline.noTime')}
+              />
+            ) : null}
+
+            {r.stats.length === 0 && r.goals.length === 0 && r.penalties.length === 0 ? (
               <EmptyState
                 title={t('result.empty.overview.title')}
                 description={t('result.empty.overview.description')}
               />
-            )}
+            ) : null}
+
+            {r.goals.length > 0 || r.penalties.length > 0 ? (
+              <Button
+                variant="secondary"
+                size="lg"
+                fullWidth
+                onClick={onShare}
+                disabled={isSharing}
+              >
+                <IconShare size={18} color={colors.text} />
+                {isSharing ? t('result.share.sharing') : t('result.share.button')}
+              </Button>
+            ) : null}
           </>
         ) : (
           <>

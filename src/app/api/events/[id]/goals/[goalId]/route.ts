@@ -3,11 +3,7 @@ import { z } from 'zod';
 import { AuthError, requireOrganizer } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType } from '@/lib/event-enum';
-import {
-  isPlayerEligibleForSide,
-  isValidSideForEvent,
-  loadLineupMap,
-} from '@/lib/event-result';
+import { isValidSideForEvent } from '@/lib/event-result';
 import type { DeleteGoalResponse, UpdateGoalResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
@@ -67,26 +63,27 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       }
     }
 
-    const lineup = await loadLineupMap(sb, ev.id);
-    const checkEligible = (uid: string): string | null =>
-      isPlayerEligibleForSide(uid, d.team_side, isGame, lineup)
-        ? null
-        : 'Игрок не в составе на эту сторону';
+    const { data: memberRows } = await sb
+      .from('team_memberships')
+      .select('user_id')
+      .eq('team_id', ev.team_id);
+    const memberIds = new Set((memberRows ?? []).map((r) => r.user_id));
 
     const scorerId = d.scorer_user_id ?? null;
-    if (allowsPlayers && scorerId) {
-      const err = checkEligible(scorerId);
-      if (err) return NextResponse.json({ error: err }, { status: 400 });
+    if (allowsPlayers && scorerId && !memberIds.has(scorerId)) {
+      return NextResponse.json({ error: 'Автор не в команде' }, { status: 400 });
     }
     const assists: { user_id: string; order: 1 | 2 }[] = [];
     if (allowsPlayers && d.assist1_user_id) {
-      const err = checkEligible(d.assist1_user_id);
-      if (err) return NextResponse.json({ error: err }, { status: 400 });
+      if (!memberIds.has(d.assist1_user_id)) {
+        return NextResponse.json({ error: 'Ассистент не в команде' }, { status: 400 });
+      }
       assists.push({ user_id: d.assist1_user_id, order: 1 });
     }
     if (allowsPlayers && d.assist2_user_id) {
-      const err = checkEligible(d.assist2_user_id);
-      if (err) return NextResponse.json({ error: err }, { status: 400 });
+      if (!memberIds.has(d.assist2_user_id)) {
+        return NextResponse.json({ error: 'Ассистент не в команде' }, { status: 400 });
+      }
       if (assists.some((a) => a.user_id === d.assist2_user_id)) {
         return NextResponse.json({ error: 'Ассистент уже указан' }, { status: 400 });
       }

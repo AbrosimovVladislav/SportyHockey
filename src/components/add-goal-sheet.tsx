@@ -15,10 +15,7 @@ import type {
   GoalDto,
   GoalParticipant,
   ResultSide,
-  TeamSide,
 } from '@/types/api';
-
-export type EligiblePlayer = GoalParticipant & { team_side: TeamSide };
 
 type Props = {
   open: boolean;
@@ -28,7 +25,7 @@ type Props = {
   sideBLabel: string;
   sideAValue: ResultSide;
   sideBValue: ResultSide;
-  players: EligiblePlayer[];
+  players: GoalParticipant[];
   initial: GoalDto | null;
   onSubmit: (body: CreateGoalRequest) => void;
   onDelete?: () => void;
@@ -36,16 +33,6 @@ type Props = {
   isDeleting?: boolean;
   error: string | null;
 };
-
-function playersForSide(all: EligiblePlayer[], side: ResultSide | null): EligiblePlayer[] {
-  if (!side) return [];
-  if (side === 'opponent') return [];
-  if (side === 'light' || side === 'dark') {
-    return all.filter((p) => p.team_side === side);
-  }
-  // 'own' (game): любой заявленный за нашу команду
-  return all;
-}
 
 type PickerStep = 'scorer' | 'assist1' | 'assist2' | null;
 
@@ -94,17 +81,6 @@ export function AddGoalSheet({
   }, [open, initial]);
 
   const ourSide = !isGame || side !== 'opponent';
-  const eligible = playersForSide(players, side);
-
-  const changeSide = (next: ResultSide) => {
-    if (side === next) return;
-    const nextEligible = playersForSide(players, next);
-    const ids = new Set(nextEligible.map((p) => p.user_id));
-    if (scorerId && !ids.has(scorerId)) setScorerId(null);
-    if (assist1Id && !ids.has(assist1Id)) setAssist1Id(null);
-    if (assist2Id && !ids.has(assist2Id)) setAssist2Id(null);
-    setSide(next);
-  };
 
   const handleSubmit = () => {
     if (!side) return;
@@ -195,7 +171,7 @@ export function AddGoalSheet({
             type="button"
             className="pressable"
             style={sideBtn(side === sideAValue)}
-            onClick={() => changeSide(sideAValue)}
+            onClick={() => setSide(sideAValue)}
           >
             {sideALabel}
           </button>
@@ -203,7 +179,7 @@ export function AddGoalSheet({
             type="button"
             className="pressable"
             style={sideBtn(side === sideBValue)}
-            onClick={() => changeSide(sideBValue)}
+            onClick={() => setSide(sideBValue)}
           >
             {sideBLabel}
           </button>
@@ -344,7 +320,7 @@ export function AddGoalSheet({
                 ? t('result.goal.assist2')
                 : ''
         }
-        players={eligible}
+        players={players}
         exclude={
           pickerOpen === 'scorer'
             ? excludeForScorer
@@ -376,7 +352,7 @@ export function AddGoalSheet({
 type PickerProps = {
   open: boolean;
   title: string;
-  players: EligiblePlayer[];
+  players: GoalParticipant[];
   exclude: Set<string>;
   currentId: string | null;
   onPick: (uid: string | null) => void;
