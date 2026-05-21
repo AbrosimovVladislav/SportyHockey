@@ -559,7 +559,7 @@ export default function EventDetailPage() {
           icon={<IconStats size={20} color={colors.iconFg} />}
           title={t('eventDetail.links.stats.title')}
           subtitle={t('eventDetail.links.stats.subtitle')}
-          onClick={() => alert(t('eventDetail.soon'))}
+          onClick={() => router.push(`/events/${id}/result`)}
         />
 
         {/* ПЛОЩАДКА */}

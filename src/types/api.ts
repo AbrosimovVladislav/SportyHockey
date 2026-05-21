@@ -225,6 +225,83 @@ export type EventsListResponse = {
   events: EventDto[];
 };
 
+export type ResultSide = 'own' | 'opponent' | 'light' | 'dark';
+
+export type GoalParticipant = {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  photo_url: string | null;
+  jersey_number: number | null;
+};
+
+export type GoalDto = {
+  id: string;
+  team_side: ResultSide;
+  scorer: GoalParticipant | null;
+  assists: GoalParticipant[];
+  time_seconds: number | null;
+  created_at: string;
+};
+
+export type PenaltyDto = {
+  id: string;
+  team_side: ResultSide;
+  player: GoalParticipant | null;
+  minutes: number;
+  time_seconds: number | null;
+  created_at: string;
+};
+
+export type PlayerResultStats = {
+  user: GoalParticipant;
+  goals: number;
+  assists: number;
+  points: number;
+};
+
+export type ResultScore = {
+  side_a: ResultSide;
+  side_b: ResultSide;
+  score_a: number;
+  score_b: number;
+};
+
+export type EventResultDto = {
+  event_id: string;
+  is_game: boolean;
+  own_team_name: string;
+  opponent_name: string | null;
+  score: ResultScore;
+  goals: GoalDto[];
+  penalties: PenaltyDto[];
+  stats: PlayerResultStats[];
+};
+
+export type CreateGoalRequest = {
+  team_side: ResultSide;
+  scorer_user_id?: string | null;
+  time_seconds?: number | null;
+  assist1_user_id?: string | null;
+  assist2_user_id?: string | null;
+};
+
+export type CreateGoalResponse = { id: string };
+
+export type DeleteGoalResponse = { ok: true };
+
+export type CreatePenaltyRequest = {
+  team_side: ResultSide;
+  player_user_id?: string | null;
+  minutes: number;
+  time_seconds?: number | null;
+};
+
+export type CreatePenaltyResponse = { id: string };
+
+export type DeletePenaltyResponse = { ok: true };
+
 export type CreateEventRequest = {
   type: EventType;
   starts_at: string;

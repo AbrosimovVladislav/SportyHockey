@@ -74,6 +74,94 @@ export type Database = {
           },
         ]
       }
+      event_goal_assists: {
+        Row: {
+          assist_order: number
+          goal_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assist_order: number
+          goal_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assist_order?: number
+          goal_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_goal_assists_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "event_goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_goal_assists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_goals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_id: string
+          id: string
+          scorer_user_id: string | null
+          team_side: string
+          time_seconds: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          id?: string
+          scorer_user_id?: string | null
+          team_side: string
+          time_seconds?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          id?: string
+          scorer_user_id?: string | null
+          team_side?: string
+          time_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_goals_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_goals_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_goals_scorer_user_id_fkey"
+            columns: ["scorer_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_lines: {
         Row: {
           event_id: string
@@ -143,6 +231,61 @@ export type Database = {
           {
             foreignKeyName: "event_lineups_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_penalties: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_id: string
+          id: string
+          minutes: number
+          player_user_id: string | null
+          team_side: string
+          time_seconds: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          id?: string
+          minutes: number
+          player_user_id?: string | null
+          team_side: string
+          time_seconds?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          id?: string
+          minutes?: number
+          player_user_id?: string | null
+          team_side?: string
+          time_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_penalties_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_penalties_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_penalties_player_user_id_fkey"
+            columns: ["player_user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
