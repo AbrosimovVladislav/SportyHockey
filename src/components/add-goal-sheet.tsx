@@ -3,15 +3,22 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { BottomSheet } from './bottom-sheet';
 import { Button } from './button';
-import { Input } from './input';
 import { Avatar } from './avatar';
+import { TimePicker } from './time-picker';
 import { useT } from '@/hooks/use-t';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { formatName } from '@/lib/format-name';
-import { parseMatchTime } from '@/lib/format-time';
-import type { CreateGoalRequest, GoalParticipant, ResultSide } from '@/types/api';
+import type {
+  CreateGoalRequest,
+  GoalDto,
+  GoalParticipant,
+  ResultSide,
+  TeamSide,
+} from '@/types/api';
+
+export type EligiblePlayer = GoalParticipant & { team_side: TeamSide };
 
 type Props = {
   open: boolean;
@@ -21,13 +28,26 @@ type Props = {
   sideBLabel: string;
   sideAValue: ResultSide;
   sideBValue: ResultSide;
-  players: GoalParticipant[];
+  players: EligiblePlayer[];
+  initial: GoalDto | null;
   onSubmit: (body: CreateGoalRequest) => void;
+  onDelete?: () => void;
   isPending: boolean;
+  isDeleting?: boolean;
   error: string | null;
 };
 
-type Step = 'scorer' | 'assist1' | 'assist2' | null;
+function playersForSide(all: EligiblePlayer[], side: ResultSide | null): EligiblePlayer[] {
+  if (!side) return [];
+  if (side === 'opponent') return [];
+  if (side === 'light' || side === 'dark') {
+    return all.filter((p) => p.team_side === side);
+  }
+  // 'own' (game): любой заявленный за нашу команду
+  return all;
+}
+
+type PickerStep = 'scorer' | 'assist1' | 'assist2' | null;
 
 export function AddGoalSheet({
   open,
@@ -38,44 +58,63 @@ export function AddGoalSheet({
   sideAValue,
   sideBValue,
   players,
+  initial,
   onSubmit,
+  onDelete,
   isPending,
+  isDeleting,
   error,
 }: Props) {
   const t = useT();
+  const isEdit = initial !== null;
+
   const [side, setSide] = useState<ResultSide | null>(null);
   const [scorerId, setScorerId] = useState<string | null>(null);
   const [assist1Id, setAssist1Id] = useState<string | null>(null);
   const [assist2Id, setAssist2Id] = useState<string | null>(null);
-  const [time, setTime] = useState('');
-  const [pickerOpen, setPickerOpen] = useState<Step>(null);
+  const [timeSeconds, setTimeSeconds] = useState<number | null>(null);
+  const [pickerOpen, setPickerOpen] = useState<PickerStep>(null);
 
   useEffect(() => {
-    if (!open) {
+    if (!open) return;
+    if (initial) {
+      setSide(initial.team_side);
+      setScorerId(initial.scorer?.user_id ?? null);
+      setAssist1Id(initial.assists[0]?.user_id ?? null);
+      setAssist2Id(initial.assists[1]?.user_id ?? null);
+      setTimeSeconds(initial.time_seconds);
+    } else {
       setSide(null);
       setScorerId(null);
       setAssist1Id(null);
       setAssist2Id(null);
-      setTime('');
-      setPickerOpen(null);
+      setTimeSeconds(null);
     }
-  }, [open]);
+    setPickerOpen(null);
+  }, [open, initial]);
 
   const ourSide = !isGame || side !== 'opponent';
-  const timeValid = time.trim() === '' || parseMatchTime(time) != null;
+  const eligible = playersForSide(players, side);
+
+  const changeSide = (next: ResultSide) => {
+    if (side === next) return;
+    const nextEligible = playersForSide(players, next);
+    const ids = new Set(nextEligible.map((p) => p.user_id));
+    if (scorerId && !ids.has(scorerId)) setScorerId(null);
+    if (assist1Id && !ids.has(assist1Id)) setAssist1Id(null);
+    if (assist2Id && !ids.has(assist2Id)) setAssist2Id(null);
+    setSide(next);
+  };
 
   const handleSubmit = () => {
     if (!side) return;
-    const parsedTime = time.trim() === '' ? null : parseMatchTime(time);
-    if (time.trim() !== '' && parsedTime == null) return;
-    const body: CreateGoalRequest = {
+    onSubmit({
       team_side: side,
       scorer_user_id: ourSide ? scorerId : null,
-      time_seconds: parsedTime,
+      time_seconds: timeSeconds,
       assist1_user_id: ourSide ? assist1Id : null,
       assist2_user_id: ourSide ? assist2Id : null,
-    };
-    onSubmit(body);
+    });
   };
 
   const label: CSSProperties = {
@@ -139,12 +178,16 @@ export function AddGoalSheet({
   const assist1 = findPlayer(assist1Id);
   const assist2 = findPlayer(assist2Id);
 
+  const excludeForScorer = new Set<string>([assist1Id, assist2Id].filter((x): x is string => !!x));
   const excludeForAssist1 = new Set<string>([scorerId, assist2Id].filter((x): x is string => !!x));
   const excludeForAssist2 = new Set<string>([scorerId, assist1Id].filter((x): x is string => !!x));
-  const excludeForScorer = new Set<string>([assist1Id, assist2Id].filter((x): x is string => !!x));
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={t('result.goal.title')}>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={isEdit ? t('result.goal.editTitle') : t('result.goal.title')}
+    >
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={label}>{t('result.goal.side')}</div>
         <div style={sideRow}>
@@ -152,7 +195,7 @@ export function AddGoalSheet({
             type="button"
             className="pressable"
             style={sideBtn(side === sideAValue)}
-            onClick={() => setSide(sideAValue)}
+            onClick={() => changeSide(sideAValue)}
           >
             {sideALabel}
           </button>
@@ -160,7 +203,7 @@ export function AddGoalSheet({
             type="button"
             className="pressable"
             style={sideBtn(side === sideBValue)}
-            onClick={() => setSide(sideBValue)}
+            onClick={() => changeSide(sideBValue)}
           >
             {sideBLabel}
           </button>
@@ -229,13 +272,10 @@ export function AddGoalSheet({
 
         <div style={fieldBlock}>
           <div style={label}>{t('result.goal.time')}</div>
-          <Input
-            inputMode="numeric"
-            placeholder={t('result.goal.time.placeholder')}
-            value={time}
-            onChange={(e) => setTime(e.currentTarget.value.slice(0, 7))}
-            invalid={!timeValid}
-            maxLength={7}
+          <TimePicker
+            value={timeSeconds}
+            onChange={setTimeSeconds}
+            clearLabel={t('result.time.clear')}
           />
         </div>
 
@@ -260,7 +300,7 @@ export function AddGoalSheet({
             size="lg"
             fullWidth
             onClick={onClose}
-            disabled={isPending}
+            disabled={isPending || isDeleting}
           >
             {t('result.actions.cancel')}
           </Button>
@@ -269,11 +309,28 @@ export function AddGoalSheet({
             size="lg"
             fullWidth
             onClick={handleSubmit}
-            disabled={!side || !timeValid || isPending}
+            disabled={!side || isPending || isDeleting}
           >
-            {isPending ? t('result.actions.saving') : t('result.actions.add')}
+            {isPending
+              ? t('result.actions.saving')
+              : isEdit
+                ? t('result.actions.save')
+                : t('result.actions.add')}
           </Button>
         </div>
+
+        {isEdit && onDelete ? (
+          <Button
+            variant="ghost"
+            size="md"
+            fullWidth
+            onClick={onDelete}
+            disabled={isPending || isDeleting}
+            style={{ color: colors.error, marginTop: spacing['8'] }}
+          >
+            {isDeleting ? t('result.actions.deleting') : t('result.actions.deleteGoal')}
+          </Button>
+        ) : null}
       </div>
 
       <PlayerPicker
@@ -287,7 +344,7 @@ export function AddGoalSheet({
                 ? t('result.goal.assist2')
                 : ''
         }
-        players={players}
+        players={eligible}
         exclude={
           pickerOpen === 'scorer'
             ? excludeForScorer
@@ -319,7 +376,7 @@ export function AddGoalSheet({
 type PickerProps = {
   open: boolean;
   title: string;
-  players: GoalParticipant[];
+  players: EligiblePlayer[];
   exclude: Set<string>;
   currentId: string | null;
   onPick: (uid: string | null) => void;
@@ -384,11 +441,21 @@ function PlayerPicker({ open, title, players, exclude, currentId, onPick, onClos
               onClick={() => onPick(p.user_id)}
             >
               <Avatar src={p.photo_url} name={formatName(p)} size={28} />
-              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {formatName(p)}
               </span>
               {p.jersey_number != null ? (
-                <span style={{ fontSize: 12, color: colors.textSecondary, fontWeight: 600 }}>#{p.jersey_number}</span>
+                <span style={{ fontSize: 12, color: colors.textSecondary, fontWeight: 600 }}>
+                  #{p.jersey_number}
+                </span>
               ) : null}
             </button>
           );

@@ -4,6 +4,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LightHeader } from '@/components/light-header';
 import { BottomSheet } from '@/components/bottom-sheet';
+import { ContentTabs } from '@/components/content-tabs';
 import { FAB } from '@/components/fab';
 import { EmptyState } from '@/components/empty-state';
 import { ScoreCard } from '@/components/score-card';
@@ -24,15 +25,26 @@ import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useEventResult } from '@/hooks/use-event-result';
 import { useAddGoal } from '@/hooks/use-add-goal';
+import { useUpdateGoal } from '@/hooks/use-update-goal';
 import { useDeleteGoal } from '@/hooks/use-delete-goal';
 import { useAddPenalty } from '@/hooks/use-add-penalty';
+import { useUpdatePenalty } from '@/hooks/use-update-penalty';
 import { useDeletePenalty } from '@/hooks/use-delete-penalty';
 import { ApiError } from '@/lib/api-client';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
-import type { GoalParticipant } from '@/types/api';
+import type {
+  CreateGoalRequest,
+  CreatePenaltyRequest,
+  GoalDto,
+  PenaltyDto,
+  TeamSide,
+} from '@/types/api';
+import type { EligiblePlayer } from '@/components/add-goal-sheet';
+
+type TabId = 'overview' | 'events';
 
 export default function EventResultPage() {
   const t = useT();
@@ -45,13 +57,20 @@ export default function EventResultPage() {
   const ev = useEvent(id);
   const result = useEventResult(id);
   const addGoal = useAddGoal(id);
+  const updGoal = useUpdateGoal(id);
   const delGoal = useDeleteGoal(id);
   const addPenalty = useAddPenalty(id);
+  const updPenalty = useUpdatePenalty(id);
   const delPenalty = useDeletePenalty(id);
 
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [goalSheetOpen, setGoalSheetOpen] = useState(false);
-  const [penaltySheetOpen, setPenaltySheetOpen] = useState(false);
+  const [goalSheet, setGoalSheet] = useState<{ open: boolean; initial: GoalDto | null }>(
+    { open: false, initial: null },
+  );
+  const [penaltySheet, setPenaltySheet] = useState<{ open: boolean; initial: PenaltyDto | null }>(
+    { open: false, initial: null },
+  );
   const [goalError, setGoalError] = useState<string | null>(null);
   const [penaltyError, setPenaltyError] = useState<string | null>(null);
 
@@ -62,16 +81,19 @@ export default function EventResultPage() {
     );
   }, [ev.data, me.data]);
 
-  const players: GoalParticipant[] = useMemo(() => {
+  const players: EligiblePlayer[] = useMemo(() => {
     if (!ev.data) return [];
-    return ev.data.attendees.map((a) => ({
-      user_id: a.user_id,
-      first_name: a.first_name,
-      last_name: a.last_name,
-      username: a.username,
-      photo_url: a.photo_url,
-      jersey_number: a.jersey_number,
-    }));
+    return ev.data.attendees
+      .filter((a) => a.team_side != null)
+      .map<EligiblePlayer>((a) => ({
+        user_id: a.user_id,
+        first_name: a.first_name,
+        last_name: a.last_name,
+        username: a.username,
+        photo_url: a.photo_url,
+        jersey_number: a.jersey_number,
+        team_side: a.team_side as TeamSide,
+      }));
   }, [ev.data]);
 
   const onBack = () => {
@@ -84,7 +106,7 @@ export default function EventResultPage() {
     minHeight: '100dvh',
   };
   const content: CSSProperties = {
-    padding: `${spacing['8']}px ${spacing['16']}px ${BOTTOM_NAV_HEIGHT + spacing['48']}px`,
+    padding: `${spacing['12']}px ${spacing['16']}px ${BOTTOM_NAV_HEIGHT + spacing['48']}px`,
     display: 'flex',
     flexDirection: 'column',
     gap: spacing['12'],
@@ -122,30 +144,81 @@ export default function EventResultPage() {
     ? r.opponent_name || t('result.sides.opponent')
     : t('result.sides.dark');
 
-  const onSubmitGoal = (body: Parameters<typeof addGoal.mutate>[0]) => {
+  // Нумерация голов остаётся стабильной (по исходному списку, отсортированному в API по created_at).
+  const goalIndexById = new Map<string, number>();
+  r.goals.forEach((g, idx) => goalIndexById.set(g.id, idx + 1));
+
+  type LogEntry =
+    | { kind: 'goal'; created_at: string; goal: GoalDto }
+    | { kind: 'penalty'; created_at: string; penalty: PenaltyDto };
+  const log: LogEntry[] = [
+    ...r.goals.map((g) => ({ kind: 'goal' as const, created_at: g.created_at, goal: g })),
+    ...r.penalties.map((p) => ({ kind: 'penalty' as const, created_at: p.created_at, penalty: p })),
+  ].sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  const onSubmitGoal = (body: CreateGoalRequest) => {
     setGoalError(null);
-    addGoal.mutate(body, {
-      onSuccess: () => setGoalSheetOpen(false),
+    if (goalSheet.initial) {
+      const goalId = goalSheet.initial.id;
+      updGoal.mutate(
+        { goalId, body },
+        {
+          onSuccess: () => setGoalSheet({ open: false, initial: null }),
+          onError: (e) =>
+            setGoalError(e instanceof ApiError ? e.message : t('common.error')),
+        },
+      );
+    } else {
+      addGoal.mutate(body, {
+        onSuccess: () => setGoalSheet({ open: false, initial: null }),
+        onError: (e) =>
+          setGoalError(e instanceof ApiError ? e.message : t('common.error')),
+      });
+    }
+  };
+
+  const onSubmitPenalty = (body: CreatePenaltyRequest) => {
+    setPenaltyError(null);
+    if (penaltySheet.initial) {
+      const penaltyId = penaltySheet.initial.id;
+      updPenalty.mutate(
+        { penaltyId, body },
+        {
+          onSuccess: () => setPenaltySheet({ open: false, initial: null }),
+          onError: (e) =>
+            setPenaltyError(e instanceof ApiError ? e.message : t('common.error')),
+        },
+      );
+    } else {
+      addPenalty.mutate(body, {
+        onSuccess: () => setPenaltySheet({ open: false, initial: null }),
+        onError: (e) =>
+          setPenaltyError(e instanceof ApiError ? e.message : t('common.error')),
+      });
+    }
+  };
+
+  const handleDeleteGoal = () => {
+    const goalId = goalSheet.initial?.id;
+    if (!goalId) return;
+    if (typeof window !== 'undefined' && !window.confirm(t('result.delete.goal.confirm'))) return;
+    setGoalError(null);
+    delGoal.mutate(goalId, {
+      onSuccess: () => setGoalSheet({ open: false, initial: null }),
       onError: (e) =>
         setGoalError(e instanceof ApiError ? e.message : t('common.error')),
     });
   };
-  const onSubmitPenalty = (body: Parameters<typeof addPenalty.mutate>[0]) => {
+  const handleDeletePenalty = () => {
+    const penaltyId = penaltySheet.initial?.id;
+    if (!penaltyId) return;
+    if (typeof window !== 'undefined' && !window.confirm(t('result.delete.penalty.confirm'))) return;
     setPenaltyError(null);
-    addPenalty.mutate(body, {
-      onSuccess: () => setPenaltySheetOpen(false),
+    delPenalty.mutate(penaltyId, {
+      onSuccess: () => setPenaltySheet({ open: false, initial: null }),
       onError: (e) =>
         setPenaltyError(e instanceof ApiError ? e.message : t('common.error')),
     });
-  };
-
-  const handleDeleteGoal = (goalId: string) => {
-    if (typeof window !== 'undefined' && !window.confirm(t('result.delete.goal.confirm'))) return;
-    delGoal.mutate(goalId);
-  };
-  const handleDeletePenalty = (penaltyId: string) => {
-    if (typeof window !== 'undefined' && !window.confirm(t('result.delete.penalty.confirm'))) return;
-    delPenalty.mutate(penaltyId);
   };
 
   const sectionTitle: CSSProperties = {
@@ -162,11 +235,29 @@ export default function EventResultPage() {
     boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
   };
 
-  const isEmpty = r.goals.length === 0 && r.penalties.length === 0;
+  const openGoalEdit = (goal: GoalDto) => {
+    if (!isOrganizer) return;
+    setGoalError(null);
+    setGoalSheet({ open: true, initial: goal });
+  };
+  const openPenaltyEdit = (penalty: PenaltyDto) => {
+    if (!isOrganizer) return;
+    setPenaltyError(null);
+    setPenaltySheet({ open: true, initial: penalty });
+  };
 
   return (
     <div style={root}>
       <LightHeader title={t('result.title')} onBack={onBack} />
+
+      <ContentTabs
+        tabs={[
+          { id: 'overview', label: t('result.tabs.overview') },
+          { id: 'events', label: t('result.tabs.events') },
+        ]}
+        activeId={activeTab}
+        onChange={(id) => setActiveTab(id as TabId)}
+      />
 
       <div style={content}>
         <ScoreCard
@@ -176,78 +267,88 @@ export default function EventResultPage() {
           scoreB={r.score.score_b}
         />
 
-        {r.stats.length > 0 ? (
-          <Section title={t('result.sections.stats')}>
-            <div style={sectionCard}>
-              {r.stats.map((s, idx) => (
-                <div
-                  key={s.user.user_id}
-                  style={{
-                    borderTop: idx === 0 ? 'none' : `1px solid ${colors.divider}`,
-                  }}
-                >
-                  <PlayerStatsRow
-                    stat={s}
-                    labels={{
-                      goals: t('result.stats.goals'),
-                      assists: t('result.stats.assists'),
-                      points: t('result.stats.points'),
-                    }}
-                  />
+        {activeTab === 'overview' ? (
+          <>
+            {r.stats.length > 0 ? (
+              <div>
+                <div style={sectionTitle}>{t('result.sections.stats')}</div>
+                <div style={sectionCard}>
+                  {r.stats.map((s, idx) => (
+                    <div
+                      key={s.user.user_id}
+                      style={{
+                        borderTop: idx === 0 ? 'none' : `1px solid ${colors.divider}`,
+                      }}
+                    >
+                      <PlayerStatsRow
+                        stat={s}
+                        labels={{
+                          goals: t('result.stats.goals'),
+                          assists: t('result.stats.assists'),
+                          points: t('result.stats.points'),
+                          pim: t('result.stats.pim'),
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </Section>
-        ) : null}
-
-        {r.goals.length > 0 ? (
-          <Section title={t('result.sections.goals')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
-              {r.goals.map((g, idx) => (
-                <GoalRow
-                  key={g.id}
-                  goal={g}
-                  index={idx + 1}
-                  sideALabel={sideALabel}
-                  sideBLabel={sideBLabel}
-                  sideAValue={r.score.side_a}
-                  unknownLabel={t('result.unknownPlayer')}
-                  assistsPrefix={t('result.assistsPrefix')}
-                  onDelete={isOrganizer ? () => handleDeleteGoal(g.id) : undefined}
-                />
-              ))}
-            </div>
-          </Section>
-        ) : null}
-
-        {r.penalties.length > 0 ? (
-          <Section title={t('result.sections.penalties')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
-              {r.penalties.map((p) => (
-                <PenaltyRow
-                  key={p.id}
-                  penalty={p}
-                  sideALabel={sideALabel}
-                  sideBLabel={sideBLabel}
-                  sideAValue={r.score.side_a}
-                  unknownLabel={t('result.unknownPlayer')}
-                  minutesSuffix={t('result.penalty.minutesSuffix')}
-                  onDelete={isOrganizer ? () => handleDeletePenalty(p.id) : undefined}
-                />
-              ))}
-            </div>
-          </Section>
-        ) : null}
-
-        {isEmpty ? (
-          <EmptyState
-            title={t('result.empty.title')}
-            description={isOrganizer ? t('result.empty.descriptionOrganizer') : t('result.empty.description')}
-          />
-        ) : null}
+              </div>
+            ) : (
+              <EmptyState
+                title={t('result.empty.overview.title')}
+                description={t('result.empty.overview.description')}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            {log.length > 0 ? (
+              <div>
+                <div style={sectionTitle}>{t('result.sections.log')}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
+                  {log.map((entry) =>
+                    entry.kind === 'goal' ? (
+                      <GoalRow
+                        key={`g-${entry.goal.id}`}
+                        goal={entry.goal}
+                        index={goalIndexById.get(entry.goal.id) ?? 0}
+                        sideALabel={sideALabel}
+                        sideBLabel={sideBLabel}
+                        sideAValue={r.score.side_a}
+                        unknownLabel={t('result.unknownPlayer')}
+                        assistsPrefix={t('result.assistsPrefix')}
+                        onClick={isOrganizer ? () => openGoalEdit(entry.goal) : undefined}
+                      />
+                    ) : (
+                      <PenaltyRow
+                        key={`p-${entry.penalty.id}`}
+                        penalty={entry.penalty}
+                        sideALabel={sideALabel}
+                        sideBLabel={sideBLabel}
+                        sideAValue={r.score.side_a}
+                        unknownLabel={t('result.unknownPlayer')}
+                        minutesSuffix={t('result.penalty.minutesSuffix')}
+                        onClick={isOrganizer ? () => openPenaltyEdit(entry.penalty) : undefined}
+                      />
+                    ),
+                  )}
+                </div>
+              </div>
+            ) : (
+              <EmptyState
+                title={t('result.empty.events.title')}
+                description={
+                  isOrganizer
+                    ? t('result.empty.events.descriptionOrganizer')
+                    : t('result.empty.events.description')
+                }
+              />
+            )}
+          </>
+        )}
       </div>
 
-      {isOrganizer ? (
+      {isOrganizer && activeTab === 'events' ? (
         <FAB ariaLabel={t('result.add')} variant="primary" onClick={() => setPickerOpen(true)}>
           <IconPlus size={22} color={colors.textInverse} />
         </FAB>
@@ -264,7 +365,8 @@ export default function EventResultPage() {
             label={t('result.add.goal')}
             onClick={() => {
               setPickerOpen(false);
-              setGoalSheetOpen(true);
+              setGoalError(null);
+              setGoalSheet({ open: true, initial: null });
             }}
           />
           <PickItem
@@ -272,7 +374,8 @@ export default function EventResultPage() {
             label={t('result.add.penalty')}
             onClick={() => {
               setPickerOpen(false);
-              setPenaltySheetOpen(true);
+              setPenaltyError(null);
+              setPenaltySheet({ open: true, initial: null });
             }}
           />
         </BottomSheet>
@@ -280,9 +383,10 @@ export default function EventResultPage() {
 
       {isOrganizer ? (
         <AddGoalSheet
-          open={goalSheetOpen}
+          open={goalSheet.open}
+          initial={goalSheet.initial}
           onClose={() => {
-            setGoalSheetOpen(false);
+            setGoalSheet({ open: false, initial: null });
             setGoalError(null);
           }}
           isGame={isGame}
@@ -292,16 +396,19 @@ export default function EventResultPage() {
           sideBValue={r.score.side_b}
           players={players}
           onSubmit={onSubmitGoal}
-          isPending={addGoal.isPending}
+          onDelete={handleDeleteGoal}
+          isPending={addGoal.isPending || updGoal.isPending}
+          isDeleting={delGoal.isPending}
           error={goalError}
         />
       ) : null}
 
       {isOrganizer ? (
         <AddPenaltySheet
-          open={penaltySheetOpen}
+          open={penaltySheet.open}
+          initial={penaltySheet.initial}
           onClose={() => {
-            setPenaltySheetOpen(false);
+            setPenaltySheet({ open: false, initial: null });
             setPenaltyError(null);
           }}
           isGame={isGame}
@@ -311,21 +418,14 @@ export default function EventResultPage() {
           sideBValue={r.score.side_b}
           players={players}
           onSubmit={onSubmitPenalty}
-          isPending={addPenalty.isPending}
+          onDelete={handleDeletePenalty}
+          isPending={addPenalty.isPending || updPenalty.isPending}
+          isDeleting={delPenalty.isPending}
           error={penaltyError}
         />
       ) : null}
     </div>
   );
-
-  function Section({ title, children }: { title: string; children: ReactNode }) {
-    return (
-      <div>
-        <div style={sectionTitle}>{title}</div>
-        {children}
-      </div>
-    );
-  }
 }
 
 function PickItem({

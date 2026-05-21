@@ -9,7 +9,7 @@ import type { PlayerResultStats } from '@/types/api';
 
 type Props = {
   stat: PlayerResultStats;
-  labels: { goals: string; assists: string; points: string };
+  labels: { goals: string; assists: string; points: string; pim: string };
 };
 
 export function PlayerStatsRow({ stat, labels }: Props) {
@@ -45,7 +45,7 @@ export function PlayerStatsRow({ stat, labels }: Props) {
 
   const statsGrid: CSSProperties = {
     display: 'flex',
-    gap: spacing['16'],
+    gap: spacing['12'],
     alignItems: 'center',
   };
 
@@ -53,7 +53,7 @@ export function PlayerStatsRow({ stat, labels }: Props) {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    minWidth: 32,
+    minWidth: 28,
   };
 
   const num: CSSProperties = {
@@ -95,6 +95,12 @@ export function PlayerStatsRow({ stat, labels }: Props) {
         <div style={col}>
           <span style={{ ...num, color: colors.primary }}>{stat.points}</span>
           <span style={lbl}>{labels.points}</span>
+        </div>
+        <div style={col}>
+          <span style={{ ...num, color: stat.penalty_minutes > 0 ? colors.warning : colors.textTertiary }}>
+            {stat.penalty_minutes}
+          </span>
+          <span style={lbl}>{labels.pim}</span>
         </div>
       </div>
     </div>

@@ -113,9 +113,9 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     let scoreB = 0;
     const { side_a, side_b } = sidesForEventType(isGame);
 
-    const playerStats = new Map<string, { goals: number; assists: number }>();
+    const playerStats = new Map<string, { goals: number; assists: number; pim: number }>();
     const ensure = (uid: string) => {
-      if (!playerStats.has(uid)) playerStats.set(uid, { goals: 0, assists: 0 });
+      if (!playerStats.has(uid)) playerStats.set(uid, { goals: 0, assists: 0, pim: 0 });
       return playerStats.get(uid)!;
     };
 
@@ -169,6 +169,13 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
         time_seconds: p.time_seconds ?? null,
         created_at: p.created_at,
       });
+      if (
+        isOwnSideForStats(side, isGame) &&
+        p.player_user_id &&
+        participants.has(p.player_user_id)
+      ) {
+        ensure(p.player_user_id).pim += p.minutes;
+      }
     }
 
     const stats: PlayerResultStats[] = [];
@@ -176,12 +183,19 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       const user = participants.get(uid);
       if (!user) continue;
       const points = s.goals + s.assists;
-      if (points === 0) continue;
-      stats.push({ user, goals: s.goals, assists: s.assists, points });
+      if (points === 0 && s.pim === 0) continue;
+      stats.push({
+        user,
+        goals: s.goals,
+        assists: s.assists,
+        points,
+        penalty_minutes: s.pim,
+      });
     }
     stats.sort((a, b) => {
       if (a.points !== b.points) return b.points - a.points;
       if (a.goals !== b.goals) return b.goals - a.goals;
+      if (a.penalty_minutes !== b.penalty_minutes) return b.penalty_minutes - a.penalty_minutes;
       const an = `${a.user.first_name ?? ''} ${a.user.last_name ?? ''}`.trim();
       const bn = `${b.user.first_name ?? ''} ${b.user.last_name ?? ''}`.trim();
       return an.localeCompare(bn, 'ru');

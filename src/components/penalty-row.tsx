@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { IconTrash, IconWhistle } from './icons';
+import { IconChevronRight, IconWhistle } from './icons';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
@@ -16,7 +16,7 @@ type Props = {
   sideAValue: PenaltyDto['team_side'];
   unknownLabel: string;
   minutesSuffix: string;
-  onDelete?: () => void;
+  onClick?: () => void;
 };
 
 export function PenaltyRow({
@@ -26,7 +26,7 @@ export function PenaltyRow({
   sideAValue,
   unknownLabel,
   minutesSuffix,
-  onDelete,
+  onClick,
 }: Props) {
   const sideLabel = penalty.team_side === sideAValue ? sideALabel : sideBLabel;
   const playerName = penalty.player ? formatName(penalty.player) : unknownLabel;
@@ -40,6 +40,11 @@ export function PenaltyRow({
     background: colors.bg,
     borderRadius: radius.lg,
     boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
+    border: 'none',
+    width: '100%',
+    textAlign: 'left',
+    cursor: onClick ? 'pointer' : 'default',
+    color: colors.text,
   };
 
   const iconBox: CSSProperties = {
@@ -90,22 +95,8 @@ export function PenaltyRow({
     borderRadius: radius.sm,
   };
 
-  const trashBtn: CSSProperties = {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    background: 'transparent',
-    border: 'none',
-    color: colors.textTertiary,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    flexShrink: 0,
-  };
-
-  return (
-    <div style={wrap}>
+  const content = (
+    <>
       <span style={iconBox} aria-hidden>
         <IconWhistle size={18} color={colors.warning} />
       </span>
@@ -121,17 +112,16 @@ export function PenaltyRow({
           {time ? <span>· {time}</span> : null}
         </div>
       </div>
-      {onDelete ? (
-        <button
-          type="button"
-          className="pressable"
-          aria-label="delete"
-          onClick={onDelete}
-          style={trashBtn}
-        >
-          <IconTrash size={18} color={colors.textTertiary} />
-        </button>
-      ) : null}
-    </div>
+      {onClick ? <IconChevronRight /> : null}
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" className="pressable" onClick={onClick} style={wrap}>
+        {content}
+      </button>
+    );
+  }
+  return <div style={wrap}>{content}</div>;
 }

@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { Avatar } from './avatar';
-import { IconTrash, IconSticksCrossed } from './icons';
+import { IconChevronRight, IconSticksCrossed } from './icons';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
@@ -18,7 +18,7 @@ type Props = {
   sideAValue: GoalDto['team_side'];
   unknownLabel: string;
   assistsPrefix: string;
-  onDelete?: () => void;
+  onClick?: () => void;
 };
 
 export function GoalRow({
@@ -29,7 +29,7 @@ export function GoalRow({
   sideAValue,
   unknownLabel,
   assistsPrefix,
-  onDelete,
+  onClick,
 }: Props) {
   const sideLabel = goal.team_side === sideAValue ? sideALabel : sideBLabel;
   const scorerName = goal.scorer ? formatName(goal.scorer) : unknownLabel;
@@ -38,26 +38,30 @@ export function GoalRow({
 
   const wrap: CSSProperties = {
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing['12'],
     padding: spacing['12'],
     background: colors.bg,
     borderRadius: radius.lg,
     boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
+    border: 'none',
+    width: '100%',
+    textAlign: 'left',
+    cursor: onClick ? 'pointer' : 'default',
+    color: colors.text,
   };
 
-  const indexBox: CSSProperties = {
+  const iconBox: CSSProperties = {
     width: 36,
     minWidth: 36,
     height: 36,
     borderRadius: '50%',
+    overflow: 'hidden',
     background: colors.primaryLight,
     color: colors.primary,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontWeight: 800,
-    fontSize: 14,
   };
 
   const body: CSSProperties = {
@@ -91,9 +95,6 @@ export function GoalRow({
   };
 
   const sideChip: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
     fontSize: 11,
     fontWeight: 600,
     color: colors.textSecondary,
@@ -102,23 +103,9 @@ export function GoalRow({
     borderRadius: radius.sm,
   };
 
-  const trashBtn: CSSProperties = {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    background: 'transparent',
-    border: 'none',
-    color: colors.textTertiary,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    flexShrink: 0,
-  };
-
-  return (
-    <div style={wrap}>
-      <span style={indexBox} aria-hidden>
+  const content = (
+    <>
+      <span style={iconBox} aria-hidden>
         {goal.scorer ? (
           <Avatar src={goal.scorer.photo_url} name={scorerName} size={36} />
         ) : (
@@ -140,17 +127,16 @@ export function GoalRow({
           ) : null}
         </div>
       </div>
-      {onDelete ? (
-        <button
-          type="button"
-          className="pressable"
-          aria-label="delete"
-          onClick={onDelete}
-          style={trashBtn}
-        >
-          <IconTrash size={18} color={colors.textTertiary} />
-        </button>
-      ) : null}
-    </div>
+      {onClick ? <IconChevronRight /> : null}
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" className="pressable" onClick={onClick} style={wrap}>
+        {content}
+      </button>
+    );
+  }
+  return <div style={wrap}>{content}</div>;
 }

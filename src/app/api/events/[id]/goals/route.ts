@@ -3,7 +3,11 @@ import { z } from 'zod';
 import { AuthError, requireOrganizer } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType } from '@/lib/event-enum';
-import { isValidSideForEvent } from '@/lib/event-result';
+import {
+  isPlayerEligibleForSide,
+  isValidSideForEvent,
+  loadLineupMap,
+} from '@/lib/event-result';
 import type { CreateGoalResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
@@ -53,24 +57,36 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
     if (!isValidSideForEvent(d.team_side, isGame)) {
       return NextResponse.json({ error: 'Неверная сторона для этого события' }, { status: 400 });
     }
+    const allowsPlayers = isGame ? d.team_side === 'own' : true;
+    if (!allowsPlayers) {
+      if (d.scorer_user_id || d.assist1_user_id || d.assist2_user_id) {
+        return NextResponse.json(
+          { error: 'Для соперника игроки не указываются' },
+          { status: 400 },
+        );
+      }
+    }
 
-    const memberIds = await loadTeamMemberIds(sb, ev.team_id);
+    const lineup = await loadLineupMap(sb, ev.id);
+    const checkEligible = (uid: string): string | null =>
+      isPlayerEligibleForSide(uid, d.team_side, isGame, lineup)
+        ? null
+        : 'Игрок не в составе на эту сторону';
 
     const scorerId = d.scorer_user_id ?? null;
-    if (scorerId && !memberIds.has(scorerId)) {
-      return NextResponse.json({ error: 'Автор не в команде' }, { status: 400 });
+    if (allowsPlayers && scorerId) {
+      const err = checkEligible(scorerId);
+      if (err) return NextResponse.json({ error: err }, { status: 400 });
     }
     const assists: { user_id: string; order: 1 | 2 }[] = [];
-    if (d.assist1_user_id) {
-      if (!memberIds.has(d.assist1_user_id)) {
-        return NextResponse.json({ error: 'Ассистент не в команде' }, { status: 400 });
-      }
+    if (allowsPlayers && d.assist1_user_id) {
+      const err = checkEligible(d.assist1_user_id);
+      if (err) return NextResponse.json({ error: err }, { status: 400 });
       assists.push({ user_id: d.assist1_user_id, order: 1 });
     }
-    if (d.assist2_user_id) {
-      if (!memberIds.has(d.assist2_user_id)) {
-        return NextResponse.json({ error: 'Ассистент не в команде' }, { status: 400 });
-      }
+    if (allowsPlayers && d.assist2_user_id) {
+      const err = checkEligible(d.assist2_user_id);
+      if (err) return NextResponse.json({ error: err }, { status: 400 });
       if (assists.some((a) => a.user_id === d.assist2_user_id)) {
         return NextResponse.json({ error: 'Ассистент уже указан' }, { status: 400 });
       }
@@ -113,15 +129,4 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
     }
     throw e;
   }
-}
-
-async function loadTeamMemberIds(
-  sb: ReturnType<typeof supabaseServer>,
-  teamId: string,
-): Promise<Set<string>> {
-  const { data } = await sb
-    .from('team_memberships')
-    .select('user_id')
-    .eq('team_id', teamId);
-  return new Set((data ?? []).map((r) => r.user_id));
 }

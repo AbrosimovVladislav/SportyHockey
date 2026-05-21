@@ -3,15 +3,15 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { BottomSheet } from './bottom-sheet';
 import { Button } from './button';
-import { Input } from './input';
 import { Avatar } from './avatar';
+import { TimePicker } from './time-picker';
 import { useT } from '@/hooks/use-t';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { formatName } from '@/lib/format-name';
-import { parseMatchTime } from '@/lib/format-time';
-import type { CreatePenaltyRequest, GoalParticipant, ResultSide } from '@/types/api';
+import type { CreatePenaltyRequest, PenaltyDto, ResultSide } from '@/types/api';
+import type { EligiblePlayer } from './add-goal-sheet';
 
 type Props = {
   open: boolean;
@@ -21,11 +21,23 @@ type Props = {
   sideBLabel: string;
   sideAValue: ResultSide;
   sideBValue: ResultSide;
-  players: GoalParticipant[];
+  players: EligiblePlayer[];
+  initial: PenaltyDto | null;
   onSubmit: (body: CreatePenaltyRequest) => void;
+  onDelete?: () => void;
   isPending: boolean;
+  isDeleting?: boolean;
   error: string | null;
 };
+
+function playersForSide(all: EligiblePlayer[], side: ResultSide | null): EligiblePlayer[] {
+  if (!side) return [];
+  if (side === 'opponent') return [];
+  if (side === 'light' || side === 'dark') {
+    return all.filter((p) => p.team_side === side);
+  }
+  return all;
+}
 
 const MINUTES_OPTIONS = [2, 5, 10] as const;
 
@@ -38,41 +50,56 @@ export function AddPenaltySheet({
   sideAValue,
   sideBValue,
   players,
+  initial,
   onSubmit,
+  onDelete,
   isPending,
+  isDeleting,
   error,
 }: Props) {
   const t = useT();
+  const isEdit = initial !== null;
   const [side, setSide] = useState<ResultSide | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [minutes, setMinutes] = useState<number>(2);
-  const [time, setTime] = useState('');
+  const [timeSeconds, setTimeSeconds] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
-    if (!open) {
+    if (!open) return;
+    if (initial) {
+      setSide(initial.team_side);
+      setPlayerId(initial.player?.user_id ?? null);
+      setMinutes(initial.minutes);
+      setTimeSeconds(initial.time_seconds);
+    } else {
       setSide(null);
       setPlayerId(null);
       setMinutes(2);
-      setTime('');
-      setPickerOpen(false);
+      setTimeSeconds(null);
     }
-  }, [open]);
+    setPickerOpen(false);
+  }, [open, initial]);
 
   const ourSide = !isGame || side !== 'opponent';
-  const timeValid = time.trim() === '' || parseMatchTime(time) != null;
+  const eligible = playersForSide(players, side);
+
+  const changeSide = (next: ResultSide) => {
+    if (side === next) return;
+    const nextEligible = playersForSide(players, next);
+    const ids = new Set(nextEligible.map((p) => p.user_id));
+    if (playerId && !ids.has(playerId)) setPlayerId(null);
+    setSide(next);
+  };
 
   const handleSubmit = () => {
     if (!side) return;
-    const parsedTime = time.trim() === '' ? null : parseMatchTime(time);
-    if (time.trim() !== '' && parsedTime == null) return;
-    const body: CreatePenaltyRequest = {
+    onSubmit({
       team_side: side,
       player_user_id: ourSide ? playerId : null,
       minutes,
-      time_seconds: parsedTime,
-    };
-    onSubmit(body);
+      time_seconds: timeSeconds,
+    });
   };
 
   const label: CSSProperties = {
@@ -151,7 +178,11 @@ export function AddPenaltySheet({
   };
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={t('result.penalty.title')}>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={isEdit ? t('result.penalty.editTitle') : t('result.penalty.title')}
+    >
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={label}>{t('result.penalty.side')}</div>
         <div style={sideRow}>
@@ -159,7 +190,7 @@ export function AddPenaltySheet({
             type="button"
             className="pressable"
             style={sideBtn(side === sideAValue)}
-            onClick={() => setSide(sideAValue)}
+            onClick={() => changeSide(sideAValue)}
           >
             {sideALabel}
           </button>
@@ -167,7 +198,7 @@ export function AddPenaltySheet({
             type="button"
             className="pressable"
             style={sideBtn(side === sideBValue)}
-            onClick={() => setSide(sideBValue)}
+            onClick={() => changeSide(sideBValue)}
           >
             {sideBLabel}
           </button>
@@ -213,13 +244,10 @@ export function AddPenaltySheet({
 
         <div style={fieldBlock}>
           <div style={label}>{t('result.penalty.time')}</div>
-          <Input
-            inputMode="numeric"
-            placeholder={t('result.goal.time.placeholder')}
-            value={time}
-            onChange={(e) => setTime(e.currentTarget.value.slice(0, 7))}
-            invalid={!timeValid}
-            maxLength={7}
+          <TimePicker
+            value={timeSeconds}
+            onChange={setTimeSeconds}
+            clearLabel={t('result.time.clear')}
           />
         </div>
 
@@ -244,7 +272,7 @@ export function AddPenaltySheet({
             size="lg"
             fullWidth
             onClick={onClose}
-            disabled={isPending}
+            disabled={isPending || isDeleting}
           >
             {t('result.actions.cancel')}
           </Button>
@@ -253,17 +281,34 @@ export function AddPenaltySheet({
             size="lg"
             fullWidth
             onClick={handleSubmit}
-            disabled={!side || !timeValid || isPending}
+            disabled={!side || isPending || isDeleting}
           >
-            {isPending ? t('result.actions.saving') : t('result.actions.add')}
+            {isPending
+              ? t('result.actions.saving')
+              : isEdit
+                ? t('result.actions.save')
+                : t('result.actions.add')}
           </Button>
         </div>
+
+        {isEdit && onDelete ? (
+          <Button
+            variant="ghost"
+            size="md"
+            fullWidth
+            onClick={onDelete}
+            disabled={isPending || isDeleting}
+            style={{ color: colors.error, marginTop: spacing['8'] }}
+          >
+            {isDeleting ? t('result.actions.deleting') : t('result.actions.deletePenalty')}
+          </Button>
+        ) : null}
       </div>
 
       <PlayerPicker
         open={pickerOpen}
         title={t('result.penalty.player')}
-        players={players}
+        players={eligible}
         currentId={playerId}
         onPick={(uid) => {
           setPlayerId(uid);
@@ -278,7 +323,7 @@ export function AddPenaltySheet({
 type PickerProps = {
   open: boolean;
   title: string;
-  players: GoalParticipant[];
+  players: EligiblePlayer[];
   currentId: string | null;
   onPick: (uid: string | null) => void;
   onClose: () => void;
@@ -340,11 +385,21 @@ function PlayerPicker({ open, title, players, currentId, onPick, onClose }: Pick
               onClick={() => onPick(p.user_id)}
             >
               <Avatar src={p.photo_url} name={formatName(p)} size={28} />
-              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {formatName(p)}
               </span>
               {p.jersey_number != null ? (
-                <span style={{ fontSize: 12, color: colors.textSecondary, fontWeight: 600 }}>#{p.jersey_number}</span>
+                <span style={{ fontSize: 12, color: colors.textSecondary, fontWeight: 600 }}>
+                  #{p.jersey_number}
+                </span>
               ) : null}
             </button>
           );

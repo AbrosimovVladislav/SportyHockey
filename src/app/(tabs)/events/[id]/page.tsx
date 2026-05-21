@@ -26,6 +26,7 @@ import {
   IconClock,
 } from '@/components/icons';
 import { useEvent } from '@/hooks/use-event';
+import { useEventResult } from '@/hooks/use-event-result';
 import { useVoteEvent } from '@/hooks/use-vote-event';
 import { useMe } from '@/hooks/use-me';
 import { useT } from '@/hooks/use-t';
@@ -148,6 +149,8 @@ export default function EventDetailPage() {
 
   const data = ev.data;
   const isTraining = data?.type !== 'game';
+  const isGame = data?.type === 'game';
+  const eventResult = useEventResult(isGame ? id : undefined);
 
   const isOrganizer = useMemo(() => {
     if (!data || !me.data) return false;
@@ -288,11 +291,21 @@ export default function EventDetailPage() {
       <div style={sheet}>
         {!isTraining && (ourTeamName || data.opponent_name) ? (
           <SectionCard padding={spacing['12']}>
-            <div
+            <button
+              type="button"
+              className="pressable"
+              onClick={() => router.push(`/events/${id}/result`)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: spacing['8'],
+                width: '100%',
+                border: 'none',
+                background: 'transparent',
+                padding: 0,
+                cursor: 'pointer',
+                color: colors.text,
+                textAlign: 'left',
               }}
             >
               <div
@@ -321,17 +334,64 @@ export default function EventDetailPage() {
                   {ourTeamName || '—'}
                 </span>
               </div>
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: colors.textTertiary,
-                  letterSpacing: '0.05em',
-                  flexShrink: 0,
-                }}
-              >
-                {t('eventDetail.vs')}
-              </span>
+              {eventResult.data ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing['8'],
+                    flexShrink: 0,
+                    padding: `0 ${spacing['8']}px`,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 800,
+                      color: colors.text,
+                      fontVariantNumeric: 'tabular-nums',
+                      lineHeight: 1,
+                      letterSpacing: '-0.5px',
+                    }}
+                  >
+                    {eventResult.data.score.score_a}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 700,
+                      color: colors.textTertiary,
+                      lineHeight: 1,
+                    }}
+                  >
+                    :
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 800,
+                      color: colors.text,
+                      fontVariantNumeric: 'tabular-nums',
+                      lineHeight: 1,
+                      letterSpacing: '-0.5px',
+                    }}
+                  >
+                    {eventResult.data.score.score_b}
+                  </span>
+                </div>
+              ) : (
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: colors.textTertiary,
+                    letterSpacing: '0.05em',
+                    flexShrink: 0,
+                  }}
+                >
+                  {t('eventDetail.vs')}
+                </span>
+              )}
               <div
                 style={{
                   flex: 1,
@@ -358,7 +418,7 @@ export default function EventDetailPage() {
                   {data.opponent_name || '—'}
                 </span>
               </div>
-            </div>
+            </button>
           </SectionCard>
         ) : null}
 

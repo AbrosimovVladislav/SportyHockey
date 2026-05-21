@@ -259,6 +259,7 @@ export type PlayerResultStats = {
   goals: number;
   assists: number;
   points: number;
+  penalty_minutes: number;
 };
 
 export type ResultScore = {
@@ -291,6 +292,9 @@ export type CreateGoalResponse = { id: string };
 
 export type DeleteGoalResponse = { ok: true };
 
+export type UpdateGoalRequest = CreateGoalRequest;
+export type UpdateGoalResponse = { ok: true };
+
 export type CreatePenaltyRequest = {
   team_side: ResultSide;
   player_user_id?: string | null;
@@ -301,6 +305,9 @@ export type CreatePenaltyRequest = {
 export type CreatePenaltyResponse = { id: string };
 
 export type DeletePenaltyResponse = { ok: true };
+
+export type UpdatePenaltyRequest = CreatePenaltyRequest;
+export type UpdatePenaltyResponse = { ok: true };
 
 export type CreateEventRequest = {
   type: EventType;
