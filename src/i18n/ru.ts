@@ -304,6 +304,7 @@ export const ru = {
   'result.share.button': 'Поделиться результатом',
   'result.share.sharing': 'Открываем…',
   'result.share.copied': 'Результат скопирован в буфер обмена',
+  'result.share.downloaded': 'Картинка сохранена. Опубликуйте её в любом мессенджере.',
   'result.share.failed': 'Не получилось поделиться. Попробуйте ещё раз.',
   'result.share.goalsHeader': 'Голы:',
   'result.picker.none': 'Не указывать',

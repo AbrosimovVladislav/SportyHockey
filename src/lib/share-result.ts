@@ -1,3 +1,4 @@
+import { apiFetchBlob, ApiError } from './api-client';
 import { formatName } from './format-name';
 import { formatMatchTime } from './format-time';
 import type { EventResultDto, GoalDto } from '@/types/api';
@@ -79,4 +80,55 @@ export async function shareText(text: string, title?: string): Promise<'shared' 
   }
 
   return 'failed';
+}
+
+export type ShareImageOutcome = 'shared' | 'downloaded' | 'failed';
+
+// Пытается поделиться картинкой через navigator.share({ files }).
+// Если не поддерживается — скачивает файл.
+export async function shareEventImage(
+  eventId: string,
+  text: string,
+  title: string,
+): Promise<ShareImageOutcome> {
+  let blob: Blob;
+  try {
+    blob = await apiFetchBlob(`/api/events/${eventId}/share-image`);
+  } catch (e) {
+    if (e instanceof ApiError) {
+      // 401 — нет initData. Падаем в текстовый fallback на уровне выше.
+    }
+    return 'failed';
+  }
+  if (typeof File === 'undefined' || typeof navigator === 'undefined') return 'failed';
+  const file = new File([blob], `match-${eventId}.png`, { type: blob.type || 'image/png' });
+
+  if (
+    typeof navigator.canShare === 'function' &&
+    navigator.canShare({ files: [file] }) &&
+    typeof navigator.share === 'function'
+  ) {
+    try {
+      await navigator.share({ files: [file], text, title });
+      return 'shared';
+    } catch {
+      // user cancelled — не качаем файл, считаем неудачей
+      return 'failed';
+    }
+  }
+
+  // Fallback — скачивание файла. Так пользователь сможет вручную опубликовать.
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `match-${eventId}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return 'downloaded';
+  } catch {
+    return 'failed';
+  }
 }

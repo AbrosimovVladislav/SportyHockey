@@ -41,3 +41,27 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   return (await res.json()) as T;
 }
+
+export async function apiFetchBlob(path: string, init?: RequestInit): Promise<Blob> {
+  let initData = '';
+  try {
+    initData = retrieveRawInitData() ?? '';
+  } catch {
+    // вне Telegram — initData пустой; сервер вернёт 401
+  }
+
+  const res = await fetch(path, {
+    ...init,
+    headers: {
+      ...init?.headers,
+      Authorization: `tma ${initData}`,
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new ApiError(res.status, text || res.statusText);
+  }
+
+  return await res.blob();
+}

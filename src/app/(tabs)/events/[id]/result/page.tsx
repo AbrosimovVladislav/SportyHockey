@@ -6,11 +6,11 @@ import { LightHeader } from '@/components/light-header';
 import { Button } from '@/components/button';
 import { MatchResultChip, outcomeForScore } from '@/components/match-result-chip';
 import { MvpCard } from '@/components/mvp-card';
-import { GoalsTimeline } from '@/components/goals-timeline';
+import { EventsTimeline, type TimelineEvent } from '@/components/events-timeline';
 import { SideComparison } from '@/components/side-comparison';
 import { IconShare } from '@/components/icons';
 import { formatEventDateRange } from '@/lib/event-format';
-import { buildShareText, shareText } from '@/lib/share-result';
+import { buildShareText, shareEventImage, shareText } from '@/lib/share-result';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { ContentTabs } from '@/components/content-tabs';
 import { FAB } from '@/components/fab';
@@ -163,6 +163,21 @@ export default function EventResultPage() {
 
   const mvp = r.stats.find((s) => s.points > 0) ?? null;
 
+  const timelineEvents: TimelineEvent[] = [
+    ...r.goals.map<TimelineEvent>((g) => ({ kind: 'goal', goal: g })),
+    ...r.penalties.map<TimelineEvent>((p) => ({ kind: 'penalty', penalty: p })),
+  ];
+
+  const onTimelineSelect = (e: TimelineEvent) => {
+    if (e.kind === 'goal') {
+      setGoalError(null);
+      setGoalSheet({ open: true, initial: e.goal });
+    } else {
+      setPenaltyError(null);
+      setPenaltySheet({ open: true, initial: e.penalty });
+    }
+  };
+
   const onShare = async () => {
     setIsSharing(true);
     const text = buildShareText(r, {
@@ -179,11 +194,23 @@ export default function EventResultPage() {
       unknown: t('result.unknownPlayer'),
       assistsPrefix: t('result.assistsPrefix'),
     });
-    const outcome = await shareText(text, t('result.title'));
+    // Сначала пробуем поделиться красивой картинкой.
+    const imageOutcome = await shareEventImage(id, text, t('result.title'));
+    if (imageOutcome === 'shared') {
+      setIsSharing(false);
+      return;
+    }
+    if (imageOutcome === 'downloaded') {
+      setIsSharing(false);
+      if (typeof window !== 'undefined') window.alert(t('result.share.downloaded'));
+      return;
+    }
+    // Картинка не сработала — fallback на текст.
+    const textOutcome = await shareText(text, t('result.title'));
     setIsSharing(false);
-    if (outcome === 'copied' && typeof window !== 'undefined') {
+    if (textOutcome === 'copied' && typeof window !== 'undefined') {
       window.alert(t('result.share.copied'));
-    } else if (outcome === 'failed' && typeof window !== 'undefined') {
+    } else if (textOutcome === 'failed' && typeof window !== 'undefined') {
       window.alert(t('result.share.failed'));
     }
   };
@@ -382,12 +409,13 @@ export default function EventResultPage() {
               </div>
             ) : null}
 
-            {r.goals.length > 0 ? (
-              <GoalsTimeline
-                goals={r.goals}
+            {timelineEvents.length > 0 ? (
+              <EventsTimeline
+                events={timelineEvents}
                 sideAValue={r.score.side_a}
                 title={t('result.timeline.title')}
                 noTimeLabel={t('result.timeline.noTime')}
+                onSelectEvent={isOrganizer ? onTimelineSelect : undefined}
               />
             ) : null}
 
