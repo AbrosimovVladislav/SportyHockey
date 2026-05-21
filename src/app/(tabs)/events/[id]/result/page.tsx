@@ -3,6 +3,7 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LightHeader } from '@/components/light-header';
+import { StatRowSkeleton } from '@/components/skeleton';
 import { Button } from '@/components/button';
 import { MatchResultChip, outcomeForScore } from '@/components/match-result-chip';
 import { MvpCard } from '@/components/mvp-card';
@@ -130,10 +131,8 @@ export default function EventResultPage() {
     return (
       <div style={root}>
         <LightHeader title={t('result.title')} subtitle={subtitle} onBack={onBack} />
-        <div style={{ padding: `${spacing['24']}px ${spacing['16']}px` }}>
-          <span style={{ ...typography.body, color: colors.textSecondary }}>
-            {t('common.loading')}
-          </span>
+        <div style={{ padding: `${spacing['16']}px` }}>
+          <StatRowSkeleton />
         </div>
       </div>
     );

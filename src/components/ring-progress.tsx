@@ -45,7 +45,7 @@ export function RingProgress({ size = 110, stroke = 9, value, total, label }: Pr
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#EFEDE7"
+          stroke={colors.track}
           strokeWidth={stroke}
         />
         <circle

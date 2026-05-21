@@ -15,14 +15,21 @@ export const colors = {
   bg: '#FFFFFF',
   bgWarm: '#F7F5F0',
   bgMuted: '#F5F5F5',
+  bgOffWhite: '#FAFAF8',
   surface: '#FFFFFF',
+  surfaceWarm: '#F0EDE6',
+  surfaceMuted: '#EBE8E1',
   cardSchedule: '#F3F4F3',
+  track: '#EFEDE7',
   iconBg: '#D6E4DB',
   iconFg: '#3A7A50',
+  iconMuted: '#C4C4C4',
+  primaryDrop: 'rgba(232, 79, 0, 0.06)',
 
   // Lines & borders
   divider: '#E8E8E8',
   border: '#E0E0E0',
+  borderSoft: '#D6D3CD',
   chipBorder: '#D0D0D0',
   line: '#EBEBEB',
 

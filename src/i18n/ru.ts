@@ -51,6 +51,8 @@ export const ru = {
   'schedule.sections.later': 'Далее',
   'schedule.sections.completed': 'Завершённые',
   'schedule.completed': 'Завершено',
+  'schedule.completed.expandLabel': 'Раскрыть завершённые события',
+  'schedule.completed.collapseLabel': 'Свернуть завершённые события',
   'schedule.empty': 'Событий пока нет',
   'schedule.calendarSoon': 'Календарь скоро',
   'schedule.calendar.daysShort.mon': 'ПН',
@@ -263,6 +265,11 @@ export const ru = {
   'common.empty': 'Пока ничего нет',
   'common.loading': 'Загружаем',
   'common.error': 'Что-то пошло не так',
+  'common.back': 'Назад',
+
+  // A11y
+  'a11y.notifications': 'Уведомления',
+  'a11y.mainNav': 'Основная навигация',
 
   // Result & stats
   'result.title': 'Результат и статистика',

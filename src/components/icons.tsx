@@ -1,4 +1,5 @@
 import type { SVGProps } from 'react';
+import { colors } from '@/theme/colors';
 
 type IconProps = SVGProps<SVGSVGElement> & {
   size?: number;
@@ -109,7 +110,7 @@ export const IconTrophy = (p: IconProps) => (
   </Svg>
 );
 
-export const IconChevronLeft = ({ size = 12, color = '#C4C4C4', ...p }: IconProps) => (
+export const IconChevronLeft = ({ size = 12, color = colors.iconMuted, ...p }: IconProps) => (
   <svg width={size * 0.6} height={size} viewBox="0 0 7 12" fill="none" {...p}>
     <path
       d="M6 1L1 6l5 5"
@@ -121,7 +122,7 @@ export const IconChevronLeft = ({ size = 12, color = '#C4C4C4', ...p }: IconProp
   </svg>
 );
 
-export const IconChevronDown = ({ size = 12, color = '#C4C4C4', ...p }: IconProps) => (
+export const IconChevronDown = ({ size = 12, color = colors.iconMuted, ...p }: IconProps) => (
   <svg width={size} height={size * 0.6} viewBox="0 0 12 7" fill="none" {...p}>
     <path
       d="M1 1l5 5 5-5"
@@ -133,7 +134,7 @@ export const IconChevronDown = ({ size = 12, color = '#C4C4C4', ...p }: IconProp
   </svg>
 );
 
-export const IconChevronRight = ({ size = 12, color = '#C4C4C4', ...p }: IconProps) => (
+export const IconChevronRight = ({ size = 12, color = colors.iconMuted, ...p }: IconProps) => (
   <svg width={size * 0.6} height={size} viewBox="0 0 7 12" fill="none" {...p}>
     <path
       d="M1 1l5 5-5 5"

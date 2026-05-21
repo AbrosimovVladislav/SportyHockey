@@ -6,7 +6,9 @@ import { DarkHeader } from '@/components/dark-header';
 import { ContentTabs } from '@/components/content-tabs';
 import { FilterChips } from '@/components/filter-chips';
 import { SectionHeader } from '@/components/section-header';
+import { SectionAccordion } from '@/components/section-accordion';
 import { EventCard, type EventCardKind } from '@/components/event-card';
+import { EventCardSkeleton } from '@/components/skeleton';
 import { EmptyState } from '@/components/empty-state';
 import { FAB } from '@/components/fab';
 import { WeekPicker } from '@/components/week-picker';
@@ -38,7 +40,7 @@ import type { EventDto } from '@/types/api';
 type FilterId = 'all' | 'training' | 'game';
 type TabId = 'list' | 'calendar';
 
-function BellWithDot() {
+function BellWithDot({ ariaLabel }: { ariaLabel: string }) {
   const wrap: CSSProperties = {
     position: 'relative',
     width: 40,
@@ -63,7 +65,7 @@ function BellWithDot() {
     border: `2px solid ${colors.headerBg}`,
   };
   return (
-    <span style={wrap} aria-label="Уведомления" role="button">
+    <span style={wrap} aria-label={ariaLabel} role="button">
       <IconBell size={20} color={colors.textInverse} />
       <span style={dot} />
     </span>
@@ -257,7 +259,7 @@ export default function EventsPage() {
     <div style={{ background: colors.bg, minHeight: '100dvh' }}>
       <DarkHeader
         title={t('schedule.title')}
-        right={<BellWithDot />}
+        right={<BellWithDot ariaLabel={t('a11y.notifications')} />}
         imageSrc="/arena.png"
       />
 
@@ -283,9 +285,10 @@ export default function EventsPage() {
             <SectionHeader title={dayHeaderLabel(calendarSelected)} />
             <div style={list}>
               {events.isLoading ? (
-                <span style={{ ...typography.body, color: colors.textSecondary }}>
-                  {t('common.loading')}
-                </span>
+                <>
+                  <EventCardSkeleton />
+                  <EventCardSkeleton />
+                </>
               ) : events.isError ? (
                 <span style={{ ...typography.body, color: colors.error }}>
                   {t('common.error')}
@@ -332,10 +335,17 @@ export default function EventsPage() {
             />
 
             {events.isLoading ? (
-              <div style={{ padding: `${spacing['24']}px ${spacing['20']}px` }}>
-                <span style={{ ...typography.body, color: colors.textSecondary }}>
-                  {t('common.loading')}
-                </span>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: spacing['12'],
+                  padding: `${spacing['12']}px ${spacing['16']}px`,
+                }}
+              >
+                <EventCardSkeleton />
+                <EventCardSkeleton />
+                <EventCardSkeleton />
               </div>
             ) : events.isError ? (
               <div style={{ padding: `${spacing['24']}px ${spacing['20']}px` }}>
@@ -371,10 +381,14 @@ export default function EventsPage() {
                   </>
                 )}
                 {groups.completed.length > 0 && (
-                  <>
-                    <SectionHeader title={t('schedule.sections.completed')} />
+                  <SectionAccordion
+                    title={t('schedule.sections.completed')}
+                    count={groups.completed.length}
+                    ariaLabelExpand={t('schedule.completed.expandLabel')}
+                    ariaLabelCollapse={t('schedule.completed.collapseLabel')}
+                  >
                     <div style={list}>{groups.completed.map(renderCardCompleted)}</div>
-                  </>
+                  </SectionAccordion>
                 )}
               </>
             )}

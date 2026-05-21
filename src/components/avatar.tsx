@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { avatarTones } from '@/theme/colors';
+import { avatarTones, colors } from '@/theme/colors';
 
 type Props = {
   src?: string | null;
@@ -37,7 +37,7 @@ export function Avatar({ src, name, size = 46, toneIdx }: Props) {
     justifyContent: 'center',
     overflow: 'hidden',
     flexShrink: 0,
-    color: '#FFFFFF',
+    color: colors.textInverse,
     fontWeight: 700,
     fontSize: Math.round(size * 0.34),
     letterSpacing: 0.2,

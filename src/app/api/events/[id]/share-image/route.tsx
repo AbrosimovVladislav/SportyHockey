@@ -21,6 +21,28 @@ const COLOR_TEXT = '#FFFFFF';
 const COLOR_MUTED = 'rgba(255,255,255,0.65)';
 const COLOR_GOLD = '#E5C26B';
 
+// Серверный код (OG image), нельзя использовать клиентский useT.
+const TEXT = {
+  sideOwn: 'Своя',
+  sideOpponent: 'Соперник',
+  sideLight: 'Светлые',
+  sideDark: 'Тёмные',
+  playerUnknown: 'Игрок не указан',
+  outcomeWin: 'Победа',
+  outcomeLoss: 'Поражение',
+  outcomeDraw: 'Ничья',
+  headerGame: 'РЕЗУЛЬТАТ МАТЧА',
+  headerTraining: 'ИТОГИ ТРЕНИРОВКИ',
+  ourTeam: 'Наша команда',
+  lightSide: 'Светлая сторона',
+  opponent: 'Соперник',
+  darkSide: 'Тёмная сторона',
+  noGoals: 'Голов не зафиксировано',
+  goalSingular: 'гол',
+  goalPlural: 'голов',
+  brand: 'СГЕНЕРИРОВАНО В SPORTYHOCKEY',
+} as const;
+
 export async function GET(req: Request, { params }: Params): Promise<Response> {
   try {
     const user = await requireUser(req);
@@ -54,8 +76,8 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       (Array.isArray(ev.venue) ? ev.venue[0]?.name : ev.venue?.name) ?? ev.venue_text ?? '';
 
     const { side_a, side_b } = sidesForEventType(isGame);
-    const sideALabel = isGame ? ownTeamName || 'Своя' : 'Светлые';
-    const sideBLabel = isGame ? ev.opponent_name || 'Соперник' : 'Тёмные';
+    const sideALabel = isGame ? ownTeamName || TEXT.sideOwn : TEXT.sideLight;
+    const sideBLabel = isGame ? ev.opponent_name || TEXT.sideOpponent : TEXT.sideDark;
 
     const { data: goalRows } = await sb
       .from('event_goals')
@@ -95,8 +117,8 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       const u = g.scorer_user_id ? userById.get(g.scorer_user_id) : undefined;
       const scorerName = u
         ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() ||
-          (u.username ? `@${u.username}` : 'Игрок не указан')
-        : 'Игрок не указан';
+          (u.username ? `@${u.username}` : TEXT.playerUnknown)
+        : TEXT.playerUnknown;
       goalLines.push({
         idx,
         sideLabel: side === side_a ? sideALabel : sideBLabel,
@@ -107,10 +129,10 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
 
     const outcome = isGame
       ? scoreA > scoreB
-        ? { label: 'Победа', color: '#34C759' }
+        ? { label: TEXT.outcomeWin, color: '#34C759' }
         : scoreA < scoreB
-          ? { label: 'Поражение', color: '#FF453A' }
-          : { label: 'Ничья', color: COLOR_MUTED }
+          ? { label: TEXT.outcomeLoss, color: '#FF453A' }
+          : { label: TEXT.outcomeDraw, color: COLOR_MUTED }
       : null;
 
     const date = formatLongDate(ev.starts_at);
@@ -189,7 +211,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
                   SPORTYHOCKEY
                 </span>
                 <span style={{ fontSize: 14, color: COLOR_MUTED, letterSpacing: '0.06em' }}>
-                  {isGame ? 'РЕЗУЛЬТАТ МАТЧА' : 'ИТОГИ ТРЕНИРОВКИ'}
+                  {isGame ? TEXT.headerGame : TEXT.headerTraining}
                 </span>
               </div>
             </div>
@@ -239,7 +261,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
                 {sideALabel}
               </span>
               <span style={{ fontSize: 14, color: COLOR_MUTED }}>
-                {isGame ? 'Наша команда' : 'Светлая сторона'}
+                {isGame ? TEXT.ourTeam : TEXT.lightSide}
               </span>
             </div>
 
@@ -275,7 +297,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
             >
               <span style={{ fontSize: 28, fontWeight: 700 }}>{sideBLabel}</span>
               <span style={{ fontSize: 14, color: COLOR_MUTED }}>
-                {isGame ? 'Соперник' : 'Тёмная сторона'}
+                {isGame ? TEXT.opponent : TEXT.darkSide}
               </span>
             </div>
           </div>
@@ -318,7 +340,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
           >
             {shownGoals.length === 0 ? (
               <span style={{ fontSize: 18, color: COLOR_MUTED, textAlign: 'center' }}>
-                Голов не зафиксировано
+                {TEXT.noGoals}
               </span>
             ) : (
               shownGoals.map((g) => (
@@ -355,7 +377,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
             )}
             {extraGoals > 0 ? (
               <span style={{ fontSize: 14, color: COLOR_MUTED, marginTop: 6 }}>
-                +{extraGoals} {extraGoals === 1 ? 'гол' : 'голов'}
+                +{extraGoals} {extraGoals === 1 ? TEXT.goalSingular : TEXT.goalPlural}
               </span>
             ) : null}
           </div>
@@ -373,7 +395,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
               letterSpacing: '0.04em',
             }}
           >
-            <span>СГЕНЕРИРОВАНО В SPORTYHOCKEY</span>
+            <span>{TEXT.brand}</span>
             <span>@sporty_hockey_bot</span>
           </div>
         </div>

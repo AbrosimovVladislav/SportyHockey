@@ -16,7 +16,7 @@ type Props = {
 export function LineSlot({ id, roleLabel, filled, children }: Props) {
   const drop = useDroppable({ id });
 
-  const baseBorder = filled ? colors.line : '#D6D3CD';
+  const baseBorder = filled ? colors.line : colors.borderSoft;
   const wrap: CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -28,10 +28,10 @@ export function LineSlot({ id, roleLabel, filled, children }: Props) {
         ? 'none'
         : `1px dashed ${baseBorder}`,
     background: drop.isOver
-      ? 'rgba(232, 79, 0, 0.06)'
+      ? colors.primaryDrop
       : filled
         ? 'transparent'
-        : '#FAFAF8',
+        : colors.bgOffWhite,
     padding: filled ? 0 : spacing['6'],
     display: 'flex',
     alignItems: 'center',

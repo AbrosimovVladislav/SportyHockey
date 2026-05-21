@@ -25,7 +25,7 @@ export function StatChip({ icon, color, label, value }: Props) {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#FFFFFF',
+    color: colors.textInverse,
   };
 
   return (

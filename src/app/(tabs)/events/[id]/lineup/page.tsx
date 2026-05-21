@@ -365,7 +365,7 @@ function PoolTeamsSection({
     flexDirection: 'column',
     gap: spacing['12'],
     padding: spacing['12'],
-    background: drop.isOver ? 'rgba(232, 79, 0, 0.06)' : colors.bgMuted,
+    background: drop.isOver ? colors.primaryDrop : colors.bgMuted,
     border: drop.isOver
       ? `2px dashed ${colors.headerAccent}`
       : `1px dashed ${colors.line}`,

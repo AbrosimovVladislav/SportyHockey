@@ -30,7 +30,7 @@ export function LineupZone({
   const baseBorder = accentColor ?? colors.line;
   const wrap: CSSProperties = {
     border: drop.isOver ? `2px dashed ${colors.headerAccent}` : `1px dashed ${baseBorder}`,
-    background: drop.isOver ? 'rgba(232, 79, 0, 0.06)' : '#FAFAF8',
+    background: drop.isOver ? colors.primaryDrop : colors.bgOffWhite,
     borderRadius: radius.md,
     padding: spacing['8'],
     minHeight: 120,

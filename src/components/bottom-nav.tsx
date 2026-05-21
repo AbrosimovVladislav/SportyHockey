@@ -125,7 +125,7 @@ export function BottomNav() {
   });
 
   return (
-    <nav style={bar} aria-label="Основная навигация">
+    <nav style={bar} aria-label={t('a11y.mainNav')}>
       {TABS.map(({ href, labelKey, Icon }) => {
         const active = isActive(pathname, href);
         const color = active ? colors.headerAccent : colors.navInactive;

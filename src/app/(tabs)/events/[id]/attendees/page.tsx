@@ -3,6 +3,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LightHeader } from '@/components/light-header';
+import { StatRowSkeleton } from '@/components/skeleton';
 import { PlayerRow } from '@/components/player-row';
 import { ActionTile } from '@/components/action-tile';
 import { StatChip } from '@/components/stat-chip';
@@ -117,10 +118,8 @@ export default function EventAttendeesPage() {
     return (
       <div style={root}>
         <LightHeader title={headerTitle} onBack={onBack} />
-        <div style={{ padding: `${spacing['24']}px ${spacing['16']}px` }}>
-          <span style={{ ...typography.body, color: colors.textSecondary }}>
-            {t('common.loading')}
-          </span>
+        <div style={{ padding: `${spacing['16']}px` }}>
+          <StatRowSkeleton />
         </div>
       </div>
     );
@@ -259,8 +258,8 @@ function FinanceCard({
   const card: CSSProperties = {
     margin: `0 ${spacing['16']}px`,
     padding: `${spacing['16']}px ${spacing['16']}px ${spacing['4']}px`,
-    background: '#FAFAF8',
-    border: '1px solid #F0EDE6',
+    background: colors.bgOffWhite,
+    border: `1px solid ${colors.surfaceWarm}`,
     borderRadius: radius.lg,
     display: 'flex',
     flexDirection: 'column',
@@ -290,13 +289,13 @@ function FinanceCard({
   const targetStyle: CSSProperties = {
     fontSize: 12,
     fontWeight: 500,
-    color: '#AEAEB2',
+    color: colors.textTertiary,
     marginTop: 3,
   };
 
   const divider: CSSProperties = {
     height: 1,
-    background: '#EBE8E1',
+    background: colors.surfaceMuted,
     margin: `${spacing['16']}px 0 0`,
   };
 
@@ -455,7 +454,7 @@ function PlayerActions({
   const tiles = (
     <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
       <ActionTile
-        icon={<IconCheck size={20} color={attendee.showed_up ? colors.textInverse : '#C8C7C2'} />}
+        icon={<IconCheck size={20} color={attendee.showed_up ? colors.textInverse : colors.navInactive} />}
         label={tWas}
         active={!!attendee.showed_up}
         activeColor={colors.headerAccent}
@@ -465,7 +464,7 @@ function PlayerActions({
         icon={
           <IconRuble
             size={20}
-            color={paidActive ? colors.textInverse : '#C8C7C2'}
+            color={paidActive ? colors.textInverse : colors.navInactive}
           />
         }
         label={paidLabel}

@@ -79,9 +79,9 @@ export function MonthSheet({
     padding: `${spacing['4']}px 0 ${spacing['12']}px`,
   };
   const arrowBtn: CSSProperties = {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: '50%',
     background: 'transparent',
     border: 'none',
     display: 'inline-flex',

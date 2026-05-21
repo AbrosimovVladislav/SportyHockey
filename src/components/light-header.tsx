@@ -10,9 +10,10 @@ type Props = {
   subtitle?: ReactNode;
   onBack?: () => void;
   right?: ReactNode;
+  ariaLabelBack?: string;
 };
 
-export function LightHeader({ title, subtitle, onBack, right }: Props) {
+export function LightHeader({ title, subtitle, onBack, right, ariaLabelBack = 'Назад' }: Props) {
   const wrap: CSSProperties = {
     display: 'grid',
     gridTemplateColumns: '40px 1fr 40px',
@@ -70,7 +71,7 @@ export function LightHeader({ title, subtitle, onBack, right }: Props) {
           className="pressable"
           onClick={onBack}
           style={backBtn}
-          aria-label="Назад"
+          aria-label={ariaLabelBack}
         >
           <IconBack size={20} color={colors.text} />
         </button>

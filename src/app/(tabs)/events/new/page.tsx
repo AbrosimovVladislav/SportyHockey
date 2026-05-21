@@ -167,7 +167,15 @@ function SectionLabel({ children }: { children: ReactNode }) {
   return <div style={style}>{children}</div>;
 }
 
-function LightHeader({ title, onBack }: { title: string; onBack: () => void }) {
+function LightHeader({
+  title,
+  onBack,
+  backLabel,
+}: {
+  title: string;
+  onBack: () => void;
+  backLabel: string;
+}) {
   // 3 колонки: back (40) / title (центр) / spacer (40) — title всегда строго по центру
   const wrap: CSSProperties = {
     display: 'grid',
@@ -210,7 +218,7 @@ function LightHeader({ title, onBack }: { title: string; onBack: () => void }) {
         className="pressable"
         onClick={onBack}
         style={backBtn}
-        aria-label="Назад"
+        aria-label={backLabel}
       >
         <IconBack size={20} color={colors.text} />
       </button>
@@ -368,7 +376,7 @@ export default function EventNewPage() {
 
   return (
     <div style={root}>
-      <LightHeader title={t('eventNew.title')} onBack={onBack} />
+      <LightHeader title={t('eventNew.title')} onBack={onBack} backLabel={t('common.back')} />
 
       <div style={content}>
         <SectionLabel>{t('eventNew.sections.type')}</SectionLabel>

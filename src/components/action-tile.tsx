@@ -22,7 +22,7 @@ export function ActionTile({
   ariaPressed,
 }: Props) {
   const bg = active ? activeColor : colors.bg;
-  const fg = active ? colors.textInverse : '#C8C7C2';
+  const fg = active ? colors.textInverse : colors.navInactive;
   const border = active ? activeColor : colors.border;
 
   const tile: CSSProperties = {
