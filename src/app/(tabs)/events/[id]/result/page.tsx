@@ -7,7 +7,7 @@ import { Button } from '@/components/button';
 import { MatchResultChip, outcomeForScore } from '@/components/match-result-chip';
 import { MvpCard } from '@/components/mvp-card';
 import { EventsTimeline, type TimelineEvent } from '@/components/events-timeline';
-import { SideComparison } from '@/components/side-comparison';
+import { EventInfoSheet } from '@/components/event-info-sheet';
 import { IconShare } from '@/components/icons';
 import { formatEventDateRange } from '@/lib/event-format';
 import { buildShareText, shareEventImage, shareText } from '@/lib/share-result';
@@ -73,6 +73,7 @@ export default function EventResultPage() {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [isSharing, setIsSharing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [infoEvent, setInfoEvent] = useState<TimelineEvent | null>(null);
   const [goalSheet, setGoalSheet] = useState<{ open: boolean; initial: GoalDto | null }>(
     { open: false, initial: null },
   );
@@ -168,14 +169,9 @@ export default function EventResultPage() {
     ...r.penalties.map<TimelineEvent>((p) => ({ kind: 'penalty', penalty: p })),
   ];
 
+  // Тап по таймлайну — просмотр события (не редактирование). Редактировать можно через табу «События».
   const onTimelineSelect = (e: TimelineEvent) => {
-    if (e.kind === 'goal') {
-      setGoalError(null);
-      setGoalSheet({ open: true, initial: e.goal });
-    } else {
-      setPenaltyError(null);
-      setPenaltySheet({ open: true, initial: e.penalty });
-    }
+    setInfoEvent(e);
   };
 
   const onShare = async () => {
@@ -349,17 +345,7 @@ export default function EventResultPage() {
               </div>
             ) : null}
 
-            {!isGame && (r.goals.length > 0 || r.penalties.length > 0) ? (
-              <SideComparison
-                goals={r.goals}
-                penalties={r.penalties}
-                sideAValue={r.score.side_a}
-                sideBValue={r.score.side_b}
-                sideALabel={sideALabel}
-                sideBLabel={sideBLabel}
-                labels={{ goals: t('result.compare.goals'), pim: t('result.compare.pim') }}
-              />
-            ) : null}
+            {/* Сравнение Light vs Dark отключено: не несёт полезной информации в обзоре тренировки. */}
 
             {mvp ? (
               <MvpCard
@@ -409,13 +395,13 @@ export default function EventResultPage() {
               </div>
             ) : null}
 
-            {timelineEvents.length > 0 ? (
+            {isGame && timelineEvents.length > 0 ? (
               <EventsTimeline
                 events={timelineEvents}
                 sideAValue={r.score.side_a}
                 title={t('result.timeline.title')}
                 noTimeLabel={t('result.timeline.noTime')}
-                onSelectEvent={isOrganizer ? onTimelineSelect : undefined}
+                onSelectEvent={onTimelineSelect}
               />
             ) : null}
 
@@ -563,6 +549,15 @@ export default function EventResultPage() {
           error={penaltyError}
         />
       ) : null}
+
+      <EventInfoSheet
+        open={infoEvent !== null}
+        event={infoEvent}
+        sideAValue={r.score.side_a}
+        sideALabel={sideALabel}
+        sideBLabel={sideBLabel}
+        onClose={() => setInfoEvent(null)}
+      />
     </div>
   );
 }

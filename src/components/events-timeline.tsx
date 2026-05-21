@@ -31,6 +31,12 @@ const TRACK_HEIGHT = 8;
 function timeOf(e: TimelineEvent): number | null {
   return e.kind === 'goal' ? e.goal.time_seconds : e.penalty.time_seconds;
 }
+
+// «10:13» → 11-я минута (счёт с 1). null если время не указано.
+function minuteOf(seconds: number | null): number | null {
+  if (seconds == null || seconds < 0) return null;
+  return Math.floor(seconds / 60) + 1;
+}
 function sideOf(e: TimelineEvent): ResultSide {
   return e.kind === 'goal' ? e.goal.team_side : e.penalty.team_side;
 }
@@ -236,10 +242,10 @@ export function EventsTimeline({
       color: fallbackColor,
     };
 
-    const badge: CSSProperties = {
+    const typeBadge: CSSProperties = {
       position: 'absolute',
-      bottom: -2,
-      right: -2,
+      top: -3,
+      right: -3,
       width: 14,
       height: 14,
       borderRadius: '50%',
@@ -248,6 +254,27 @@ export function EventsTimeline({
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
+    };
+
+    const minuteValue = minuteOf(timeOf(e));
+    const minuteBadge: CSSProperties = {
+      position: 'absolute',
+      bottom: -5,
+      right: -6,
+      minWidth: 16,
+      height: 14,
+      padding: '0 3px',
+      borderRadius: 7,
+      background: colors.text,
+      color: colors.textInverse,
+      border: `2px solid ${colors.bg}`,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 9,
+      fontWeight: 800,
+      fontVariantNumeric: 'tabular-nums',
+      lineHeight: 1,
     };
 
     const content = (
@@ -264,12 +291,17 @@ export function EventsTimeline({
           </span>
         )}
         {showAvatar ? (
-          <span style={badge} aria-hidden>
+          <span style={typeBadge} aria-hidden>
             {isGoal ? (
               <IconSticksCrossed size={8} color={colors.textInverse} />
             ) : (
               <IconWhistle size={8} color={colors.textInverse} />
             )}
+          </span>
+        ) : null}
+        {minuteValue != null ? (
+          <span style={minuteBadge} aria-hidden>
+            {minuteValue}'
           </span>
         ) : null}
       </div>
@@ -309,6 +341,35 @@ export function EventsTimeline({
   const topPlacements = placements.filter((p) => p.isOurSide);
   const bottomPlacements = placements.filter((p) => !p.isOurSide);
 
+  const renderTick = (p: Placement) => {
+    const isGoal = p.event.kind === 'goal';
+    const color = isGoal
+      ? p.isOurSide
+        ? colors.primary
+        : colors.textSecondary
+      : p.isOurSide
+        ? colors.warning
+        : colors.textSecondary;
+    const style: CSSProperties = {
+      position: 'absolute',
+      left: `calc(${p.leftPct}% - 1.5px)`,
+      top: -2,
+      width: 3,
+      height: TRACK_HEIGHT + 4,
+      borderRadius: 1.5,
+      background: color,
+    };
+    return (
+      <span
+        key={`tick-${p.event.kind}-${
+          p.event.kind === 'goal' ? p.event.goal.id : p.event.penalty.id
+        }`}
+        style={style}
+        aria-hidden
+      />
+    );
+  };
+
   return (
     <div style={card}>
       <div style={titleStyle}>{title}</div>
@@ -316,7 +377,9 @@ export function EventsTimeline({
         <div style={topArea}>
           {topPlacements.map((p) => renderMarker(p))}
         </div>
-        <div style={track} />
+        <div style={track}>
+          {placements.map((p) => renderTick(p))}
+        </div>
         <div style={bottomArea}>
           {bottomPlacements.map((p) => renderMarker(p))}
         </div>
