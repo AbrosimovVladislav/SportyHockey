@@ -25,3 +25,26 @@ export function parseDefenseIndex(slot: LineSlot): LineIndex | null {
   const m = /^d([1-9])_/.exec(slot);
   return m ? (Number(m[1]) as LineIndex) : null;
 }
+
+export type LineKind = 'forward' | 'defense' | 'goalie';
+
+export function slotKind(slot: LineSlot): LineKind {
+  if (slot.startsWith('f')) return 'forward';
+  if (slot.startsWith('d')) return 'defense';
+  return 'goalie';
+}
+
+export function lineIndexOfSlot(slot: LineSlot): LineIndex | null {
+  return parseForwardIndex(slot) ?? parseDefenseIndex(slot);
+}
+
+const SLOT_ROLE_ORDER: Record<string, number> = {
+  lw: 0, c: 1, rw: 2,
+  ld: 0, rd: 1,
+  g: 0, g1: 0, g2: 1,
+};
+
+export function slotSortKey(slot: LineSlot): number {
+  const role = slot.includes('_') ? slot.split('_')[1] : slot;
+  return SLOT_ROLE_ORDER[role] ?? 99;
+}

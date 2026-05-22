@@ -298,12 +298,10 @@ export default function EventResultPage() {
   };
 
   const openGoalEdit = (goal: GoalDto) => {
-    if (!isOrganizer) return;
     setGoalError(null);
     setGoalSheet({ open: true, initial: goal });
   };
   const openPenaltyEdit = (penalty: PenaltyDto) => {
-    if (!isOrganizer) return;
     setPenaltyError(null);
     setPenaltySheet({ open: true, initial: penalty });
   };
@@ -441,7 +439,7 @@ export default function EventResultPage() {
                         sideAValue={r.score.side_a}
                         unknownLabel={t('result.unknownPlayer')}
                         assistsPrefix={t('result.assistsPrefix')}
-                        onClick={isOrganizer ? () => openGoalEdit(entry.goal) : undefined}
+                        onClick={() => openGoalEdit(entry.goal)}
                       />
                     ) : (
                       <PenaltyRow
@@ -452,7 +450,7 @@ export default function EventResultPage() {
                         sideAValue={r.score.side_a}
                         unknownLabel={t('result.unknownPlayer')}
                         minutesSuffix={t('result.penalty.minutesSuffix')}
-                        onClick={isOrganizer ? () => openPenaltyEdit(entry.penalty) : undefined}
+                        onClick={() => openPenaltyEdit(entry.penalty)}
                       />
                     ),
                   )}
@@ -472,82 +470,76 @@ export default function EventResultPage() {
         )}
       </div>
 
-      {isOrganizer && activeTab === 'events' ? (
+      {activeTab === 'events' ? (
         <FAB ariaLabel={t('result.add')} variant="primary" onClick={() => setPickerOpen(true)}>
           <IconPlus size={22} color={colors.textInverse} />
         </FAB>
       ) : null}
 
-      {isOrganizer ? (
-        <BottomSheet
-          open={pickerOpen}
-          onClose={() => setPickerOpen(false)}
-          title={t('result.add')}
-        >
-          <PickItem
-            icon={<IconSticksCrossed size={20} color={colors.primary} />}
-            label={t('result.add.goal')}
-            onClick={() => {
-              setPickerOpen(false);
-              setGoalError(null);
-              setGoalSheet({ open: true, initial: null });
-            }}
-          />
-          <PickItem
-            icon={<IconWhistle size={20} color={colors.warning} />}
-            label={t('result.add.penalty')}
-            onClick={() => {
-              setPickerOpen(false);
-              setPenaltyError(null);
-              setPenaltySheet({ open: true, initial: null });
-            }}
-          />
-        </BottomSheet>
-      ) : null}
-
-      {isOrganizer ? (
-        <AddGoalSheet
-          open={goalSheet.open}
-          initial={goalSheet.initial}
-          onClose={() => {
-            setGoalSheet({ open: false, initial: null });
+      <BottomSheet
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={t('result.add')}
+      >
+        <PickItem
+          icon={<IconSticksCrossed size={20} color={colors.primary} />}
+          label={t('result.add.goal')}
+          onClick={() => {
+            setPickerOpen(false);
             setGoalError(null);
+            setGoalSheet({ open: true, initial: null });
           }}
-          isGame={isGame}
-          sideALabel={sideALabel}
-          sideBLabel={sideBLabel}
-          sideAValue={r.score.side_a}
-          sideBValue={r.score.side_b}
-          players={players}
-          onSubmit={onSubmitGoal}
-          onDelete={handleDeleteGoal}
-          isPending={addGoal.isPending || updGoal.isPending}
-          isDeleting={delGoal.isPending}
-          error={goalError}
         />
-      ) : null}
-
-      {isOrganizer ? (
-        <AddPenaltySheet
-          open={penaltySheet.open}
-          initial={penaltySheet.initial}
-          onClose={() => {
-            setPenaltySheet({ open: false, initial: null });
+        <PickItem
+          icon={<IconWhistle size={20} color={colors.warning} />}
+          label={t('result.add.penalty')}
+          onClick={() => {
+            setPickerOpen(false);
             setPenaltyError(null);
+            setPenaltySheet({ open: true, initial: null });
           }}
-          isGame={isGame}
-          sideALabel={sideALabel}
-          sideBLabel={sideBLabel}
-          sideAValue={r.score.side_a}
-          sideBValue={r.score.side_b}
-          players={players}
-          onSubmit={onSubmitPenalty}
-          onDelete={handleDeletePenalty}
-          isPending={addPenalty.isPending || updPenalty.isPending}
-          isDeleting={delPenalty.isPending}
-          error={penaltyError}
         />
-      ) : null}
+      </BottomSheet>
+
+      <AddGoalSheet
+        open={goalSheet.open}
+        initial={goalSheet.initial}
+        onClose={() => {
+          setGoalSheet({ open: false, initial: null });
+          setGoalError(null);
+        }}
+        isGame={isGame}
+        sideALabel={sideALabel}
+        sideBLabel={sideBLabel}
+        sideAValue={r.score.side_a}
+        sideBValue={r.score.side_b}
+        players={players}
+        onSubmit={onSubmitGoal}
+        onDelete={handleDeleteGoal}
+        isPending={addGoal.isPending || updGoal.isPending}
+        isDeleting={delGoal.isPending}
+        error={goalError}
+      />
+
+      <AddPenaltySheet
+        open={penaltySheet.open}
+        initial={penaltySheet.initial}
+        onClose={() => {
+          setPenaltySheet({ open: false, initial: null });
+          setPenaltyError(null);
+        }}
+        isGame={isGame}
+        sideALabel={sideALabel}
+        sideBLabel={sideBLabel}
+        sideAValue={r.score.side_a}
+        sideBValue={r.score.side_b}
+        players={players}
+        onSubmit={onSubmitPenalty}
+        onDelete={handleDeletePenalty}
+        isPending={addPenalty.isPending || updPenalty.isPending}
+        isDeleting={delPenalty.isPending}
+        error={penaltyError}
+      />
 
       <EventInfoSheet
         open={infoEvent !== null}

@@ -10,6 +10,10 @@ import { AvatarStack } from '@/components/avatar-stack';
 import { ProgressBar } from '@/components/progress-bar';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { BottomSheet } from '@/components/bottom-sheet';
+import { EventHeaderBadge } from '@/components/event-header-badge';
+import { PlayerVoteCompact } from '@/components/player-vote-compact';
+import { PlayerLineupBlock } from '@/components/player-lineup-block';
+import { PlayerCompletedBlock } from '@/components/player-completed-block';
 import {
   IconBack,
   IconMore,
@@ -155,10 +159,13 @@ export default function EventDetailPage() {
 
   const { isOrganizer } = useIsOrganizer(data?.team_id);
   const canEditEvent = isOrganizer && data?.status === 'scheduled';
-  const myVote = useMemo<EventAttendee['vote'] | undefined>(() => {
-    if (!data || !me.data) return undefined;
-    return data.attendees.find((a) => a.user_id === me.data!.user.id)?.vote ?? null;
+  const myAttendee = useMemo(() => {
+    if (!data || !me.data) return null;
+    return data.attendees.find((a) => a.user_id === me.data!.user.id) ?? null;
   }, [data, me.data]);
+  const myVote = myAttendee?.vote ?? null;
+  const mySide = myAttendee?.team_side ?? null;
+  const myPaidAmount = myAttendee?.paid_amount ?? null;
 
   const goingAttendees = useMemo(() => (data?.attendees ?? []).filter((a) => a.vote === 'going'), [data]);
   const noAnswer = data ? data.team_size - data.attendance.going - data.attendance.not_going : 0;
@@ -228,10 +235,21 @@ export default function EventDetailPage() {
     </div>
   ) : null;
 
+  const isCompletedHeader = data?.status === 'completed';
+  const headerBadge =
+    !isOrganizer && isCompletedHeader ? (
+      <EventHeaderBadge tone="success" icon={<IconCheck size={14} color={colors.textInverse} />}>
+        {isTraining
+          ? t('eventDetail.player.completed.badge.training')
+          : t('eventDetail.player.completed.badge.game')}
+      </EventHeaderBadge>
+    ) : null;
+
   const renderHeader = (titleOverride?: string) => (
     <DarkHeader
       title={titleOverride ?? titleText}
       subtitle={headerSubtitle ?? undefined}
+      badge={headerBadge ?? undefined}
       imageSrc="/arena.png"
       left={
         <GlassButton ariaLabel={t('schedule.backLabel')} onClick={() => router.back()} size={40}>
@@ -418,7 +436,31 @@ export default function EventDetailPage() {
           </SectionCard>
         ) : null}
 
-        {isCompleted ? (
+        {isCompleted && !isOrganizer ? (
+          /* Player — Состояние 3: Оплата + CTA */
+          <PlayerCompletedBlock
+            isGame={!!isGame}
+            costPerPlayer={data.cost_per_player}
+            paidAmount={myPaidAmount}
+            labels={{
+              paymentLabel: t('eventDetail.player.completed.payment.label'),
+              paid: t('eventDetail.player.completed.payment.paid'),
+              partial: t('eventDetail.player.completed.payment.partial'),
+              due: t('eventDetail.player.completed.payment.due'),
+              none: t('eventDetail.player.completed.payment.none'),
+              completedTraining: t('eventDetail.player.completed.badge.training'),
+              completedGame: t('eventDetail.player.completed.badge.game'),
+              statsTitle: t('eventDetail.player.completed.cta.stats.title'),
+              statsSubtitle: t('eventDetail.player.completed.cta.stats.subtitle'),
+              mediaTitle: t('eventDetail.player.completed.cta.media.title'),
+              mediaSubtitleTraining: t('eventDetail.player.completed.cta.media.subtitleTraining'),
+              mediaSubtitleGame: t('eventDetail.player.completed.cta.media.subtitleGame'),
+            }}
+            onOpenStats={() => router.push(`/events/${id}/result`)}
+            onOpenMedia={() => router.push(`/events/${id}/media`)}
+          />
+        ) : isCompleted ? (
+          /* Organizer — завершено: компактный статус */
           <SectionCard padding={spacing['10']}>
             <span
               style={{
@@ -476,8 +518,8 @@ export default function EventDetailPage() {
               </div>
             </div>
           </SectionCard>
-        ) : (
-          /* VOTE (player — большой блок) */
+        ) : myVote == null ? (
+          /* Player — Состояние 1: большой блок голосования */
           <PlayerVoteBlock
             question={
               isTraining
@@ -486,10 +528,61 @@ export default function EventDetailPage() {
             }
             goingLabel={t('eventDetail.vote.player.going')}
             notGoingLabel={t('eventDetail.vote.player.notGoing')}
-            myVote={myVote === 'going' || myVote === 'not_going' ? myVote : null}
+            myVote={null}
             disabled={vote.isPending}
             onVote={handleVote}
           />
+        ) : (
+          /* Player — Состояние 2: компактный голос + Моё звено */
+          <>
+            <PlayerVoteCompact
+              question={
+                isTraining
+                  ? t('eventDetail.vote.player.question.training')
+                  : t('eventDetail.vote.player.question.game')
+              }
+              goingLabel={t('eventDetail.vote.player.going')}
+              notGoingLabel={t('eventDetail.vote.player.notGoing')}
+              myVote={myVote === 'going' || myVote === 'not_going' ? myVote : null}
+              disabled={vote.isPending}
+              onVote={handleVote}
+            />
+            <PlayerLineupBlock
+              myUserId={me.data?.user.id ?? ''}
+              myVote={myVote === 'going' || myVote === 'not_going' ? myVote : null}
+              mySide={mySide}
+              isGame={!!isGame}
+              attendees={data.attendees}
+              lines={data.lines}
+              labels={{
+                title: t('eventDetail.player.lineup.title'),
+                viewAll: t('eventDetail.player.lineup.viewAll'),
+                you: t('eventDetail.player.lineup.you'),
+                sideOnlyTitle: t('eventDetail.player.lineup.sideOnly.title'),
+                sideOnlyHint: t('eventDetail.player.lineup.sideOnly.hint'),
+                notInRosterTitle: t('eventDetail.player.lineup.notInRoster'),
+                notInRosterHint: t('eventDetail.player.lineup.notInRoster.hint'),
+                notGoingTitle: t('eventDetail.player.lineup.notGoing'),
+                notGoingHint: t('eventDetail.player.lineup.notGoing.hint'),
+                linePrefix: t('eventDetail.player.lineup.linePrefix'),
+                defensePrefix: t('eventDetail.player.lineup.defensePrefix'),
+                goalieLabel: t('eventDetail.player.lineup.goalie'),
+                sideLight: t('eventDetail.player.side.light'),
+                sideDark: t('eventDetail.player.side.dark'),
+                positions: {
+                  lw: t('eventDetail.player.position.lw'),
+                  c: t('eventDetail.player.position.c'),
+                  rw: t('eventDetail.player.position.rw'),
+                  ld: t('eventDetail.player.position.ld'),
+                  rd: t('eventDetail.player.position.rd'),
+                  g: t('eventDetail.player.position.g'),
+                  g1: t('eventDetail.player.position.g'),
+                  g2: t('eventDetail.player.position.g'),
+                },
+              }}
+              onOpenLineup={() => router.push(`/events/${id}/lineup`)}
+            />
+          </>
         )}
 
         {/* СОСТАВ И ЯВКА — только organizer */}

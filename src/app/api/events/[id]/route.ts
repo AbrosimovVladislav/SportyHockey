@@ -323,7 +323,6 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
         .from('venues')
         .select('id')
         .eq('id', d.venue_id)
-        .eq('team_id', ctx.team_id)
         .maybeSingle();
       if (!venue) {
         return NextResponse.json({ error: 'Площадка не найдена' }, { status: 404 });

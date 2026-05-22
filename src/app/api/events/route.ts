@@ -110,7 +110,6 @@ export async function POST(req: Request): Promise<Response> {
       .from('venues')
       .select('id, default_cost_per_player, cost_per_arena')
       .eq('id', parsed.data.venue_id)
-      .eq('team_id', ctx.team_id)
       .maybeSingle();
     if (venueErr) {
       return NextResponse.json({ error: venueErr.message }, { status: 500 });

@@ -1,26 +1,21 @@
 import { NextResponse } from 'next/server';
 import { AuthError, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
-import { getUserTeamId } from '@/lib/user-team';
 import type { VenueDto, VenuesListResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Площадки — общий справочник, не привязанный к команде. У команды будет
+// «домашняя площадка» как ссылка (teams.home_venue_id, отдельная задача),
+// но сами площадки доступны всем для выбора.
 export async function GET(req: Request): Promise<Response> {
   try {
-    const user = await requireUser(req);
-    const teamId = await getUserTeamId(user.id, req);
-    if (!teamId) {
-      const empty: VenuesListResponse = { venues: [] };
-      return NextResponse.json(empty);
-    }
-
+    await requireUser(req);
     const sb = supabaseServer();
     const { data, error } = await sb
       .from('venues')
       .select('id, name, address, default_cost_per_player, cost_per_arena')
-      .eq('team_id', teamId)
       .order('name', { ascending: true });
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

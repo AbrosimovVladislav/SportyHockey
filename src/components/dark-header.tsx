@@ -6,13 +6,14 @@ type Props = {
   title: string;
   role?: string;
   subtitle?: ReactNode;
+  badge?: ReactNode;
   left?: ReactNode;
   right?: ReactNode;
   paddingTop?: number;
   imageSrc?: string;
 };
 
-export function DarkHeader({ title, role, subtitle, left, right, paddingTop = spacing['12'], imageSrc }: Props) {
+export function DarkHeader({ title, role, subtitle, badge, left, right, paddingTop = spacing['12'], imageSrc }: Props) {
   const wrapper: CSSProperties = {
     background: imageSrc
       ? `linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.8) 100%), url(${imageSrc}) center/cover no-repeat`
@@ -63,6 +64,7 @@ export function DarkHeader({ title, role, subtitle, left, right, paddingTop = sp
         </div>
       )}
       <div style={titleGroupStyle}>
+        {badge ? <div style={{ marginBottom: spacing['8'] }}>{badge}</div> : null}
         {role ? <div style={roleStyle}>{role}</div> : null}
         <div style={titleStyle}>{title}</div>
         {subtitle ? <div style={{ marginTop: spacing['4'] }}>{subtitle}</div> : null}
