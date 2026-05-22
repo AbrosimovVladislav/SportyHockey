@@ -8,14 +8,21 @@ type Props = {
   photoUrl?: string | null;
   right?: ReactNode;
   isLast?: boolean;
+  onClick?: () => void;
 };
 
-export function PlayerRow({ name, subtitle, photoUrl, right, isLast = false }: Props) {
+export function PlayerRow({ name, subtitle, photoUrl, right, isLast = false, onClick }: Props) {
   const row: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
     padding: '12px 16px',
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    textAlign: 'left',
+    color: colors.text,
+    cursor: onClick ? 'pointer' : 'default',
   };
 
   const nameStyle: CSSProperties = {
@@ -35,16 +42,26 @@ export function PlayerRow({ name, subtitle, photoUrl, right, isLast = false }: P
     marginTop: 2,
   };
 
+  const content = (
+    <>
+      <Avatar src={photoUrl} name={name} size={46} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={nameStyle}>{name}</div>
+        {subtitle ? <div style={subtitleStyle}>{subtitle}</div> : null}
+      </div>
+      {right ? <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>{right}</div> : null}
+    </>
+  );
+
   return (
     <div>
-      <div style={row}>
-        <Avatar src={photoUrl} name={name} size={46} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={nameStyle}>{name}</div>
-          {subtitle ? <div style={subtitleStyle}>{subtitle}</div> : null}
-        </div>
-        {right ? <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>{right}</div> : null}
-      </div>
+      {onClick ? (
+        <button type="button" className="pressable" onClick={onClick} style={row}>
+          {content}
+        </button>
+      ) : (
+        <div style={row}>{content}</div>
+      )}
       {!isLast ? <div style={{ height: 1, background: colors.divider, marginLeft: 74 }} /> : null}
     </div>
   );

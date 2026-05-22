@@ -55,10 +55,17 @@ async function upsertUser(tgUser: TelegramUser): Promise<AuthedUser> {
     .select('id, telegram_id, username, first_name, last_name, photo_url')
     .single();
 
-  if (error || !data) {
+  if (error || !data || data.telegram_id == null) {
     throw new AuthError(`users upsert failed: ${error?.message ?? 'unknown'}`);
   }
-  return data;
+  return {
+    id: data.id,
+    telegram_id: data.telegram_id,
+    username: data.username,
+    first_name: data.first_name,
+    last_name: data.last_name,
+    photo_url: data.photo_url,
+  };
 }
 
 export async function requireOrganizer(req: Request): Promise<OrganizerContext> {

@@ -37,6 +37,19 @@ export const ru = {
 
   // Squad
   'squad.empty': 'В команде пока никого нет',
+  'squad.emptyFiltered': 'Никого с таким амплуа',
+  'squad.filters.all': 'Все',
+  'squad.filters.forward': 'Нападающие',
+  'squad.filters.defender': 'Защитники',
+  'squad.filters.goalie': 'Вратари',
+  'squad.sort.title': 'Сортировка',
+  'squad.sort.name': 'По имени',
+  'squad.sort.number': 'По номеру',
+  'squad.sort.label': 'Сортировка',
+  'squad.fabLabel': 'Добавить игрока',
+  'squad.position.forward': 'Нападающий',
+  'squad.position.defender': 'Защитник',
+  'squad.position.goalie': 'Вратарь',
 
   // Schedule (расписание событий)
   'schedule.role.organizer': 'Капитан',

@@ -32,6 +32,15 @@ export async function GET(req: Request): Promise<Response> {
     const organizer = memberships.find((m) => m.role === 'organizer');
     const invite_link = organizer ? buildInviteLink(organizer.team_id) : null;
 
+    const { data: profile, error: profileErr } = await sb
+      .from('users')
+      .select('avatar_url, birth_date, bio')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (profileErr) {
+      return NextResponse.json({ error: profileErr.message }, { status: 500 });
+    }
+
     const body: MeResponse = {
       user: {
         id: user.id,
@@ -40,6 +49,9 @@ export async function GET(req: Request): Promise<Response> {
         last_name: user.last_name,
         username: user.username,
         photo_url: user.photo_url,
+        avatar_url: profile?.avatar_url ?? null,
+        birth_date: profile?.birth_date ?? null,
+        bio: profile?.bio ?? null,
       },
       memberships,
       invite_link,

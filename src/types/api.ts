@@ -7,6 +7,9 @@ export type MeUser = {
   last_name: string | null;
   username: string | null;
   photo_url: string | null;
+  avatar_url: string | null;
+  birth_date: string | null;
+  bio: string | null;
 };
 
 export type MeMembership = {
@@ -30,19 +33,38 @@ export type CreateTeamResponse = {
   membership: { role: 'organizer' };
 };
 
+export type PlayerSlotRole = 'lw' | 'c' | 'rw' | 'ld' | 'rd' | 'g';
+export type MemberTier = 'main' | 'reserve';
+
 export type TeamMember = {
   user_id: string;
-  telegram_id: number;
+  telegram_id: number | null;
   first_name: string | null;
   last_name: string | null;
   username: string | null;
   photo_url: string | null;
+  avatar_url: string | null;
+  birth_date: string | null;
+  bio: string | null;
   role: MemberRole;
+  jersey_number: number | null;
+  position: PlayerPosition | null;
+  slot_role: PlayerSlotRole | null;
+  tier: MemberTier;
+  note: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  is_placeholder: boolean;
 };
 
 export type TeamMembersResponse = {
   team: { id: string; name: string };
   members: TeamMember[];
+};
+
+export type TeamMemberDetailResponse = {
+  team: { id: string; name: string };
+  member: TeamMember;
 };
 
 export type EventType = 'training' | 'game';

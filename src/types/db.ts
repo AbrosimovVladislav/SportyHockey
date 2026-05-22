@@ -475,30 +475,45 @@ export type Database = {
       }
       team_memberships: {
         Row: {
+          contact_email: string | null
+          contact_phone: string | null
           id: string
           jersey_number: number | null
           joined_at: string | null
+          note: string | null
           position: string | null
           role: string
+          slot_role: string | null
           team_id: string
+          tier: string
           user_id: string
         }
         Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
           id?: string
           jersey_number?: number | null
           joined_at?: string | null
+          note?: string | null
           position?: string | null
           role: string
+          slot_role?: string | null
           team_id: string
+          tier?: string
           user_id: string
         }
         Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
           id?: string
           jersey_number?: number | null
           joined_at?: string | null
+          note?: string | null
           position?: string | null
           role?: string
+          slot_role?: string | null
           team_id?: string
+          tier?: string
           user_id?: string
         }
         Relationships: [
@@ -541,30 +556,39 @@ export type Database = {
       }
       users: {
         Row: {
+          avatar_url: string | null
+          bio: string | null
+          birth_date: string | null
           created_at: string | null
           first_name: string | null
           id: string
           last_name: string | null
           photo_url: string | null
-          telegram_id: number
+          telegram_id: number | null
           username: string | null
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
           created_at?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           photo_url?: string | null
-          telegram_id: number
+          telegram_id?: number | null
           username?: string | null
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
           created_at?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           photo_url?: string | null
-          telegram_id?: number
+          telegram_id?: number | null
           username?: string | null
         }
         Relationships: []

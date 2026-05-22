@@ -3,10 +3,22 @@ import { AuthError, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getUserTeamId } from '@/lib/user-team';
 import { asMemberRole } from '@/lib/role';
+import { asPosition, asSlotRole, asTier } from '@/lib/team-member';
 import type { TeamMember, TeamMembersResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+type UserRow = {
+  telegram_id: number | null;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  photo_url: string | null;
+  avatar_url: string | null;
+  birth_date: string | null;
+  bio: string | null;
+};
 
 export async function GET(req: Request): Promise<Response> {
   try {
@@ -32,21 +44,20 @@ export async function GET(req: Request): Promise<Response> {
 
     const { data: memberships, error: memErr } = await sb
       .from('team_memberships')
-      .select('user_id, role')
+      .select(
+        'user_id, role, jersey_number, position, slot_role, tier, note, contact_phone, contact_email',
+      )
       .eq('team_id', team.id);
     if (memErr) {
       return NextResponse.json({ error: memErr.message }, { status: 500 });
     }
 
     const userIds = (memberships ?? []).map((m) => m.user_id);
-    let userMap = new Map<
-      string,
-      { telegram_id: number; first_name: string | null; last_name: string | null; username: string | null; photo_url: string | null }
-    >();
+    let userMap = new Map<string, UserRow>();
     if (userIds.length > 0) {
       const { data: users, error: usersErr } = await sb
         .from('users')
-        .select('id, telegram_id, first_name, last_name, username, photo_url')
+        .select('id, telegram_id, first_name, last_name, username, photo_url, avatar_url, birth_date, bio')
         .in('id', userIds);
       if (usersErr) {
         return NextResponse.json({ error: usersErr.message }, { status: 500 });
@@ -60,6 +71,9 @@ export async function GET(req: Request): Promise<Response> {
             last_name: u.last_name,
             username: u.username,
             photo_url: u.photo_url,
+            avatar_url: u.avatar_url,
+            birth_date: u.birth_date,
+            bio: u.bio,
           },
         ]),
       );
@@ -69,12 +83,23 @@ export async function GET(req: Request): Promise<Response> {
       const u = userMap.get(m.user_id);
       return {
         user_id: m.user_id,
-        telegram_id: u?.telegram_id ?? 0,
+        telegram_id: u?.telegram_id ?? null,
         first_name: u?.first_name ?? null,
         last_name: u?.last_name ?? null,
         username: u?.username ?? null,
         photo_url: u?.photo_url ?? null,
+        avatar_url: u?.avatar_url ?? null,
+        birth_date: u?.birth_date ?? null,
+        bio: u?.bio ?? null,
         role: asMemberRole(m.role),
+        jersey_number: m.jersey_number ?? null,
+        position: asPosition(m.position),
+        slot_role: asSlotRole(m.slot_role),
+        tier: asTier(m.tier),
+        note: m.note ?? null,
+        contact_phone: m.contact_phone ?? null,
+        contact_email: m.contact_email ?? null,
+        is_placeholder: u?.telegram_id == null,
       };
     });
 
