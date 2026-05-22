@@ -38,6 +38,13 @@ export const ru = {
   // Squad
   'squad.empty': 'В команде пока никого нет',
   'squad.emptyFiltered': 'Никого с таким амплуа',
+  'squad.tabs.list': 'Список',
+  'squad.tabs.lines': 'Звенья',
+  'squad.tabs.sides': 'Светлые/Тёмные',
+  'squad.tabs.lines.soonTitle': 'Звенья — скоро',
+  'squad.tabs.lines.soonDescription': 'Дефолтная схема звеньев команды появится в следующей итерации',
+  'squad.tabs.sides.soonTitle': 'Светлые/Тёмные — скоро',
+  'squad.tabs.sides.soonDescription': 'Дефолтное распределение на тренировки появится в следующей итерации',
   'squad.filters.all': 'Все',
   'squad.filters.forward': 'Нападающие',
   'squad.filters.defender': 'Защитники',
