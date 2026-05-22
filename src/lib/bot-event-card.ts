@@ -13,7 +13,6 @@ export type BotEventCardArgs = {
   cost_per_player: number | null;
   opponent_name: string | null;
   my_vote: BotEventVote;
-  with_reminder_prefix?: boolean;
 };
 
 const dateFmt = new Intl.DateTimeFormat('ru-RU', {
@@ -54,10 +53,6 @@ export function buildEventCard(args: BotEventCardArgs): {
       : 'Тренировка');
 
   const lines: string[] = [];
-  if (args.with_reminder_prefix) {
-    lines.push('⏰ Голосование закрывается — успей ответить');
-    lines.push('');
-  }
   lines.push(`🏒 ${titleSource}`);
   lines.push(formatDateLine(args.starts_at, args.ends_at));
   if (args.venue_name) lines.push(`📍 ${args.venue_name}`);

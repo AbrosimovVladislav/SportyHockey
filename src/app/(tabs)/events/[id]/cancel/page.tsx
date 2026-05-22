@@ -125,7 +125,7 @@ export default function EventCancelPage() {
     : isGame
       ? t('reschedule.summary.game')
       : t('reschedule.summary.training');
-  const venueName = data.venue?.name ?? data.venue_text ?? null;
+  const venueName = data.venue?.name ?? null;
 
   const notifyCount = data.team_size;
   const refundsCount = data.payments.paid_count + data.payments.partial_count;

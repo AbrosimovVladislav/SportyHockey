@@ -2,6 +2,7 @@
 
 import { useMemo, type CSSProperties } from 'react';
 import { Avatar } from '@/components/avatar';
+import { AvatarStack } from '@/components/avatar-stack';
 import { Chip } from '@/components/chip';
 import { IconChevronRight } from '@/components/icons';
 import { formatName } from '@/lib/format-name';
@@ -25,7 +26,7 @@ type Labels = {
   title: string;
   viewAll: string;
   you: string;
-  sideOnlyTitle: string;
+  sideOnlyTitleTemplate: string;
   sideOnlyHint: string;
   notInRosterTitle: string;
   notInRosterHint: string;
@@ -93,14 +94,18 @@ export function PlayerLineupBlock({
 
   if (!myLine) {
     if (mySide) {
+      const mates = attendees.filter(
+        (a) => a.team_side === mySide && a.user_id !== myUserId,
+      );
       return (
         <SideOnlyCard
           mySide={mySide}
-          title={labels.sideOnlyTitle}
+          titleTemplate={labels.sideOnlyTitleTemplate}
           hint={labels.sideOnlyHint}
           isGame={isGame}
           sideLightLabel={labels.sideLight}
           sideDarkLabel={labels.sideDark}
+          mates={mates}
         />
       );
     }
@@ -281,14 +286,25 @@ function SlotCard({ name, photoUrl, role, isMe, youLabel }: SlotCardProps) {
 
 type SideOnlyCardProps = {
   mySide: TeamSide;
-  title: string;
+  titleTemplate: string;
   hint: string;
   isGame: boolean;
   sideLightLabel: string;
   sideDarkLabel: string;
+  mates: EventAttendee[];
 };
 
-function SideOnlyCard({ mySide, title, hint, isGame, sideLightLabel, sideDarkLabel }: SideOnlyCardProps) {
+const SIDE_MAX = 6;
+
+function SideOnlyCard({
+  mySide,
+  titleTemplate,
+  hint,
+  isGame,
+  sideLightLabel,
+  sideDarkLabel,
+  mates,
+}: SideOnlyCardProps) {
   const card: CSSProperties = {
     background: colors.bg,
     borderRadius: radius.lg,
@@ -299,14 +315,20 @@ function SideOnlyCard({ mySide, title, hint, isGame, sideLightLabel, sideDarkLab
     gap: spacing['12'],
   };
   const sideLabel = isGame
-    ? title
+    ? sideLightLabel
     : mySide === 'light'
       ? sideLightLabel
       : sideDarkLabel;
+  const title = titleTemplate.replace('{side}', sideLabel);
+  const items = mates.map((a) => ({ src: a.photo_url, name: formatName(a) }));
   return (
     <div style={card}>
-      <span style={{ fontSize: 18, fontWeight: 800, color: colors.text }}>{title}</span>
-      <Chip tone={mySide === 'dark' ? 'dark' : 'neutral'}>{sideLabel}</Chip>
+      <span style={{ fontSize: 18, fontWeight: 800, color: colors.text, lineHeight: 1.25 }}>
+        {title}
+      </span>
+      {items.length > 0 ? (
+        <AvatarStack items={items} size={44} overlap={12} max={SIDE_MAX} />
+      ) : null}
       <span style={{ fontSize: 13, color: colors.textSecondary }}>{hint}</span>
     </div>
   );

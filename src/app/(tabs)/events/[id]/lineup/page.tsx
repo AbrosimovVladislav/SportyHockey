@@ -173,7 +173,7 @@ export default function EventLineupPage() {
     else router.push(`/events/${id}`);
   };
 
-  const venueName = data?.venue?.name ?? data?.venue_text ?? '';
+  const venueName = data?.venue?.name ?? '';
   const subtitle = data
     ? [formatEventDateRange(data.starts_at, data.ends_at), venueName].filter(Boolean).join(' · ')
     : '';

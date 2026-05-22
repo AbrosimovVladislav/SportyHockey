@@ -224,7 +224,7 @@ export default function EventDetailPage() {
       ? t('eventDetail.title.training')
       : t('eventDetail.title.game');
 
-  const venueName = data?.venue?.name ?? data?.venue_text ?? '';
+  const venueName = data?.venue?.name ?? '';
   const venueAddress = data?.venue?.address ?? null;
   const hasVenue = Boolean(venueName);
 
@@ -443,13 +443,10 @@ export default function EventDetailPage() {
             costPerPlayer={data.cost_per_player}
             paidAmount={myPaidAmount}
             labels={{
-              paymentLabel: t('eventDetail.player.completed.payment.label'),
               paid: t('eventDetail.player.completed.payment.paid'),
               partial: t('eventDetail.player.completed.payment.partial'),
               due: t('eventDetail.player.completed.payment.due'),
-              none: t('eventDetail.player.completed.payment.none'),
-              completedTraining: t('eventDetail.player.completed.badge.training'),
-              completedGame: t('eventDetail.player.completed.badge.game'),
+              partialOf: t('eventDetail.player.completed.payment.partialOf'),
               statsTitle: t('eventDetail.player.completed.cta.stats.title'),
               statsSubtitle: t('eventDetail.player.completed.cta.stats.subtitle'),
               mediaTitle: t('eventDetail.player.completed.cta.media.title'),
@@ -558,7 +555,7 @@ export default function EventDetailPage() {
                 title: t('eventDetail.player.lineup.title'),
                 viewAll: t('eventDetail.player.lineup.viewAll'),
                 you: t('eventDetail.player.lineup.you'),
-                sideOnlyTitle: t('eventDetail.player.lineup.sideOnly.title'),
+                sideOnlyTitleTemplate: t('eventDetail.player.lineup.sideOnly.title'),
                 sideOnlyHint: t('eventDetail.player.lineup.sideOnly.hint'),
                 notInRosterTitle: t('eventDetail.player.lineup.notInRoster'),
                 notInRosterHint: t('eventDetail.player.lineup.notInRoster.hint'),

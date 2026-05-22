@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties, ReactNode } from 'react';
-import { IconCheck, IconChevronRight, IconImage, IconStats } from '@/components/icons';
+import { IconCheck, IconChevronRight, IconImage, IconRuble, IconStats } from '@/components/icons';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
@@ -13,13 +13,10 @@ type Props = {
   costPerPlayer: number | null;
   paidAmount: number | null;
   labels: {
-    paymentLabel: string;
     paid: string;
     partial: string;
     due: string;
-    none: string;
-    completedTraining: string;
-    completedGame: string;
+    partialOf: string;
     statsTitle: string;
     statsSubtitle: string;
     mediaTitle: string;
@@ -36,14 +33,15 @@ function formatRub(n: number): string {
 
 function computeStatus(cost: number | null, paid: number | null): {
   status: PaymentStatus;
-  amount: number;
+  paid: number;
+  cost: number;
 } {
   const c = cost ?? 0;
   const p = paid ?? 0;
-  if (c <= 0) return { status: 'none', amount: 0 };
-  if (p <= 0) return { status: 'unpaid', amount: c };
-  if (p < c) return { status: 'partial', amount: p };
-  return { status: 'paid', amount: p };
+  if (c <= 0) return { status: 'none', paid: p, cost: c };
+  if (p <= 0) return { status: 'unpaid', paid: p, cost: c };
+  if (p < c) return { status: 'partial', paid: p, cost: c };
+  return { status: 'paid', paid: p, cost: c };
 }
 
 export function PlayerCompletedBlock({
@@ -54,7 +52,8 @@ export function PlayerCompletedBlock({
   onOpenStats,
   onOpenMedia,
 }: Props) {
-  const { status, amount } = computeStatus(costPerPlayer, paidAmount);
+  const payment = computeStatus(costPerPlayer, paidAmount);
+  const mediaSubtitle = isGame ? labels.mediaSubtitleGame : labels.mediaSubtitleTraining;
 
   const card: CSSProperties = {
     background: colors.bg,
@@ -63,33 +62,22 @@ export function PlayerCompletedBlock({
     boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['16'],
+    gap: spacing['12'],
   };
-
-  const completedLabel = isGame ? labels.completedGame : labels.completedTraining;
-  const mediaSubtitle = isGame ? labels.mediaSubtitleGame : labels.mediaSubtitleTraining;
 
   return (
     <div style={card}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: spacing['16'],
-        }}
-      >
-        <PaymentSection
-          status={status}
-          amount={amount}
-          label={labels.paymentLabel}
-          paidText={labels.paid}
-          partialText={labels.partial}
-          dueText={labels.due}
-          noneText={labels.none}
+      {payment.status !== 'none' ? (
+        <PaymentBanner
+          status={payment.status}
+          paid={payment.paid}
+          cost={payment.cost}
+          paidLabel={labels.paid}
+          partialLabel={labels.partial}
+          dueLabel={labels.due}
+          partialOfTemplate={labels.partialOf}
         />
-        <CompletedBadge label={completedLabel} />
-      </div>
+      ) : null}
 
       <CtaButton
         variant="primary"
@@ -109,102 +97,100 @@ export function PlayerCompletedBlock({
   );
 }
 
-function PaymentSection({
+function PaymentBanner({
   status,
-  amount,
-  label,
-  paidText,
-  partialText,
-  dueText,
-  noneText,
+  paid,
+  cost,
+  paidLabel,
+  partialLabel,
+  dueLabel,
+  partialOfTemplate,
 }: {
-  status: PaymentStatus;
-  amount: number;
-  label: string;
-  paidText: string;
-  partialText: string;
-  dueText: string;
-  noneText: string;
+  status: Exclude<PaymentStatus, 'none'>;
+  paid: number;
+  cost: number;
+  paidLabel: string;
+  partialLabel: string;
+  dueLabel: string;
+  partialOfTemplate: string;
 }) {
-  const statusText =
-    status === 'paid'
-      ? paidText
-      : status === 'partial'
-        ? partialText
-        : status === 'unpaid'
-          ? dueText
-          : noneText;
-  const amountColor =
-    status === 'paid'
-      ? colors.primary
-      : status === 'unpaid'
-        ? colors.error
-        : status === 'partial'
-          ? colors.warning
-          : colors.textTertiary;
+  const tone = {
+    paid: {
+      bg: colors.successBg,
+      text: colors.successText,
+      iconColor: colors.successText,
+      icon: <IconCheck size={20} color={colors.successText} />,
+    },
+    partial: {
+      bg: colors.warningBg,
+      text: colors.warningText,
+      iconColor: colors.warningText,
+      icon: <IconRuble size={20} color={colors.warningText} />,
+    },
+    unpaid: {
+      bg: colors.errorBg,
+      text: colors.errorText,
+      iconColor: colors.errorText,
+      icon: <IconRuble size={20} color={colors.errorText} />,
+    },
+  }[status];
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
-      <span style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>{label}</span>
-      {status === 'none' ? (
-        <span style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>{statusText}</span>
-      ) : (
-        <>
-          <span
-            style={{
-              fontSize: 28,
-              fontWeight: 800,
-              color: amountColor,
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.5px',
-              lineHeight: 1.1,
-              marginTop: 4,
-            }}
-          >
-            {formatRub(amount)} ₽
-          </span>
-          <span style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>{statusText}</span>
-        </>
-      )}
-    </div>
-  );
-}
-
-function CompletedBadge({ label }: { label: string }) {
-  const wrap: CSSProperties = {
+  const banner: CSSProperties = {
     display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
-    gap: spacing['6'],
-    flexShrink: 0,
-    maxWidth: 96,
+    gap: spacing['12'],
+    padding: `${spacing['12']}px ${spacing['16']}px`,
+    background: tone.bg,
+    borderRadius: radius.md,
   };
-  const circle: CSSProperties = {
-    width: 56,
-    height: 56,
+
+  const iconWrap: CSSProperties = {
+    width: 36,
+    height: 36,
     borderRadius: '50%',
-    background: colors.primaryLight,
-    color: colors.primary,
+    background: 'rgba(255,255,255,0.6)',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   };
+
+  const label =
+    status === 'paid'
+      ? paidLabel
+      : status === 'partial'
+        ? partialLabel
+        : dueLabel;
+
+  const amountText =
+    status === 'partial'
+      ? partialOfTemplate
+          .replace('{paid}', formatRub(paid))
+          .replace('{cost}', formatRub(cost))
+      : status === 'paid'
+        ? `${formatRub(paid)} ₽`
+        : `${formatRub(cost)} ₽`;
+
   return (
-    <div style={wrap}>
-      <span style={circle}>
-        <IconCheck size={28} color={colors.primary} />
-      </span>
-      <span
-        style={{
-          fontSize: 12,
-          fontWeight: 500,
-          color: colors.textSecondary,
-          textAlign: 'center',
-          lineHeight: 1.25,
-        }}
-      >
-        {label}
-      </span>
+    <div style={banner}>
+      <span style={iconWrap}>{tone.icon}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: tone.text, lineHeight: 1.25 }}>
+          {label}
+        </span>
+        <span
+          style={{
+            fontSize: 20,
+            fontWeight: 800,
+            color: tone.text,
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: '-0.3px',
+            lineHeight: 1.15,
+          }}
+        >
+          {amountText}
+        </span>
+      </div>
     </div>
   );
 }

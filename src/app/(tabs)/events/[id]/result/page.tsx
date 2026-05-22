@@ -109,7 +109,7 @@ export default function EventResultPage() {
     else router.push(`/events/${id}`);
   };
 
-  const venueName = ev.data?.venue?.name ?? ev.data?.venue_text ?? '';
+  const venueName = ev.data?.venue?.name ?? '';
   const subtitle = ev.data
     ? [formatEventDateRange(ev.data.starts_at, ev.data.ends_at), venueName]
         .filter(Boolean)

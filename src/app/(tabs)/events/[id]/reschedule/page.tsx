@@ -3,11 +3,10 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LightHeader } from '@/components/light-header';
-import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
+import { VenueSelectSheet } from '@/components/venue-select-sheet';
 import { CardField } from '@/components/card-field';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
-import { Textarea } from '@/components/textarea';
 import { EventSummaryCard } from '@/components/event-summary-card';
 import { InfoListCard } from '@/components/info-list-card';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
@@ -128,11 +127,9 @@ type FormState = {
   durationStr: string;
   venueId: string | null;
   title: string;
-  description: string;
 };
 
 const TITLE_LIMIT = 100;
-const DESCRIPTION_LIMIT = 2000;
 
 export default function EventReschedulePage() {
   const t = useT();
@@ -156,7 +153,6 @@ export default function EventReschedulePage() {
       durationStr: minutesToDurationStr(durationMinutes(data.starts_at, data.ends_at)),
       venueId: data.venue?.id ?? null,
       title: data.title ?? '',
-      description: data.description ?? '',
     };
   }, [data]);
 
@@ -260,7 +256,7 @@ export default function EventReschedulePage() {
     : isGame
       ? t('reschedule.summary.game')
       : t('reschedule.summary.training');
-  const venueName = data.venue?.name ?? data.venue_text ?? null;
+  const venueName = data.venue?.name ?? null;
 
   const notifyCount = data.attendees.filter(
     (a) => a.vote === 'going' || a.vote === 'maybe',
@@ -295,17 +291,14 @@ export default function EventReschedulePage() {
   const durationMins = durationStrToMinutes(form.durationStr);
   const initialMins = durationStrToMinutes(initialForm!.durationStr);
   const titleTrimmed = form.title.trim();
-  const descriptionTrimmed = form.description.trim();
   const initialTitleTrimmed = initialForm!.title.trim();
-  const initialDescriptionTrimmed = initialForm!.description.trim();
   const scheduleChanged =
     form.date !== initialForm!.date ||
     form.time !== initialForm!.time ||
     durationMins !== initialMins;
   const venueChanged = form.venueId !== initialForm!.venueId;
   const titleChanged = titleTrimmed !== initialTitleTrimmed;
-  const descriptionChanged = descriptionTrimmed !== initialDescriptionTrimmed;
-  const changed = scheduleChanged || venueChanged || titleChanged || descriptionChanged;
+  const changed = scheduleChanged || venueChanged || titleChanged;
 
   const valid =
     Boolean(form.date) && Boolean(form.time) && durationMins > 0 && Boolean(form.venueId);
@@ -325,9 +318,6 @@ export default function EventReschedulePage() {
     }
     if (titleChanged) {
       body.title = titleTrimmed ? titleTrimmed : null;
-    }
-    if (descriptionChanged) {
-      body.description = descriptionTrimmed ? descriptionTrimmed : null;
     }
     update.mutate(body, {
       onSuccess: () => router.replace(`/events/${id}`),
@@ -427,25 +417,6 @@ export default function EventReschedulePage() {
           />
         </div>
 
-        <div>
-          <div style={fieldLabel}>{t('reschedule.fields.description')}</div>
-          <Textarea
-            value={form.description}
-            onChange={(e) =>
-              setField('description', e.currentTarget.value.slice(0, DESCRIPTION_LIMIT))
-            }
-            placeholder={t('reschedule.fields.description.placeholder')}
-            maxLength={DESCRIPTION_LIMIT}
-            rows={3}
-            style={{
-              background: colors.bg,
-              border: `1px solid ${colors.divider}`,
-              minHeight: 88,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-            }}
-          />
-        </div>
-
         <InfoListCard
           title={t('reschedule.changes.title')}
           items={changesItems}
@@ -477,46 +448,13 @@ export default function EventReschedulePage() {
         </Button>
       </div>
 
-      <BottomSheet
+      <VenueSelectSheet
         open={venueOpen}
         onClose={() => setVenueOpen(false)}
-        title={t('eventNew.sheet.venue.title')}
-      >
-        {venues.length === 0 ? (
-          <div
-            style={{
-              padding: `${spacing['16']}px ${spacing['4']}px`,
-              color: colors.textSecondary,
-              fontSize: 14,
-            }}
-          >
-            {t('eventNew.empty.venues')}
-          </div>
-        ) : (
-          venues.map((v) => {
-            const hintParts: string[] = [];
-            if (v.cost_per_arena != null) {
-              hintParts.push(`${v.cost_per_arena.toLocaleString('ru-RU')} ₽ аренда`);
-            }
-            if (v.default_cost_per_player != null) {
-              hintParts.push(`${v.default_cost_per_player.toLocaleString('ru-RU')} ₽ с игрока`);
-            }
-            const hint = hintParts.length > 0 ? hintParts.join(' · ') : v.address ?? undefined;
-            return (
-              <BottomSheetOption
-                key={v.id}
-                label={v.name}
-                hint={hint}
-                active={form.venueId === v.id}
-                onClick={() => {
-                  setField('venueId', v.id);
-                  setVenueOpen(false);
-                }}
-              />
-            );
-          })
-        )}
-      </BottomSheet>
+        venues={venues}
+        activeId={form.venueId}
+        onSelect={(id) => setField('venueId', id)}
+      />
     </div>
   );
 }

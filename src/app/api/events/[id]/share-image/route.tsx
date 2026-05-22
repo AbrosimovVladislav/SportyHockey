@@ -52,7 +52,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: ev } = await sb
       .from('events')
       .select(
-        'id, team_id, type, starts_at, opponent_name, venue_text, venue:venues(name)',
+        'id, team_id, type, starts_at, opponent_name, venue:venues(name)',
       )
       .eq('id', id)
       .maybeSingle();
@@ -73,7 +73,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const ownTeamName = team?.name ?? '';
     const isGame = asEventType(ev.type) === 'game';
     const venueName =
-      (Array.isArray(ev.venue) ? ev.venue[0]?.name : ev.venue?.name) ?? ev.venue_text ?? '';
+      (Array.isArray(ev.venue) ? ev.venue[0]?.name : ev.venue?.name) ?? '';
 
     const { side_a, side_b } = sidesForEventType(isGame);
     const sideALabel = isGame ? ownTeamName || TEXT.sideOwn : TEXT.sideLight;

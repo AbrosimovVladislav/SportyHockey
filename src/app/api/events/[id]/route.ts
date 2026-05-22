@@ -59,7 +59,6 @@ const UpdateBody = z.object({
   duration_minutes: z.number().int().positive().max(720).optional(),
   venue_id: z.string().uuid().optional(),
   title: z.string().trim().min(1).max(100).nullable().optional(),
-  description: z.string().trim().max(2000).nullable().optional(),
   cost_per_player: z.number().nonnegative().nullable().optional(),
   arena_cost: z.number().nonnegative().nullable().optional(),
   opponent_name: z.string().trim().max(100).nullable().optional(),
@@ -78,7 +77,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: event, error } = await sb
       .from('events')
       .select(
-        'id, team_id, type, title, starts_at, ends_at, venue_text, cost_per_player, arena_cost, opponent_name, status, description, created_by, cancelled_reason, venue:venues(id, name, address)',
+        'id, team_id, type, title, starts_at, ends_at, cost_per_player, arena_cost, opponent_name, status, created_by, cancelled_reason, venue:venues(id, name, address)',
       )
       .eq('id', id)
       .maybeSingle();
@@ -248,12 +247,10 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       starts_at: event.starts_at,
       ends_at: event.ends_at,
       venue: pickVenue(event.venue as VenueRow | VenueRow[] | null),
-      venue_text: event.venue_text,
       cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
       arena_cost: event.arena_cost != null ? Number(event.arena_cost) : null,
       opponent_name: event.opponent_name ?? null,
       status: effectiveEventStatus(event.status, event.ends_at),
-      description: event.description,
       created_by: event.created_by,
       attendance: attendanceMap.get(event.id) ?? { going: 0, maybe: 0, not_going: 0 },
       team_size: attendees.length,
@@ -300,9 +297,6 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
 
     if (d.type !== undefined) patch.type = d.type;
     if (d.title !== undefined) patch.title = d.title;
-    if (d.description !== undefined) {
-      patch.description = d.description && d.description.length > 0 ? d.description : null;
-    }
     if (d.cost_per_player !== undefined) patch.cost_per_player = d.cost_per_player;
     if (d.arena_cost !== undefined) patch.arena_cost = d.arena_cost;
     if (d.opponent_name !== undefined) {

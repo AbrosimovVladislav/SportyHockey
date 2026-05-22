@@ -79,7 +79,6 @@ export type EventDto = {
   starts_at: string;
   ends_at: string | null;
   venue: EventVenue | null;
-  venue_text: string | null;
   cost_per_player: number | null;
   arena_cost: number | null;
   opponent_name: string | null;
@@ -135,7 +134,6 @@ export type EventPaymentSummary = {
 
 export type EventDetailDto = EventDto & {
   team_id: string;
-  description: string | null;
   created_by: string | null;
   team_size: number;
   attendees: EventAttendee[];
@@ -155,8 +153,6 @@ export type MediaUploader = {
 export type MediaItemDto = {
   id: string;
   url: string;
-  width: number | null;
-  height: number | null;
   mime_type: string | null;
   created_at: string;
   uploaded_by: MediaUploader | null;

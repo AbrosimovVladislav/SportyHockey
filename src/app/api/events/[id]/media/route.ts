@@ -65,7 +65,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: rows, error: rowsErr } = await sb
       .from('media_items')
       .select(
-        'id, storage_path, width, height, mime_type, created_at, uploaded_by, uploader:users!media_items_uploaded_by_fkey(id, first_name, last_name, photo_url)',
+        'id, storage_path, mime_type, created_at, uploaded_by, uploader:users!media_items_uploaded_by_fkey(id, first_name, last_name, photo_url)',
       )
       .eq('event_id', event.id)
       .order('created_at', { ascending: false });
@@ -78,8 +78,6 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       return {
         id: r.id,
         url: buildPublicUrl(sb, r.storage_path),
-        width: r.width,
-        height: r.height,
         mime_type: r.mime_type ?? null,
         created_at: r.created_at ?? new Date().toISOString(),
         uploaded_by: u
@@ -153,8 +151,6 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
     const items: MediaItemDto[] = inserted.map((r) => ({
       id: r.id,
       url: buildPublicUrl(sb, r.storage_path),
-      width: null,
-      height: null,
       mime_type: r.mime_type ?? null,
       created_at: r.created_at ?? new Date().toISOString(),
       uploaded_by: {

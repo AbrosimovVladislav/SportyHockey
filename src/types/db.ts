@@ -16,43 +16,31 @@ export type Database = {
     Tables: {
       event_attendances: {
         Row: {
-          assists: number | null
           event_id: string
-          goals: number | null
           id: string
-          notes: string | null
-          paid_amount: number | null
           payment_claim: boolean
           showed_up: boolean | null
-          team_color: string | null
+          team_side: string | null
           user_id: string
           vote: string | null
           voted_at: string | null
         }
         Insert: {
-          assists?: number | null
           event_id: string
-          goals?: number | null
           id?: string
-          notes?: string | null
-          paid_amount?: number | null
           payment_claim?: boolean
           showed_up?: boolean | null
-          team_color?: string | null
+          team_side?: string | null
           user_id: string
           vote?: string | null
           voted_at?: string | null
         }
         Update: {
-          assists?: number | null
           event_id?: string
-          goals?: number | null
           id?: string
-          notes?: string | null
-          paid_amount?: number | null
           payment_claim?: boolean
           showed_up?: boolean | null
-          team_color?: string | null
+          team_side?: string | null
           user_id?: string
           vote?: string | null
           voted_at?: string | null
@@ -299,7 +287,6 @@ export type Database = {
           cost_per_player: number | null
           created_at: string | null
           created_by: string | null
-          description: string | null
           ends_at: string | null
           id: string
           opponent_name: string | null
@@ -309,8 +296,6 @@ export type Database = {
           title: string | null
           type: string
           venue_id: string | null
-          venue_text: string | null
-          visibility: string | null
         }
         Insert: {
           arena_cost?: number | null
@@ -318,7 +303,6 @@ export type Database = {
           cost_per_player?: number | null
           created_at?: string | null
           created_by?: string | null
-          description?: string | null
           ends_at?: string | null
           id?: string
           opponent_name?: string | null
@@ -328,8 +312,6 @@ export type Database = {
           title?: string | null
           type: string
           venue_id?: string | null
-          venue_text?: string | null
-          visibility?: string | null
         }
         Update: {
           arena_cost?: number | null
@@ -337,7 +319,6 @@ export type Database = {
           cost_per_player?: number | null
           created_at?: string | null
           created_by?: string | null
-          description?: string | null
           ends_at?: string | null
           id?: string
           opponent_name?: string | null
@@ -347,8 +328,6 @@ export type Database = {
           title?: string | null
           type?: string
           venue_id?: string | null
-          venue_text?: string | null
-          visibility?: string | null
         }
         Relationships: [
           {
@@ -443,38 +422,32 @@ export type Database = {
         Row: {
           created_at: string | null
           event_id: string | null
-          height: number | null
           id: string
           mime_type: string | null
           storage_path: string
           team_id: string
           type: string | null
           uploaded_by: string | null
-          width: number | null
         }
         Insert: {
           created_at?: string | null
           event_id?: string | null
-          height?: number | null
           id?: string
           mime_type?: string | null
           storage_path: string
           team_id: string
           type?: string | null
           uploaded_by?: string | null
-          width?: number | null
         }
         Update: {
           created_at?: string | null
           event_id?: string | null
-          height?: number | null
           id?: string
           mime_type?: string | null
           storage_path?: string
           team_id?: string
           type?: string | null
           uploaded_by?: string | null
-          width?: number | null
         }
         Relationships: [
           {
@@ -605,7 +578,6 @@ export type Database = {
           id: string
           name: string
           notes: string | null
-          team_id: string
         }
         Insert: {
           address?: string | null
@@ -615,7 +587,6 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
-          team_id: string
         }
         Update: {
           address?: string | null
@@ -625,17 +596,8 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
-          team_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "venues_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {

@@ -104,7 +104,7 @@ export default function EventMediaPage() {
   const data = ev.data;
   const isGame = data.type === 'game';
   const title = isGame ? t('media.title.game') : t('media.title.training');
-  const venueName = data.venue?.name ?? data.venue_text ?? '';
+  const venueName = data.venue?.name ?? '';
   const subtitleText = [
     formatEventDateRange(data.starts_at, data.ends_at),
     venueName,
