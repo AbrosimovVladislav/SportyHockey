@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { AuthError, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
+import { getUserTeamId } from '@/lib/user-team';
 import { asMemberRole } from '@/lib/role';
 import type { TeamMember, TeamMembersResponse } from '@/types/api';
 
@@ -12,23 +13,15 @@ export async function GET(req: Request): Promise<Response> {
     const user = await requireUser(req);
     const sb = supabaseServer();
 
-    const { data: myMem, error: myMemErr } = await sb
-      .from('team_memberships')
-      .select('team_id')
-      .eq('user_id', user.id)
-      .limit(1)
-      .maybeSingle();
-    if (myMemErr) {
-      return NextResponse.json({ error: myMemErr.message }, { status: 500 });
-    }
-    if (!myMem) {
+    const teamId = await getUserTeamId(user.id, req);
+    if (!teamId) {
       return NextResponse.json({ error: 'Команды нет' }, { status: 404 });
     }
 
     const { data: team, error: teamErr } = await sb
       .from('teams')
       .select('id, name')
-      .eq('id', myMem.team_id)
+      .eq('id', teamId)
       .single();
     if (teamErr || !team) {
       return NextResponse.json(

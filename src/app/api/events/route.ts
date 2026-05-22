@@ -39,7 +39,7 @@ function pickVenue(raw: VenueRow | VenueRow[] | null | undefined): EventVenue | 
 export async function GET(req: Request): Promise<Response> {
   try {
     const user = await requireUser(req);
-    const teamId = await getUserTeamId(user.id);
+    const teamId = await getUserTeamId(user.id, req);
     if (!teamId) {
       const empty: EventsListResponse = { team_size: 0, events: [] };
       return NextResponse.json(empty);

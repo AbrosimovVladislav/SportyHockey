@@ -64,6 +64,25 @@ async function upsertUser(tgUser: TelegramUser): Promise<AuthedUser> {
 export async function requireOrganizer(req: Request): Promise<OrganizerContext> {
   const user = await requireUser(req);
   const sb = supabaseServer();
+  const activeTeamId = req.headers.get('x-team-id');
+
+  if (activeTeamId) {
+    const { data, error } = await sb
+      .from('team_memberships')
+      .select('team_id')
+      .eq('user_id', user.id)
+      .eq('team_id', activeTeamId)
+      .eq('role', 'organizer')
+      .maybeSingle();
+    if (error) {
+      throw new Error(`organizer check failed: ${error.message}`);
+    }
+    if (!data) {
+      throw new AuthError('Только организатор команды', 403);
+    }
+    return { ...user, team_id: data.team_id };
+  }
+
   const { data, error } = await sb
     .from('team_memberships')
     .select('team_id')
@@ -78,6 +97,38 @@ export async function requireOrganizer(req: Request): Promise<OrganizerContext> 
     throw new AuthError('Только организатор команды', 403);
   }
   return { ...user, team_id: data.team_id };
+}
+
+export async function resolveActiveTeamId(
+  req: Request,
+  userId: string,
+): Promise<string | null> {
+  const sb = supabaseServer();
+  const activeTeamId = req.headers.get('x-team-id');
+
+  if (activeTeamId) {
+    const { data, error } = await sb
+      .from('team_memberships')
+      .select('team_id')
+      .eq('user_id', userId)
+      .eq('team_id', activeTeamId)
+      .maybeSingle();
+    if (error) {
+      throw new Error(`team check failed: ${error.message}`);
+    }
+    if (data) return data.team_id;
+  }
+
+  const { data, error } = await sb
+    .from('team_memberships')
+    .select('team_id')
+    .eq('user_id', userId)
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`team lookup failed: ${error.message}`);
+  }
+  return data?.team_id ?? null;
 }
 
 export async function assertTeamMember(userId: string, teamId: string): Promise<void> {

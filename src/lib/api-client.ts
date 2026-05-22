@@ -1,6 +1,7 @@
 'use client';
 
 import { retrieveRawInitData } from '@telegram-apps/sdk-react';
+import { getActiveTeamIdSnapshot } from '@/store/active-team';
 
 export class ApiError extends Error {
   constructor(
@@ -24,6 +25,9 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   const baseHeaders: Record<string, string> = isFormData
     ? {}
     : { 'Content-Type': 'application/json' };
+
+  const activeTeamId = getActiveTeamIdSnapshot();
+  if (activeTeamId) baseHeaders['X-Team-Id'] = activeTeamId;
 
   const res = await fetch(path, {
     ...init,
@@ -50,9 +54,15 @@ export async function apiFetchBlob(path: string, init?: RequestInit): Promise<Bl
     // вне Telegram — initData пустой; сервер вернёт 401
   }
 
+  const activeTeamId = getActiveTeamIdSnapshot();
+  const extraHeaders: Record<string, string> = activeTeamId
+    ? { 'X-Team-Id': activeTeamId }
+    : {};
+
   const res = await fetch(path, {
     ...init,
     headers: {
+      ...extraHeaders,
       ...init?.headers,
       Authorization: `tma ${initData}`,
     },

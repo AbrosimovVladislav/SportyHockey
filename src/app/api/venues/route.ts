@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request): Promise<Response> {
   try {
     const user = await requireUser(req);
-    const teamId = await getUserTeamId(user.id);
+    const teamId = await getUserTeamId(user.id, req);
     if (!teamId) {
       const empty: VenuesListResponse = { venues: [] };
       return NextResponse.json(empty);

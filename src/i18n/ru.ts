@@ -30,6 +30,7 @@ export const ru = {
   'profile.team': 'Команда',
   'profile.role.organizer': 'Организатор',
   'profile.role.player': 'Игрок',
+  'profile.teamSwitcher.header': 'Активная команда',
   'profile.copyInvite': 'Скопировать ссылку приглашения',
   'profile.copyInviteHint': 'Перешли её игрокам — они нажмут и попадут в команду.',
   'profile.copied': 'Скопировано',
