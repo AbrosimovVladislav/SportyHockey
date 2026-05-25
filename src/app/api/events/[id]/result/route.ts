@@ -81,9 +81,10 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     }
 
     const { data: goalRows, error: goalErr } = await sb
-      .from('event_goals')
-      .select('id, team_side, scorer_user_id, time_seconds, created_at')
+      .from('result_points')
+      .select('id, team_side, user_id, time_seconds, created_at')
       .eq('event_id', event.id)
+      .eq('type', 'goal')
       .order('created_at', { ascending: true });
     if (goalErr) {
       return NextResponse.json({ error: goalErr.message }, { status: 500 });
@@ -92,17 +93,31 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const goalIds = (goalRows ?? []).map((g) => g.id);
     const assistsByGoal = new Map<string, { user_id: string; assist_order: number }[]>();
     if (goalIds.length > 0) {
-      const { data: assistRows, error: assistErr } = await sb
-        .from('event_goal_assists')
-        .select('goal_id, user_id, assist_order')
-        .in('goal_id', goalIds);
-      if (assistErr) {
-        return NextResponse.json({ error: assistErr.message }, { status: 500 });
+      const { data: linkRows, error: linkErr } = await sb
+        .from('result_point_links')
+        .select('goal_point_id, assist_point_id, assist_order')
+        .in('goal_point_id', goalIds);
+      if (linkErr) {
+        return NextResponse.json({ error: linkErr.message }, { status: 500 });
       }
-      for (const a of assistRows ?? []) {
-        const list = assistsByGoal.get(a.goal_id) ?? [];
-        list.push({ user_id: a.user_id, assist_order: a.assist_order });
-        assistsByGoal.set(a.goal_id, list);
+      const assistPointIds = (linkRows ?? []).map((l) => l.assist_point_id);
+      const userByPoint = new Map<string, string | null>();
+      if (assistPointIds.length > 0) {
+        const { data: assistPoints, error: apErr } = await sb
+          .from('result_points')
+          .select('id, user_id')
+          .in('id', assistPointIds);
+        if (apErr) {
+          return NextResponse.json({ error: apErr.message }, { status: 500 });
+        }
+        for (const ap of assistPoints ?? []) userByPoint.set(ap.id, ap.user_id);
+      }
+      for (const l of linkRows ?? []) {
+        const uid = userByPoint.get(l.assist_point_id);
+        if (!uid) continue;
+        const list = assistsByGoal.get(l.goal_point_id) ?? [];
+        list.push({ user_id: uid, assist_order: l.assist_order });
+        assistsByGoal.set(l.goal_point_id, list);
       }
     }
 
@@ -141,7 +156,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
         if (p) assists.push(p);
       }
 
-      const scorer = g.scorer_user_id ? (participants.get(g.scorer_user_id) ?? null) : null;
+      const scorer = g.user_id ? (participants.get(g.user_id) ?? null) : null;
       goals.push({
         id: g.id,
         team_side: side,
@@ -152,8 +167,8 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       });
 
       if (isOwnSideForStats(side, isGame)) {
-        if (g.scorer_user_id && participants.has(g.scorer_user_id)) {
-          ensure(g.scorer_user_id).goals += 1;
+        if (g.user_id && participants.has(g.user_id)) {
+          ensure(g.user_id).goals += 1;
         }
         for (const a of assistsRaw) {
           if (participants.has(a.user_id)) {

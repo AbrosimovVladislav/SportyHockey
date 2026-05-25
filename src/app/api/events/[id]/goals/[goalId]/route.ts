@@ -42,11 +42,11 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     await assertTeamMember(user.id, ev.team_id);
 
     const { data: goal } = await sb
-      .from('event_goals')
-      .select('id, event_id')
+      .from('result_points')
+      .select('id, event_id, type')
       .eq('id', goalId)
       .maybeSingle();
-    if (!goal || goal.event_id !== ev.id) {
+    if (!goal || goal.event_id !== ev.id || goal.type !== 'goal') {
       return NextResponse.json({ error: 'Гол не найден' }, { status: 404 });
     }
 
@@ -92,10 +92,10 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     }
 
     const { error: updErr } = await sb
-      .from('event_goals')
+      .from('result_points')
       .update({
         team_side: d.team_side,
-        scorer_user_id: scorerId,
+        user_id: scorerId,
         time_seconds: d.time_seconds ?? null,
       })
       .eq('id', goalId);
@@ -103,19 +103,51 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       return NextResponse.json({ error: updErr.message }, { status: 500 });
     }
 
-    const { error: delAssistsErr } = await sb
-      .from('event_goal_assists')
-      .delete()
-      .eq('goal_id', goalId);
-    if (delAssistsErr) {
-      return NextResponse.json({ error: delAssistsErr.message }, { status: 500 });
+    // Удаляем старые передачи этого гола (связи уйдут каскадом).
+    const { data: oldLinks } = await sb
+      .from('result_point_links')
+      .select('assist_point_id')
+      .eq('goal_point_id', goalId);
+    const oldAssistIds = (oldLinks ?? []).map((l) => l.assist_point_id);
+    if (oldAssistIds.length > 0) {
+      const { error: delAssistsErr } = await sb
+        .from('result_points')
+        .delete()
+        .in('id', oldAssistIds);
+      if (delAssistsErr) {
+        return NextResponse.json({ error: delAssistsErr.message }, { status: 500 });
+      }
     }
     if (assists.length > 0) {
-      const { error: insAssistsErr } = await sb.from('event_goal_assists').insert(
-        assists.map((a) => ({ goal_id: goalId, user_id: a.user_id, assist_order: a.order })),
+      const createdAssistIds: string[] = [];
+      for (const a of assists) {
+        const { data: ap, error: apErr } = await sb
+          .from('result_points')
+          .insert({
+            event_id: ev.id,
+            type: 'assist',
+            team_side: d.team_side,
+            user_id: a.user_id,
+            created_by: user.id,
+          })
+          .select('id')
+          .single();
+        if (apErr || !ap) {
+          await sb.from('result_points').delete().in('id', createdAssistIds);
+          return NextResponse.json({ error: apErr?.message ?? 'Не удалось сохранить передачу' }, { status: 500 });
+        }
+        createdAssistIds.push(ap.id);
+      }
+      const { error: linkErr } = await sb.from('result_point_links').insert(
+        assists.map((a, i) => ({
+          goal_point_id: goalId,
+          assist_point_id: createdAssistIds[i],
+          assist_order: a.order,
+        })),
       );
-      if (insAssistsErr) {
-        return NextResponse.json({ error: insAssistsErr.message }, { status: 500 });
+      if (linkErr) {
+        await sb.from('result_points').delete().in('id', createdAssistIds);
+        return NextResponse.json({ error: linkErr.message }, { status: 500 });
       }
     }
 
@@ -144,10 +176,16 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
     }
     await assertTeamMember(user.id, ev.team_id);
 
+    // Удаляем гол вместе с его передачами (связи каскадом).
+    const { data: links } = await sb
+      .from('result_point_links')
+      .select('assist_point_id')
+      .eq('goal_point_id', goalId);
+    const assistIds = (links ?? []).map((l) => l.assist_point_id);
     const { error } = await sb
-      .from('event_goals')
+      .from('result_points')
       .delete()
-      .eq('id', goalId)
+      .in('id', [goalId, ...assistIds])
       .eq('event_id', id);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

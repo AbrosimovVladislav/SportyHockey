@@ -92,11 +92,12 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
     }
 
     const { data: created, error: insErr } = await sb
-      .from('event_goals')
+      .from('result_points')
       .insert({
         event_id: ev.id,
+        type: 'goal',
         team_side: d.team_side,
-        scorer_user_id: scorerId,
+        user_id: scorerId,
         time_seconds: d.time_seconds ?? null,
         created_by: user.id,
       })
@@ -107,16 +108,35 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
     }
 
     if (assists.length > 0) {
-      const { error: assistErr } = await sb.from('event_goal_assists').insert(
-        assists.map((a) => ({
-          goal_id: created.id,
-          user_id: a.user_id,
+      const createdAssistIds: string[] = [];
+      for (const a of assists) {
+        const { data: ap, error: apErr } = await sb
+          .from('result_points')
+          .insert({
+            event_id: ev.id,
+            type: 'assist',
+            team_side: d.team_side,
+            user_id: a.user_id,
+            created_by: user.id,
+          })
+          .select('id')
+          .single();
+        if (apErr || !ap) {
+          await sb.from('result_points').delete().in('id', [created.id, ...createdAssistIds]);
+          return NextResponse.json({ error: apErr?.message ?? 'Не удалось создать передачу' }, { status: 500 });
+        }
+        createdAssistIds.push(ap.id);
+      }
+      const { error: linkErr } = await sb.from('result_point_links').insert(
+        assists.map((a, i) => ({
+          goal_point_id: created.id,
+          assist_point_id: createdAssistIds[i],
           assist_order: a.order,
         })),
       );
-      if (assistErr) {
-        await sb.from('event_goals').delete().eq('id', created.id);
-        return NextResponse.json({ error: assistErr.message }, { status: 500 });
+      if (linkErr) {
+        await sb.from('result_points').delete().in('id', [created.id, ...createdAssistIds]);
+        return NextResponse.json({ error: linkErr.message }, { status: 500 });
       }
     }
 

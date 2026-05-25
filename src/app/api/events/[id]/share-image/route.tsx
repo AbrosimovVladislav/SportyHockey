@@ -80,9 +80,10 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const sideBLabel = isGame ? ev.opponent_name || TEXT.sideOpponent : TEXT.sideDark;
 
     const { data: goalRows } = await sb
-      .from('event_goals')
-      .select('id, team_side, scorer_user_id, time_seconds, created_at')
+      .from('result_points')
+      .select('id, team_side, user_id, time_seconds, created_at')
       .eq('event_id', ev.id)
+      .eq('type', 'goal')
       .order('created_at', { ascending: true });
 
     const { data: memberRows } = await sb
@@ -114,7 +115,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       idx += 1;
       if (side === side_a) scoreA += 1;
       else if (side === side_b) scoreB += 1;
-      const u = g.scorer_user_id ? userById.get(g.scorer_user_id) : undefined;
+      const u = g.user_id ? userById.get(g.user_id) : undefined;
       const scorerName = u
         ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() ||
           (u.username ? `@${u.username}` : TEXT.playerUnknown)

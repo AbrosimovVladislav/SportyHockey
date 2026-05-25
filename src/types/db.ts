@@ -473,6 +473,94 @@ export type Database = {
           },
         ]
       }
+      result_point_links: {
+        Row: {
+          assist_order: number
+          assist_point_id: string
+          goal_point_id: string
+        }
+        Insert: {
+          assist_order: number
+          assist_point_id: string
+          goal_point_id: string
+        }
+        Update: {
+          assist_order?: number
+          assist_point_id?: string
+          goal_point_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rpl_assist_fk"
+            columns: ["assist_point_id"]
+            isOneToOne: true
+            referencedRelation: "result_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rpl_goal_fk"
+            columns: ["goal_point_id"]
+            isOneToOne: false
+            referencedRelation: "result_points"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      result_points: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_id: string
+          id: string
+          team_side: string
+          time_seconds: number | null
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          id?: string
+          team_side: string
+          time_seconds?: number | null
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          id?: string
+          team_side?: string
+          time_seconds?: number | null
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "result_points_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "result_points_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "result_points_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_default_lines: {
         Row: {
           slot: string

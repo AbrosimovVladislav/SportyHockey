@@ -69,16 +69,18 @@ export async function computePlayerOverview(
       .eq('type', 'player_payment'),
     // Голы игрока в событиях команды (по типу).
     sb
-      .from('event_goals')
+      .from('result_points')
       .select('events!inner(type)')
-      .eq('scorer_user_id', userId)
+      .eq('type', 'goal')
+      .eq('user_id', userId)
       .eq('events.team_id', teamId),
     // Ассисты игрока в событиях команды (по типу).
     sb
-      .from('event_goal_assists')
-      .select('event_goals!inner(events!inner(type))')
+      .from('result_points')
+      .select('events!inner(type)')
+      .eq('type', 'assist')
       .eq('user_id', userId)
-      .eq('event_goals.events.team_id', teamId),
+      .eq('events.team_id', teamId),
     // Последние 5 событий из знаменателя (по дате убыванию) — для строки «Последние 5».
     sb
       .from('events')
@@ -117,7 +119,7 @@ export async function computePlayerOverview(
     else stats.trainings.goals += 1;
   }
   for (const r of assistsRes.data ?? []) {
-    if (asEventType(r.event_goals?.events?.type ?? null) === 'game') stats.games.assists += 1;
+    if (asEventType(r.events?.type ?? null) === 'game') stats.games.assists += 1;
     else stats.trainings.assists += 1;
   }
 
