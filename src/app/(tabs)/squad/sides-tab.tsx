@@ -4,12 +4,8 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
-  TouchSensor,
   pointerWithin,
   useDroppable,
-  useSensor,
-  useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
@@ -17,6 +13,7 @@ import { LineupZone } from '@/components/lineup-zone';
 import { LineupChip } from '@/components/lineup-chip';
 import { RosterCard } from '@/components/roster-card';
 import { useTeamSides, useSetTeamSide } from '@/hooks/use-team-sides';
+import { useLineupDndSensors } from '@/hooks/use-lineup-dnd-sensors';
 import { useT } from '@/hooks/use-t';
 import { formatName } from '@/lib/format-name';
 import { colors } from '@/theme/colors';
@@ -50,11 +47,7 @@ export function SquadSidesTab({ members, canEdit }: Props) {
   const setSide = useSetTeamSide();
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
-  const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: { delay: 400, tolerance: 8 },
-  });
-  const sensors = useSensors(...(canEdit ? [pointerSensor, touchSensor] : []));
+  const sensors = useLineupDndSensors(canEdit);
 
   const sideByUser = useMemo(() => {
     const m = new Map<string, TeamSide>();

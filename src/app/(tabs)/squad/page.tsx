@@ -1,7 +1,9 @@
 'use client';
 
 import { useMemo, useState, type CSSProperties } from 'react';
-import { LightHeader } from '@/components/light-header';
+import { DarkHeader } from '@/components/dark-header';
+import { BellWithDot } from '@/components/bell-with-dot';
+import { FAB } from '@/components/fab';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ContentTabs } from '@/components/content-tabs';
 import { FilterChips } from '@/components/filter-chips';
@@ -11,12 +13,13 @@ import { PlayerRow } from '@/components/player-row';
 import { AttendanceRing } from '@/components/attendance-ring';
 import { EmptyState } from '@/components/empty-state';
 import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
-import { IconPlus, IconChevronDown } from '@/components/icons';
+import { IconChevronDown } from '@/components/icons';
 import { SquadLinesTab } from './lines-tab';
 import { SquadSidesTab } from './sides-tab';
 import { useT } from '@/hooks/use-t';
 import { useTeamMembers } from '@/hooks/use-team-members';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
+import { useTgHeader } from '@/hooks/use-tg-header';
 import { formatName } from '@/lib/format-name';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
@@ -31,6 +34,7 @@ type SortId = 'attendance' | 'name' | 'number';
 
 export default function SquadPage() {
   const t = useT();
+  useTgHeader('#233F30');
   const q = useTeamMembers();
   const { isOrganizer } = useIsOrganizer();
   const [tab, setTab] = useState<TabId>('list');
@@ -74,8 +78,16 @@ export default function SquadPage() {
   const root: CSSProperties = {
     minHeight: '100dvh',
     background: colors.bg,
-    color: colors.text,
-    paddingBottom: spacing['32'] + BOTTOM_NAV_HEIGHT,
+  };
+
+  const sheet: CSSProperties = {
+    background: colors.bg,
+    borderRadius: '24px 24px 0 0',
+    marginTop: -12,
+    position: 'relative',
+    zIndex: 2,
+    minHeight: `calc(100dvh - ${BOTTOM_NAV_HEIGHT}px - 140px)`,
+    paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
   };
 
   const searchRow: CSSProperties = {
@@ -87,38 +99,46 @@ export default function SquadPage() {
 
   return (
     <div style={root}>
-      <LightHeader
+      <DarkHeader
         title={t('squad.title')}
-        right={
-          isOrganizer ? (
-            <AddButton label={t('squad.fabLabel')} onClick={() => alert(t('squad.soon.add'))} />
-          ) : undefined
-        }
+        right={<BellWithDot ariaLabel={t('a11y.notifications')} />}
+        imageSrc="/arena.png"
       />
 
-      <ContentTabs tabs={tabs} activeId={tab} onChange={(id) => setTab(id as TabId)} />
+      <div style={sheet}>
+        <ContentTabs tabs={tabs} activeId={tab} onChange={(id) => setTab(id as TabId)} />
 
-      {tab === 'list' ? (
-        <ListView
-          q={q}
-          groups={groups}
-          counts={counts}
-          membersTotal={members.length}
-          filter={filter}
-          setFilter={setFilter}
-          search={search}
-          setSearch={setSearch}
-          sort={sort}
-          setSortSheetOpen={setSortSheetOpen}
-          searchRow={searchRow}
-          onSelect={() => alert(t('squad.soon.profile'))}
-          t={t}
+        {tab === 'list' ? (
+          <ListView
+            q={q}
+            groups={groups}
+            counts={counts}
+            membersTotal={members.length}
+            filter={filter}
+            setFilter={setFilter}
+            search={search}
+            setSearch={setSearch}
+            sort={sort}
+            setSortSheetOpen={setSortSheetOpen}
+            searchRow={searchRow}
+            onSelect={() => alert(t('squad.soon.profile'))}
+            t={t}
+          />
+        ) : tab === 'lines' ? (
+          <SquadLinesTab members={members} canEdit={isOrganizer} />
+        ) : (
+          <SquadSidesTab members={members} canEdit={isOrganizer} />
+        )}
+      </div>
+
+      {isOrganizer && tab === 'list' ? (
+        <FAB
+          variant="dark"
+          ariaLabel={t('squad.fabLabel')}
+          onClick={() => alert(t('squad.soon.add'))}
+          bottom={BOTTOM_NAV_HEIGHT + 24}
         />
-      ) : tab === 'lines' ? (
-        <SquadLinesTab members={members} canEdit={isOrganizer} />
-      ) : (
-        <SquadSidesTab members={members} canEdit={isOrganizer} />
-      )}
+      ) : null}
 
       <BottomSheet
         open={sortSheetOpen}
@@ -249,26 +269,6 @@ function Group({
         />
       ))}
     </div>
-  );
-}
-
-function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
-  const btn: CSSProperties = {
-    width: 40,
-    height: 40,
-    borderRadius: '50%',
-    background: colors.primary,
-    border: 'none',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    flexShrink: 0,
-  };
-  return (
-    <button type="button" className="pressable" style={btn} onClick={onClick} aria-label={label}>
-      <IconPlus size={20} color={colors.textInverse} />
-    </button>
   );
 }
 

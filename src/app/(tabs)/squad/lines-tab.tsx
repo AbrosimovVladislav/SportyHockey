@@ -4,17 +4,14 @@ import { useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
-  TouchSensor,
   pointerWithin,
-  useSensor,
-  useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { LinesView } from '@/app/(tabs)/events/[id]/lineup/lines-view';
 import { RosterCard } from '@/components/roster-card';
 import { useTeamLines, useSetTeamLine } from '@/hooks/use-team-lines';
+import { useLineupDndSensors } from '@/hooks/use-lineup-dnd-sensors';
 import { useT } from '@/hooks/use-t';
 import { asLineSlot } from '@/lib/event-lines';
 import { memberToAttendee } from '@/lib/team-member';
@@ -42,11 +39,7 @@ export function SquadLinesTab({ members, canEdit }: Props) {
   const setLine = useSetTeamLine();
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
-  const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: { delay: 400, tolerance: 8 },
-  });
-  const sensors = useSensors(...(canEdit ? [pointerSensor, touchSensor] : []));
+  const sensors = useLineupDndSensors(canEdit);
 
   const attendees = useMemo(() => members.map((m) => memberToAttendee(m, 'light')), [members]);
 

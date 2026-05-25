@@ -16,7 +16,7 @@ import { WeekDays } from '@/components/week-days';
 import { DayEventRow } from '@/components/day-event-row';
 import { MonthSheet, dayKey } from '@/components/month-sheet';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
-import { IconBell } from '@/components/icons';
+import { BellWithDot } from '@/components/bell-with-dot';
 import { useEvents } from '@/hooks/use-events';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
@@ -39,38 +39,6 @@ import type { EventDto } from '@/types/api';
 
 type FilterId = 'all' | 'training' | 'game';
 type TabId = 'list' | 'calendar';
-
-function BellWithDot({ ariaLabel }: { ariaLabel: string }) {
-  const wrap: CSSProperties = {
-    position: 'relative',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    background: 'rgba(0,0,0,0.35)',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255,255,255,0.25)',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-  const dot: CSSProperties = {
-    position: 'absolute',
-    top: 7,
-    right: 8,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    background: colors.success,
-    border: `2px solid ${colors.headerBg}`,
-  };
-  return (
-    <span style={wrap} aria-label={ariaLabel} role="button">
-      <IconBell size={20} color={colors.textInverse} />
-      <span style={dot} />
-    </span>
-  );
-}
 
 function kindOf(ev: EventDto): EventCardKind {
   return ev.type === 'game' ? 'game' : 'training';

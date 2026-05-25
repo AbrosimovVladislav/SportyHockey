@@ -5,12 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
-  TouchSensor,
   pointerWithin,
   useDroppable,
-  useSensor,
-  useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
@@ -24,6 +20,7 @@ import { LinesView } from './lines-view';
 import { useEvent } from '@/hooks/use-event';
 import { useSetLine } from '@/hooks/use-set-line';
 import { useSetLineup } from '@/hooks/use-set-lineup';
+import { useLineupDndSensors } from '@/hooks/use-lineup-dnd-sensors';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useTgSwipes } from '@/hooks/use-tg-swipes';
@@ -76,10 +73,7 @@ export default function EventLineupPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('teams');
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 400, tolerance: 8 } }),
-  );
+  const sensors = useLineupDndSensors();
 
   const attendees = useMemo(() => data?.attendees ?? [], [data]);
   const lines = useMemo(() => data?.lines ?? [], [data]);
