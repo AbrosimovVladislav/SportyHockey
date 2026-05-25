@@ -1,7 +1,9 @@
 import type {
   EventAttendee,
   MemberTier,
+  PlayerCaptaincy,
   PlayerPosition,
+  PlayerShoots,
   PlayerSlotRole,
   TeamMember,
   TeamSide,
@@ -10,6 +12,16 @@ import type {
 export function asPosition(value: string | null | undefined): PlayerPosition | null {
   if (value === 'forward' || value === 'defender' || value === 'goalie') return value;
   return null;
+}
+
+export function asShoots(value: string | null | undefined): PlayerShoots | null {
+  if (value === 'left' || value === 'right') return value;
+  return null;
+}
+
+export function asCaptaincy(value: string | null | undefined): PlayerCaptaincy {
+  if (value === 'assistant' || value === 'captain') return value;
+  return 'none';
 }
 
 export function asSlotRole(value: string | null | undefined): PlayerSlotRole | null {

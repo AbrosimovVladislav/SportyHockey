@@ -7,6 +7,7 @@ import { LightHeader } from '@/components/light-header';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ContentTabs } from '@/components/content-tabs';
 import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
+import { Button } from '@/components/button';
 import { IconMore } from '@/components/icons';
 import { HeaderCard } from './header-card';
 import { PlayerOverviewTab } from './overview-tab';
@@ -18,6 +19,7 @@ import {
   usePlayerFinance,
   usePlayerStats,
 } from '@/hooks/use-team-member';
+import { useDeleteMember } from '@/hooks/use-delete-member';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
@@ -40,6 +42,8 @@ export default function PlayerProfilePage() {
   const financeQ = usePlayerFinance(userId, tab === 'finance');
   const statsQ = usePlayerStats(userId, tab === 'stats');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const del = useDeleteMember(userId);
   useTgHeader(colors.bg);
 
   const onBack = () => {
@@ -133,16 +137,40 @@ export default function PlayerProfilePage() {
           label={t('player.menu.edit')}
           onClick={() => {
             setMenuOpen(false);
-            alert(t('player.soon'));
+            router.push(`/squad/${userId}/edit`);
           }}
         />
         <BottomSheetOption
           label={t('player.menu.delete')}
           onClick={() => {
             setMenuOpen(false);
-            alert(t('player.soon'));
+            setConfirmDelete(true);
           }}
         />
+      </BottomSheet>
+
+      <BottomSheet
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title={t('editMember.deleteTitle')}
+      >
+        <div style={{ ...typography.body, color: colors.textSecondary, marginBottom: spacing['16'] }}>
+          {t('editMember.deleteText')}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
+          <Button
+            variant="danger"
+            size="lg"
+            fullWidth
+            disabled={del.isPending}
+            onClick={() => del.mutate(undefined, { onSuccess: () => router.replace('/squad') })}
+          >
+            {t('editMember.deleteCta')}
+          </Button>
+          <Button variant="secondary" size="lg" fullWidth onClick={() => setConfirmDelete(false)}>
+            {t('editMember.cancel')}
+          </Button>
+        </div>
       </BottomSheet>
     </div>
   );

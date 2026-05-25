@@ -547,6 +547,7 @@ export type Database = {
       }
       team_memberships: {
         Row: {
+          captaincy: string
           contact_email: string | null
           contact_phone: string | null
           id: string
@@ -561,6 +562,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          captaincy?: string
           contact_email?: string | null
           contact_phone?: string | null
           id?: string
@@ -575,6 +577,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          captaincy?: string
           contact_email?: string | null
           contact_phone?: string | null
           id?: string
@@ -636,6 +639,7 @@ export type Database = {
           id: string
           last_name: string | null
           photo_url: string | null
+          shoots: string | null
           telegram_id: number | null
           username: string | null
         }
@@ -648,6 +652,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           photo_url?: string | null
+          shoots?: string | null
           telegram_id?: number | null
           username?: string | null
         }
@@ -660,6 +665,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           photo_url?: string | null
+          shoots?: string | null
           telegram_id?: number | null
           username?: string | null
         }

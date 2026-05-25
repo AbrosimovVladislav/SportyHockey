@@ -3,7 +3,7 @@ import { AuthError, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getUserTeamId } from '@/lib/user-team';
 import { asMemberRole } from '@/lib/role';
-import { asPosition, asSlotRole, asTier } from '@/lib/team-member';
+import { asCaptaincy, asPosition, asShoots, asSlotRole, asTier } from '@/lib/team-member';
 import { computeAttendanceRates } from '@/lib/attendance-rate';
 import type { TeamMember, TeamMembersResponse } from '@/types/api';
 
@@ -19,6 +19,7 @@ type UserRow = {
   avatar_url: string | null;
   birth_date: string | null;
   bio: string | null;
+  shoots: string | null;
 };
 
 export async function GET(req: Request): Promise<Response> {
@@ -46,7 +47,7 @@ export async function GET(req: Request): Promise<Response> {
     const { data: memberships, error: memErr } = await sb
       .from('team_memberships')
       .select(
-        'user_id, role, jersey_number, position, slot_role, tier, note, contact_phone, contact_email',
+        'user_id, role, captaincy, jersey_number, position, slot_role, tier, note, contact_phone, contact_email',
       )
       .eq('team_id', team.id);
     if (memErr) {
@@ -58,7 +59,7 @@ export async function GET(req: Request): Promise<Response> {
     if (userIds.length > 0) {
       const { data: users, error: usersErr } = await sb
         .from('users')
-        .select('id, telegram_id, first_name, last_name, username, photo_url, avatar_url, birth_date, bio')
+        .select('id, telegram_id, first_name, last_name, username, photo_url, avatar_url, birth_date, bio, shoots')
         .in('id', userIds);
       if (usersErr) {
         return NextResponse.json({ error: usersErr.message }, { status: 500 });
@@ -75,6 +76,7 @@ export async function GET(req: Request): Promise<Response> {
             avatar_url: u.avatar_url,
             birth_date: u.birth_date,
             bio: u.bio,
+            shoots: u.shoots,
           },
         ]),
       );
@@ -94,7 +96,9 @@ export async function GET(req: Request): Promise<Response> {
         avatar_url: u?.avatar_url ?? null,
         birth_date: u?.birth_date ?? null,
         bio: u?.bio ?? null,
+        shoots: asShoots(u?.shoots),
         role: asMemberRole(m.role),
+        captaincy: asCaptaincy(m.captaincy),
         jersey_number: m.jersey_number ?? null,
         position: asPosition(m.position),
         slot_role: asSlotRole(m.slot_role),

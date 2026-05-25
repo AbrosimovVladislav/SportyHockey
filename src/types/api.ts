@@ -35,6 +35,9 @@ export type CreateTeamResponse = {
 
 export type PlayerSlotRole = 'lw' | 'c' | 'rw' | 'ld' | 'rd' | 'g';
 export type MemberTier = 'main' | 'reserve';
+export type PlayerShoots = 'left' | 'right';
+// Капитанская нашивка — отдельно от прав organizer/player (MemberRole).
+export type PlayerCaptaincy = 'none' | 'assistant' | 'captain';
 
 export type TeamMember = {
   user_id: string;
@@ -46,7 +49,9 @@ export type TeamMember = {
   avatar_url: string | null;
   birth_date: string | null;
   bio: string | null;
+  shoots: PlayerShoots | null;
   role: MemberRole;
+  captaincy: PlayerCaptaincy;
   jersey_number: number | null;
   position: PlayerPosition | null;
   slot_role: PlayerSlotRole | null;
@@ -69,6 +74,27 @@ export type TeamMemberDetailResponse = {
   team: { id: string; name: string };
   member: TeamMember;
 };
+
+// Редактирование игрока организатором. Персональные поля → users, командные → team_memberships.
+// avatar_path — путь в бакете team-media (после signed-upload); сервер сохранит public URL в avatar_url.
+export type UpdateMemberRequest = {
+  first_name?: string | null;
+  last_name?: string | null;
+  birth_date?: string | null;
+  shoots?: PlayerShoots | null;
+  avatar_path?: string | null;
+  contact_phone?: string | null;
+  jersey_number?: number | null;
+  position?: PlayerPosition | null;
+  slot_role?: PlayerSlotRole | null;
+  captaincy?: PlayerCaptaincy;
+  tier?: MemberTier;
+};
+export type UpdateMemberResponse = { ok: true };
+export type DeleteMemberResponse = { ok: true };
+
+export type SignAvatarRequest = { mime: string };
+export type SignAvatarResponse = SignMediaUpload;
 
 export type EventType = 'training' | 'game';
 export type EventStatus = 'scheduled' | 'cancelled' | 'completed';
