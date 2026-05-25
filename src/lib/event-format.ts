@@ -34,6 +34,14 @@ export function formatLongDate(iso: string): string {
   return `${get('day')} ${get('month')} ${get('year')}`;
 }
 
+// «24 мая» — день и месяц без года (для компактных списков)
+export function formatDayMonth(iso: string): string {
+  const parts = longDateFmt.formatToParts(new Date(iso));
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('day')} ${get('month')}`;
+}
+
 // «17 мая 2026» — из строки YYYY-MM-DD (локальное время, без UTC-сдвига)
 export function formatLongDateLocal(dateStr: string): string {
   if (!dateStr) return '';

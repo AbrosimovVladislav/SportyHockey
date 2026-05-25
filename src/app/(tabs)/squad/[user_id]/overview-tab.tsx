@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 import { Card } from '@/components/card';
 import {
   IconAttendance,
@@ -10,6 +10,7 @@ import {
   IconClose,
   IconChevronRight,
 } from '@/components/icons';
+import { CardHead, bigValue, caption } from './profile-cards';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
@@ -36,21 +37,6 @@ export function PlayerOverviewTab({ overview, onOpenTab, t }: Props) {
     </div>
   );
 }
-
-const cardTitle: CSSProperties = {
-  ...typography.smBold,
-  color: colors.textSecondary,
-};
-
-const bigValue: CSSProperties = {
-  ...typography.statLg,
-  color: colors.text,
-};
-
-const caption: CSSProperties = {
-  ...typography.sm,
-  color: colors.textSecondary,
-};
 
 const linkRow: CSSProperties = {
   display: 'flex',
@@ -82,34 +68,6 @@ function OpenLink({ label, onOpen }: { label: string; onOpen: () => void }) {
     >
       <span>{label}</span>
       <IconChevronRight size={16} color={colors.primary} />
-    </div>
-  );
-}
-
-function RoundIcon({ children }: { children: ReactNode }) {
-  return (
-    <span
-      style={{
-        width: 44,
-        height: 44,
-        borderRadius: '50%',
-        background: colors.iconBg,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function CardHead({ title, icon }: { title: string; icon: ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-      <span style={cardTitle}>{title}</span>
-      <RoundIcon>{icon}</RoundIcon>
     </div>
   );
 }

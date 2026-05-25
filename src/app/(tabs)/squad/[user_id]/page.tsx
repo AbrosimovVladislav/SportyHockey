@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { LightHeader } from '@/components/light-header';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ContentTabs } from '@/components/content-tabs';
@@ -9,13 +10,21 @@ import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
 import { IconMore } from '@/components/icons';
 import { HeaderCard } from './header-card';
 import { PlayerOverviewTab } from './overview-tab';
-import { useTeamMember, usePlayerOverview } from '@/hooks/use-team-member';
+import { PlayerFinanceTab } from './finance-tab';
+import { PlayerStatsTab } from './stats-tab';
+import {
+  useTeamMember,
+  usePlayerOverview,
+  usePlayerFinance,
+  usePlayerStats,
+} from '@/hooks/use-team-member';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
+import type { TKey } from '@/i18n/ru';
 
 type TabId = 'overview' | 'finance' | 'stats';
 
@@ -26,8 +35,10 @@ export default function PlayerProfilePage() {
   const userId = params?.user_id ?? '';
   const { isOrganizer } = useIsOrganizer();
   const memberQ = useTeamMember(userId);
-  const overviewQ = usePlayerOverview(userId);
   const [tab, setTab] = useState<TabId>('overview');
+  const overviewQ = usePlayerOverview(userId);
+  const financeQ = usePlayerFinance(userId, tab === 'finance');
+  const statsQ = usePlayerStats(userId, tab === 'stats');
   const [menuOpen, setMenuOpen] = useState(false);
   useTgHeader(colors.bg);
 
@@ -103,15 +114,17 @@ export default function PlayerProfilePage() {
         <ContentTabs tabs={tabs} activeId={tab} onChange={(id) => setTab(id as TabId)} />
 
         {tab === 'overview' ? (
-          overviewQ.data ? (
-            <PlayerOverviewTab overview={overviewQ.data} onOpenTab={(id) => setTab(id)} t={t} />
-          ) : overviewQ.isError ? (
-            <StatusText text={t('common.error')} color={colors.error} />
-          ) : (
-            <StatusText text={t('common.loading')} color={colors.textSecondary} />
-          )
+          <QueryGate q={overviewQ} t={t}>
+            {(d) => <PlayerOverviewTab overview={d} onOpenTab={(id) => setTab(id)} t={t} />}
+          </QueryGate>
+        ) : tab === 'finance' ? (
+          <QueryGate q={financeQ} t={t}>
+            {(d) => <PlayerFinanceTab finance={d} t={t} />}
+          </QueryGate>
         ) : (
-          <SoonBlock text={t('player.soon')} />
+          <QueryGate q={statsQ} t={t}>
+            {(d) => <PlayerStatsTab stats={d} t={t} />}
+          </QueryGate>
         )}
       </div>
 
@@ -135,12 +148,18 @@ export default function PlayerProfilePage() {
   );
 }
 
-function SoonBlock({ text }: { text: string }) {
-  return (
-    <div style={{ padding: `${spacing['40']}px ${spacing['16']}px`, textAlign: 'center' }}>
-      <span style={{ ...typography.body, color: colors.textSecondary }}>{text}</span>
-    </div>
-  );
+function QueryGate<TData>({
+  q,
+  t,
+  children,
+}: {
+  q: UseQueryResult<TData>;
+  t: (k: TKey) => string;
+  children: (data: TData) => ReactNode;
+}) {
+  if (q.data !== undefined) return <>{children(q.data)}</>;
+  if (q.isError) return <StatusText text={t('common.error')} color={colors.error} />;
+  return <StatusText text={t('common.loading')} color={colors.textSecondary} />;
 }
 
 function StatusText({ text, color }: { text: string; color: string }) {

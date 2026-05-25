@@ -1,5 +1,5 @@
 import type { SVGProps } from 'react';
-import { LuCalendarCheck, LuWallet, LuTrendingUp } from 'react-icons/lu';
+import { LuCalendarCheck, LuWallet, LuTrendingUp, LuDumbbell } from 'react-icons/lu';
 import { SiTelegram, SiWhatsapp } from 'react-icons/si';
 import { colors } from '@/theme/colors';
 
@@ -391,6 +391,10 @@ export const IconFinance = ({ size = 24, color = 'currentColor' }: IconProps) =>
 
 export const IconChart = ({ size = 24, color = 'currentColor' }: IconProps) => (
   <LuTrendingUp size={size} color={color} />
+);
+
+export const IconDumbbell = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuDumbbell size={size} color={color} />
 );
 
 export const IconTelegram = ({ size = 24, color = 'currentColor' }: IconProps) => (

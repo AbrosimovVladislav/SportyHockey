@@ -281,6 +281,42 @@ export type PlayerOverview = {
 
 export type PlayerOverviewResponse = PlayerOverview;
 
+// Вкладка «Финансы» в профиле.
+export type PlayerTxKind = 'charge' | 'payment';
+export type PlayerFinanceTx = {
+  id: string;
+  kind: PlayerTxKind;
+  // charge — ярлык события; payment — описание перевода (может быть null).
+  title: string | null;
+  date: string;
+  amount: number; // положительное; знак и цвет — по kind
+};
+export type PlayerFinance = {
+  balance: number; // > 0 — игрок должен; < 0 — переплата
+  total_charged: number;
+  total_paid: number;
+  paid_percent: number; // 0–100
+  transactions: PlayerFinanceTx[];
+};
+export type PlayerFinanceResponse = PlayerFinance;
+
+// Вкладка «Статистика» в профиле.
+export type PlayerEventStat = {
+  event_id: string;
+  is_game: boolean;
+  title: string;
+  starts_at: string;
+  goals: number;
+  assists: number;
+  penalty_minutes: number;
+};
+export type PlayerStats = {
+  games: { played: number; goals: number; assists: number; penalty_minutes: number };
+  trainings: { played: number; goals: number; assists: number };
+  events: PlayerEventStat[];
+};
+export type PlayerStatsResponse = PlayerStats;
+
 export type PaymentClaimResponse = { ok: true };
 
 export type VoteRequest = {
