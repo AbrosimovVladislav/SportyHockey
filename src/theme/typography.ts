@@ -12,6 +12,13 @@ export const typography = {
   caption: { fontSize: 12, fontWeight: 500, lineHeight: 1.33 },
   label: { fontSize: 13, fontWeight: 600, lineHeight: 1.38 },
   score: { fontSize: 48, fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' },
+  statLg: {
+    fontSize: 34,
+    fontWeight: 800,
+    lineHeight: 1.1,
+    letterSpacing: '-0.02em',
+    fontVariantNumeric: 'tabular-nums',
+  },
   stat: { fontSize: 24, fontWeight: 700, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' },
 } as const satisfies Record<string, CSSProperties>;
 

@@ -38,18 +38,13 @@ export function PlayerOverviewTab({ overview, onOpenTab, t }: Props) {
 }
 
 const cardTitle: CSSProperties = {
-  ...typography.sm,
+  ...typography.smBold,
   color: colors.textSecondary,
-  fontWeight: 600,
 };
 
 const bigValue: CSSProperties = {
-  fontSize: 34,
-  fontWeight: 800,
+  ...typography.statLg,
   color: colors.text,
-  fontVariantNumeric: 'tabular-nums',
-  letterSpacing: '-0.02em',
-  lineHeight: 1.1,
 };
 
 const caption: CSSProperties = {
@@ -65,10 +60,31 @@ const linkRow: CSSProperties = {
   paddingTop: spacing['12'],
   borderTop: `1px solid ${colors.divider}`,
   color: colors.primary,
-  fontSize: 14,
-  fontWeight: 600,
+  ...typography.label,
   cursor: 'pointer',
 };
+
+function OpenLink({ label, onOpen }: { label: string; onOpen: () => void }) {
+  return (
+    <div
+      className="pressable"
+      style={linkRow}
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+    >
+      <span>{label}</span>
+      <IconChevronRight size={16} color={colors.primary} />
+    </div>
+  );
+}
 
 function RoundIcon({ children }: { children: ReactNode }) {
   return (
@@ -111,7 +127,7 @@ function AttendanceCard({
         title={t('player.attendance.title')}
         icon={<IconAttendance size={22} color={colors.iconFg} />}
       />
-      <div style={{ marginTop: spacing['4'] }}>
+      <div style={{ marginTop: spacing['8'] }}>
         <div style={bigValue}>{attendance.rate == null ? '—' : `${attendance.rate}%`}</div>
       </div>
       <div style={linkRowStatic}>
@@ -122,8 +138,8 @@ function AttendanceCard({
           </span>
         ) : (
           <div style={{ display: 'flex', gap: spacing['6'] }}>
-            {attendance.last5.map((item, i) => (
-              <Last5Dot key={item.event_id + i} status={item.status} />
+            {attendance.last5.map((item) => (
+              <Last5Dot key={item.event_id} status={item.status} />
             ))}
           </div>
         )}
@@ -178,12 +194,13 @@ function FinanceCard({
   onOpen: () => void;
   t: (k: TKey) => string;
 }) {
-  const label =
+  const word =
     balance > 0
-      ? `${t('player.finance.debt')} ${formatRub(balance)} ₽`
+      ? t('player.finance.debt')
       : balance < 0
-        ? `${t('player.finance.credit')} ${formatRub(balance)} ₽`
+        ? t('player.finance.credit')
         : t('player.finance.zero');
+  const amount = balance === 0 ? null : `${formatRub(balance)} ₽`;
   const valueColor = balance > 0 ? colors.error : balance < 0 ? colors.success : colors.text;
   return (
     <Card variant="surface">
@@ -191,13 +208,21 @@ function FinanceCard({
         title={t('player.finance.title')}
         icon={<IconFinance size={22} color={colors.iconFg} />}
       />
-      <div style={{ marginTop: spacing['4'] }}>
-        <div style={{ ...bigValue, color: valueColor }}>{label}</div>
+      <div style={{ marginTop: spacing['8'] }}>
+        <div
+          style={{
+            ...bigValue,
+            color: valueColor,
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: spacing['12'],
+          }}
+        >
+          <span>{word}</span>
+          {amount ? <span>{amount}</span> : null}
+        </div>
       </div>
-      <div className="pressable" style={linkRow} onClick={onOpen} role="button">
-        <span>{t('player.finance.open')}</span>
-        <IconChevronRight size={16} color={colors.primary} />
-      </div>
+      <OpenLink label={t('player.finance.open')} onOpen={onOpen} />
     </Card>
   );
 }
@@ -217,10 +242,7 @@ function StatsCard({
       <StatRow label={t('player.stats.games')} line={stats.games} t={t} />
       <div style={{ height: 1, background: colors.divider, margin: `${spacing['12']}px 0` }} />
       <StatRow label={t('player.stats.trainings')} line={stats.trainings} t={t} />
-      <div className="pressable" style={linkRow} onClick={onOpen} role="button">
-        <span>{t('player.stats.open')}</span>
-        <IconChevronRight size={16} color={colors.primary} />
-      </div>
+      <OpenLink label={t('player.stats.open')} onOpen={onOpen} />
     </Card>
   );
 }
@@ -237,16 +259,7 @@ function StatRow({
   const cell = (cap: string, value: number) => (
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ ...caption, marginBottom: spacing['2'] }}>{cap}</div>
-      <div
-        style={{
-          fontSize: 22,
-          fontWeight: 700,
-          color: colors.text,
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {value}
-      </div>
+      <div style={{ ...typography.stat, color: colors.text }}>{value}</div>
     </div>
   );
   return (

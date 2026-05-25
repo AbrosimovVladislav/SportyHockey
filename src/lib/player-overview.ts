@@ -1,39 +1,28 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/db';
-import type { AttendanceLast5Item, PlayerOverview } from '@/types/api';
+import type { AttendanceLast5Item, AttendanceStatus, PlayerOverview } from '@/types/api';
 import { asEventType } from '@/lib/event-enum';
-import { isPastEvent } from '@/lib/attendance-rate';
 
 type SB = SupabaseClient<Database>;
 
 /**
  * Агрегаты публичного профиля игрока: посещаемость (+ последние 5), баланс, статистика.
- * Всё считается из реальных данных: event_attendances, finance_transactions,
- * event_goals / event_goal_assists. Без отдельной таблицы статистики.
+ *
+ * Считаем оптимально: счётчики (знаменатель/числитель посещаемости) считает сам Postgres
+ * через `count` — ни одной лишней строки в память сервера. В Node приезжает только личный
+ * след игрока (его посещённые события, оплаты, голы, ассисты) — он ограничен активностью
+ * самого игрока, а не размером истории команды. Арифметика (деление, вычитание) — здесь.
+ *
+ * «Прошедшее событие» = `starts_at < now()` и не отменено (упрощение coalesce(ends_at,starts_at):
+ * расходится только для события, идущего прямо в момент просмотра).
  */
 export async function computePlayerOverview(
   sb: SB,
   teamId: string,
   userId: string,
 ): Promise<PlayerOverview> {
-  const now = Date.now();
-
-  const { data: events } = await sb
-    .from('events')
-    .select('id, type, status, starts_at, ends_at, cost_per_player')
-    .eq('team_id', teamId);
-
-  const evById = new Map<string, { type: string; startsTs: number; cost: number | null }>();
-  const pastEvents: { id: string; type: string; startsTs: number; cost: number | null }[] = [];
-  for (const e of events ?? []) {
-    const startsTs = new Date(e.starts_at).getTime();
-    const cost = e.cost_per_player != null ? Number(e.cost_per_player) : null;
-    evById.set(e.id, { type: e.type, startsTs, cost });
-    if (isPastEvent(e.status, e.ends_at, e.starts_at, now)) {
-      pastEvents.push({ id: e.id, type: e.type, startsTs, cost });
-    }
-  }
+  const nowIso = new Date().toISOString();
 
   const { data: mem } = await sb
     .from('team_memberships')
@@ -41,82 +30,113 @@ export async function computePlayerOverview(
     .eq('team_id', teamId)
     .eq('user_id', userId)
     .maybeSingle();
-  const joinedTs = mem?.joined_at ? new Date(mem.joined_at).getTime() : 0;
-  const joined = Number.isNaN(joinedTs) ? 0 : joinedTs;
+  const joinedIso = mem?.joined_at ?? new Date(0).toISOString();
 
-  const { data: atts } = await sb
-    .from('event_attendances')
-    .select('event_id, showed_up')
-    .eq('user_id', userId);
-  const showedByEvent = new Map<string, boolean | null>();
-  for (const a of atts ?? []) showedByEvent.set(a.event_id, a.showed_up);
+  const [denomRes, numRes, attendedRes, paidRes, goalsRes, assistsRes, last5Res] = await Promise.all([
+    // Знаменатель посещаемости: прошедшие не-отменённые события команды после вступления.
+    sb
+      .from('events')
+      .select('id', { count: 'exact', head: true })
+      .eq('team_id', teamId)
+      .neq('status', 'cancelled')
+      .lt('starts_at', nowIso)
+      .gte('starts_at', joinedIso),
+    // Числитель: те из них, где игрок отметился пришедшим (showed_up).
+    sb
+      .from('events')
+      .select('id, event_attendances!inner(showed_up)', { count: 'exact', head: true })
+      .eq('team_id', teamId)
+      .neq('status', 'cancelled')
+      .lt('starts_at', nowIso)
+      .gte('starts_at', joinedIso)
+      .eq('event_attendances.user_id', userId)
+      .eq('event_attendances.showed_up', true),
+    // Посещённые прошедшие события игрока (тип + взнос) → начисления и «сыграно» по типу.
+    sb
+      .from('event_attendances')
+      .select('events!inner(type, cost_per_player)')
+      .eq('user_id', userId)
+      .eq('showed_up', true)
+      .eq('events.team_id', teamId)
+      .neq('events.status', 'cancelled')
+      .lt('events.starts_at', nowIso),
+    // Оплаты игрока.
+    sb
+      .from('finance_transactions')
+      .select('amount')
+      .eq('team_id', teamId)
+      .eq('user_id', userId)
+      .eq('type', 'player_payment'),
+    // Голы игрока в событиях команды (по типу).
+    sb
+      .from('event_goals')
+      .select('events!inner(type)')
+      .eq('scorer_user_id', userId)
+      .eq('events.team_id', teamId),
+    // Ассисты игрока в событиях команды (по типу).
+    sb
+      .from('event_goal_assists')
+      .select('event_goals!inner(events!inner(type))')
+      .eq('user_id', userId)
+      .eq('event_goals.events.team_id', teamId),
+    // Последние 5 событий из знаменателя (по дате убыванию) — для строки «Последние 5».
+    sb
+      .from('events')
+      .select('id')
+      .eq('team_id', teamId)
+      .neq('status', 'cancelled')
+      .lt('starts_at', nowIso)
+      .gte('starts_at', joinedIso)
+      .order('starts_at', { ascending: false })
+      .limit(5),
+  ]);
 
-  // Посещаемость + последние 5 (события после вступления, по дате убыванию).
-  const eligible = pastEvents
-    .filter((e) => e.startsTs >= joined)
-    .sort((a, b) => b.startsTs - a.startsTs);
-  let showedCount = 0;
-  for (const e of eligible) if (showedByEvent.get(e.id) === true) showedCount += 1;
-  const rate = eligible.length === 0 ? null : Math.round((showedCount / eligible.length) * 100);
-  const last5: AttendanceLast5Item[] = eligible.slice(0, 5).map((e) => {
-    const su = showedByEvent.get(e.id);
-    const status = su === true ? 'showed' : su === false ? 'missed' : 'unknown';
-    return { event_id: e.id, status };
-  });
+  const denom = denomRes.count ?? 0;
+  const num = numRes.count ?? 0;
+  const rate = denom === 0 ? null : Math.round((num / denom) * 100);
 
-  // Финансы: начислено за посещённые события − оплачено игроком.
-  let charge = 0;
-  for (const e of pastEvents) {
-    if (showedByEvent.get(e.id) === true && e.cost != null) charge += e.cost;
-  }
-  const { data: pays } = await sb
-    .from('finance_transactions')
-    .select('amount')
-    .eq('team_id', teamId)
-    .eq('user_id', userId)
-    .eq('type', 'player_payment');
-  const paid = (pays ?? []).reduce((s, p) => s + Number(p.amount), 0);
-  const balance = charge - paid;
-
-  // Статистика: сыграно (showed_up), голы (scorer), передачи (assists) — раздельно игры/тренировки.
   const stats = {
     games: { played: 0, goals: 0, assists: 0 },
     trainings: { played: 0, goals: 0, assists: 0 },
   };
-  for (const e of pastEvents) {
-    if (showedByEvent.get(e.id) !== true) continue;
-    if (asEventType(e.type) === 'game') stats.games.played += 1;
+
+  let charge = 0;
+  for (const r of attendedRes.data ?? []) {
+    const ev = r.events;
+    if (!ev) continue;
+    charge += ev.cost_per_player != null ? Number(ev.cost_per_player) : 0;
+    if (asEventType(ev.type) === 'game') stats.games.played += 1;
     else stats.trainings.played += 1;
   }
 
-  const { data: scorerGoals } = await sb
-    .from('event_goals')
-    .select('event_id')
-    .eq('scorer_user_id', userId);
-  for (const g of scorerGoals ?? []) {
-    const ev = evById.get(g.event_id);
-    if (!ev) continue;
-    if (asEventType(ev.type) === 'game') stats.games.goals += 1;
+  const paid = (paidRes.data ?? []).reduce((s, p) => s + Number(p.amount), 0);
+  const balance = charge - paid;
+
+  for (const r of goalsRes.data ?? []) {
+    if (asEventType(r.events?.type ?? null) === 'game') stats.games.goals += 1;
     else stats.trainings.goals += 1;
   }
-
-  const { data: assistRows } = await sb
-    .from('event_goal_assists')
-    .select('goal_id')
-    .eq('user_id', userId);
-  const goalIds = (assistRows ?? []).map((a) => a.goal_id);
-  if (goalIds.length > 0) {
-    const { data: assistGoals } = await sb
-      .from('event_goals')
-      .select('event_id')
-      .in('id', goalIds);
-    for (const g of assistGoals ?? []) {
-      const ev = evById.get(g.event_id);
-      if (!ev) continue;
-      if (asEventType(ev.type) === 'game') stats.games.assists += 1;
-      else stats.trainings.assists += 1;
-    }
+  for (const r of assistsRes.data ?? []) {
+    if (asEventType(r.event_goals?.events?.type ?? null) === 'game') stats.games.assists += 1;
+    else stats.trainings.assists += 1;
   }
+
+  // Последние 5: статус (был / не был / неизвестно) — добираем посещаемость только по этим 5.
+  const last5Ids = (last5Res.data ?? []).map((e) => e.id);
+  const showedByEvent = new Map<string, boolean | null>();
+  if (last5Ids.length > 0) {
+    const { data: atts } = await sb
+      .from('event_attendances')
+      .select('event_id, showed_up')
+      .eq('user_id', userId)
+      .in('event_id', last5Ids);
+    for (const a of atts ?? []) showedByEvent.set(a.event_id, a.showed_up);
+  }
+  const last5: AttendanceLast5Item[] = (last5Res.data ?? []).map((e) => {
+    const su = showedByEvent.get(e.id);
+    const status: AttendanceStatus = su === true ? 'showed' : su === false ? 'missed' : 'unknown';
+    return { event_id: e.id, status };
+  });
 
   return {
     attendance: { rate, last5 },
