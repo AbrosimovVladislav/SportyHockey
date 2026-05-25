@@ -222,7 +222,7 @@ export default function EventsPage() {
       <DarkHeader
         title={t('schedule.title')}
         right={<BellWithDot ariaLabel={t('a11y.notifications')} />}
-        imageSrc="/arena.png"
+        imageSrc="/bus.png"
       />
 
       <div style={sheet}>
