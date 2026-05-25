@@ -3,14 +3,21 @@
 import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
-import { IconFinance } from '@/components/icons';
-import { CardHead, caption } from './profile-cards';
+import {
+  IconFinance,
+  IconGame,
+  IconTraining,
+  IconWallet,
+  IconChevronRight,
+} from '@/components/icons';
+import { CardHead, RoundIcon, caption } from './profile-cards';
 import { formatDayMonth, formatTime } from '@/lib/event-format';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
+import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import type { TKey } from '@/i18n/ru';
-import type { PlayerFinance, PlayerFinanceTx } from '@/types/api';
+import type { PlayerFinance, PlayerFinanceEventRow, PlayerFinanceDepositRow } from '@/types/api';
 
 type T = (k: TKey) => string;
 
@@ -23,11 +30,7 @@ export function PlayerFinanceTab({ finance, t }: { finance: PlayerFinance; t: T 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
       <BalanceCard finance={finance} t={t} />
-      <HistoryCard
-        transactions={finance.transactions}
-        t={t}
-        onOpenEvent={(id) => router.push(`/events/${id}`)}
-      />
+      <History rows={finance.rows} t={t} onOpenEvent={(id) => router.push(`/events/${id}`)} />
     </div>
   );
 }
@@ -93,111 +96,208 @@ function BalanceCard({ finance, t }: { finance: PlayerFinance; t: T }) {
 function ProgressBar({ percent }: { percent: number }) {
   const clamped = Math.max(0, Math.min(100, percent));
   return (
-    <div style={{ height: 8, borderRadius: radiusPill, background: colors.bgMuted, overflow: 'hidden' }}>
+    <div style={{ height: 8, borderRadius: radius.pill, background: colors.bgMuted, overflow: 'hidden' }}>
       <div
-        style={{ width: `${clamped}%`, height: '100%', background: colors.primary, borderRadius: radiusPill }}
+        style={{ width: `${clamped}%`, height: '100%', background: colors.primary, borderRadius: radius.pill }}
       />
     </div>
   );
 }
 
-const radiusPill = 999;
-
-function HistoryCard({
-  transactions,
+function History({
+  rows,
   t,
   onOpenEvent,
 }: {
-  transactions: PlayerFinanceTx[];
+  rows: PlayerFinance['rows'];
   t: T;
   onOpenEvent: (eventId: string) => void;
 }) {
   return (
-    <Card variant="surface">
-      <div style={{ ...typography.smBold, color: colors.textSecondary, marginBottom: spacing['8'] }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['10'] }}>
+      <div style={{ ...typography.smBold, color: colors.textSecondary }}>
         {t('player.finance.history')}
       </div>
-      {transactions.length === 0 ? (
-        <div style={{ ...caption, color: colors.textTertiary, paddingTop: spacing['8'] }}>
-          {t('player.finance.empty')}
-        </div>
+      {rows.length === 0 ? (
+        <Card variant="surface">
+          <div style={{ ...caption, color: colors.textTertiary }}>{t('player.finance.empty')}</div>
+        </Card>
       ) : (
-        transactions.map((tx, i) => {
-          const eventId = tx.event_id;
-          return (
-            <TxRow
-              key={`${tx.kind}-${tx.id}`}
-              tx={tx}
-              t={t}
-              isLast={i === transactions.length - 1}
-              onOpen={eventId ? () => onOpenEvent(eventId) : undefined}
-            />
-          );
-        })
+        rows.map((row) =>
+          row.kind === 'event' ? (
+            <EventCard key={`e-${row.event_id}`} row={row} t={t} onOpen={() => onOpenEvent(row.event_id)} />
+          ) : (
+            <DepositCard key={`d-${row.id}`} row={row} t={t} />
+          ),
+        )
       )}
+    </div>
+  );
+}
+
+const cardTitleText: CSSProperties = {
+  ...typography.bodyBold,
+  color: colors.text,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+};
+
+const tableBox: CSSProperties = {
+  marginTop: spacing['12'],
+  border: `1px solid ${colors.divider}`,
+  borderRadius: radius.md,
+  overflow: 'hidden',
+};
+
+function EventCard({
+  row,
+  t,
+  onOpen,
+}: {
+  row: PlayerFinanceEventRow;
+  t: T;
+  onOpen: () => void;
+}) {
+  const remainder = row.charged - row.paid; // > 0 — долг, < 0 — переплата
+  return (
+    <Card variant="surface" onClick={onOpen}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing['12'] }}>
+        <RoundIcon>
+          {row.is_game ? (
+            <IconGame size={22} color={colors.iconFg} />
+          ) : (
+            <IconTraining size={22} color={colors.iconFg} />
+          )}
+        </RoundIcon>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={cardTitleText}>{row.title}</div>
+          <div style={{ ...caption, marginTop: spacing['2'] }}>
+            {formatDayMonth(row.charged_date)} · {formatTime(row.charged_date)}
+          </div>
+        </div>
+        <IconChevronRight size={16} color={colors.iconMuted} />
+      </div>
+
+      <div style={tableBox}>
+        <MoneyRow
+          label={t('player.finance.charge')}
+          date={formatDayMonth(row.charged_date)}
+          amount={`${formatRub(row.charged)} ₽`}
+          amountColor={colors.text}
+          first
+        />
+        <MoneyRow
+          label={t('player.finance.payment')}
+          date={row.paid_date ? formatDayMonth(row.paid_date) : '—'}
+          amount={`${formatRub(row.paid)} ₽`}
+          amountColor={row.paid > 0 ? colors.success : colors.textTertiary}
+        />
+        {remainder !== 0 ? (
+          <RemainderBand
+            label={remainder > 0 ? t('player.finance.debt') : t('player.finance.credit')}
+            amount={`${formatRub(remainder)} ₽`}
+            debt={remainder > 0}
+          />
+        ) : null}
+      </div>
     </Card>
   );
 }
 
-function TxRow({
-  tx,
-  t,
-  isLast,
-  onOpen,
+function MoneyRow({
+  label,
+  date,
+  amount,
+  amountColor,
+  first,
 }: {
-  tx: PlayerFinanceTx;
-  t: T;
-  isLast: boolean;
-  onOpen?: () => void;
+  label: string;
+  date: string;
+  amount: string;
+  amountColor: string;
+  first?: boolean;
 }) {
-  const isCharge = tx.kind === 'charge';
-  const primary = isCharge ? (tx.title ?? '—') : (tx.title ?? t('player.finance.payment'));
-  const kindWord = isCharge ? t('player.finance.charge') : t('player.finance.payment');
-  const amountText = `${isCharge ? '+' : '−'}${formatRub(tx.amount)} ₽`;
-  const clickable = Boolean(onOpen);
   return (
     <div
-      className={clickable ? 'pressable' : undefined}
-      role={clickable ? 'button' : undefined}
-      tabIndex={clickable ? 0 : undefined}
-      aria-label={clickable ? primary : undefined}
-      onClick={onOpen}
-      onKeyDown={
-        clickable
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onOpen?.();
-              }
-            }
-          : undefined
-      }
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        padding: `${spacing['10']}px ${spacing['12']}px`,
+        borderTop: first ? 'none' : `1px solid ${colors.divider}`,
+      }}
+    >
+      <span style={{ ...typography.sm, color: colors.textSecondary, flex: 1, minWidth: 0 }}>
+        {label}
+      </span>
+      <span style={{ ...caption, color: colors.textTertiary, width: 72, textAlign: 'right' }}>
+        {date}
+      </span>
+      <span
+        style={{
+          ...typography.bodyBold,
+          color: amountColor,
+          fontVariantNumeric: 'tabular-nums',
+          minWidth: 72,
+          marginLeft: spacing['12'],
+          textAlign: 'right',
+        }}
+      >
+        {amount}
+      </span>
+    </div>
+  );
+}
+
+function RemainderBand({ label, amount, debt }: { label: string; amount: string; debt: boolean }) {
+  const bg = debt ? colors.warningBg : colors.successBg;
+  const fg = debt ? colors.warning : colors.successDark;
+  return (
+    <div
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: spacing['12'],
-        padding: `${spacing['12']}px 0`,
-        borderBottom: isLast ? 'none' : `1px solid ${colors.divider}`,
-        cursor: clickable ? 'pointer' : 'default',
+        padding: `${spacing['10']}px ${spacing['12']}px`,
+        borderTop: `1px solid ${colors.divider}`,
+        background: bg,
       }}
     >
-      <div style={{ minWidth: 0 }}>
-        <div style={{ ...typography.body, color: colors.text }}>{primary}</div>
-        <div style={{ ...caption, marginTop: spacing['2'] }}>
-          {formatDayMonth(tx.date)} · {formatTime(tx.date)} · {kindWord}
-        </div>
-      </div>
-      <span
-        style={{
-          ...typography.bodyBold,
-          color: isCharge ? colors.success : colors.text,
-          fontVariantNumeric: 'tabular-nums',
-          flexShrink: 0,
-        }}
-      >
-        {amountText}
+      <span style={{ ...typography.smBold, color: fg }}>{label}</span>
+      <span style={{ ...typography.bodyBold, color: fg, fontVariantNumeric: 'tabular-nums' }}>
+        {amount}
       </span>
     </div>
+  );
+}
+
+function DepositCard({ row, t }: { row: PlayerFinanceDepositRow; t: T }) {
+  return (
+    <Card variant="surface">
+      <div style={{ display: 'flex', alignItems: 'center', gap: spacing['12'] }}>
+        <RoundIcon>
+          <IconWallet size={22} color={colors.iconFg} />
+        </RoundIcon>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={cardTitleText}>{t('player.finance.deposit')}</div>
+          <div style={{ ...caption, marginTop: spacing['2'] }}>
+            {formatDayMonth(row.date)} · {formatTime(row.date)}
+          </div>
+          <div style={{ ...caption, color: colors.textTertiary, marginTop: spacing['2'] }}>
+            {row.title ?? t('player.finance.transfer')}
+          </div>
+        </div>
+        <span
+          style={{
+            ...typography.bodyBold,
+            color: colors.success,
+            fontVariantNumeric: 'tabular-nums',
+            flexShrink: 0,
+          }}
+        >
+          +{formatRub(row.amount)} ₽
+        </span>
+      </div>
+    </Card>
   );
 }

@@ -282,23 +282,32 @@ export type PlayerOverview = {
 export type PlayerOverviewResponse = PlayerOverview;
 
 // Вкладка «Финансы» в профиле.
-export type PlayerTxKind = 'charge' | 'payment';
-export type PlayerFinanceTx = {
-  id: string;
-  kind: PlayerTxKind;
-  // charge — ярлык события; payment — описание перевода (может быть null).
-  title: string | null;
-  date: string;
-  amount: number; // положительное; знак и цвет — по kind
-  // событие начисления — для перехода по строке (у оплат null).
-  event_id: string | null;
+// Сдвоенная строка события: начисление + оплата за одно событие. Кликабельна → /events/[id].
+export type PlayerFinanceEventRow = {
+  kind: 'event';
+  event_id: string;
+  title: string;
+  is_game: boolean;
+  charged: number; // начислено (cost_per_player); 0 — оплата без явки/начисления
+  charged_date: string; // дата события (starts_at) — по ней сортируем
+  paid: number; // сумма оплат по событию; 0 — не оплачено
+  paid_date: string | null; // когда организатор отметил оплату; null при paid=0
 };
+// Отдельная строка: оплата без привязки к событию (депозит). Не кликабельна.
+export type PlayerFinanceDepositRow = {
+  kind: 'deposit';
+  id: string;
+  title: string | null; // описание перевода
+  amount: number;
+  date: string;
+};
+export type PlayerFinanceRow = PlayerFinanceEventRow | PlayerFinanceDepositRow;
 export type PlayerFinance = {
   balance: number; // > 0 — игрок должен; < 0 — переплата
   total_charged: number;
   total_paid: number;
   paid_percent: number; // 0–100
-  transactions: PlayerFinanceTx[];
+  rows: PlayerFinanceRow[]; // события и депозиты вперемешку, по дате desc
 };
 export type PlayerFinanceResponse = PlayerFinance;
 

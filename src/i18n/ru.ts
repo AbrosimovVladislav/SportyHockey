@@ -59,6 +59,8 @@ export const ru = {
   'player.finance.history': 'История операций',
   'player.finance.charge': 'Начисление',
   'player.finance.payment': 'Оплата',
+  'player.finance.deposit': 'Депозит',
+  'player.finance.transfer': 'Перевод',
   'player.finance.empty': 'Операций пока нет',
   'player.stats.title': 'Статистика',
   'player.stats.games': 'Игры',
