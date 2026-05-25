@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { CreatePenaltyRequest, CreatePenaltyResponse } from '@/types/api';
 
 export function useAddPenalty(
@@ -14,8 +15,9 @@ export function useAddPenalty(
         method: 'POST',
         body: JSON.stringify(body),
       }),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['event-result', eventId] });
+      if (vars.player_user_id) invalidatePlayer(qc, vars.player_user_id);
     },
   });
 }

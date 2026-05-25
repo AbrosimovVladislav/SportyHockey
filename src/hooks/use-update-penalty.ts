@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { UpdatePenaltyRequest, UpdatePenaltyResponse } from '@/types/api';
 
 type Vars = { penaltyId: string; body: UpdatePenaltyRequest };
@@ -18,6 +19,8 @@ export function useUpdatePenalty(
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['event-result', eventId] });
+      // PATCH мог сместить штраф между игроками — затронутых из vars не вычислить
+      invalidatePlayer(qc);
     },
   });
 }

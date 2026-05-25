@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { DeletePenaltyResponse } from '@/types/api';
 
 export function useDeletePenalty(
@@ -15,6 +16,8 @@ export function useDeletePenalty(
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['event-result', eventId] });
+      // удалённого игрока из vars (только penaltyId) не вычислить
+      invalidatePlayer(qc);
     },
   });
 }

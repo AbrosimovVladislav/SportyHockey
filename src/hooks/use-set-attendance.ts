@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { EventDetailDto, SetAttendanceRequest } from '@/types/api';
 
 type Ctx = { previous: EventDetailDto | undefined };
@@ -34,8 +35,11 @@ export function useSetAttendance(
     onError: (_e, _vars, ctx) => {
       if (ctx?.previous) qc.setQueryData(key, ctx.previous);
     },
-    onSettled: () => {
+    onSettled: (_data, _err, vars) => {
       qc.invalidateQueries({ queryKey: key });
+      invalidatePlayer(qc, vars.user_id);
+      // attendance_rate в списке состава тоже зависит от showed_up
+      qc.invalidateQueries({ queryKey: ['team-members'] });
     },
   });
 }

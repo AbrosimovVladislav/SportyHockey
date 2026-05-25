@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { UpdateGoalRequest, UpdateGoalResponse } from '@/types/api';
 
 type Vars = { goalId: string; body: UpdateGoalRequest };
@@ -18,6 +19,8 @@ export function useUpdateGoal(
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['event-result', eventId] });
+      // PATCH мог сместить очко между игроками — затронутых из vars не вычислить
+      invalidatePlayer(qc);
     },
   });
 }
