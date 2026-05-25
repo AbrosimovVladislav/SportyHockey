@@ -27,13 +27,13 @@ const CreateBody = z.object({
   opponent_name: z.string().trim().min(1).max(100).optional(),
 });
 
-type VenueRow = Pick<EventVenue, 'id' | 'name' | 'address'>;
+type VenueRow = Pick<EventVenue, 'id' | 'name' | 'address' | 'photo_url'>;
 
 function pickVenue(raw: VenueRow | VenueRow[] | null | undefined): EventVenue | null {
   if (!raw) return null;
   const v = Array.isArray(raw) ? raw[0] : raw;
   if (!v) return null;
-  return { id: v.id, name: v.name, address: v.address ?? null };
+  return { id: v.id, name: v.name, address: v.address ?? null, photo_url: v.photo_url ?? null };
 }
 
 export async function GET(req: Request): Promise<Response> {
@@ -50,7 +50,7 @@ export async function GET(req: Request): Promise<Response> {
       sb
         .from('events')
         .select(
-          'id, type, title, starts_at, ends_at, cost_per_player, arena_cost, opponent_name, status, venue:venues(id, name, address)',
+          'id, type, title, starts_at, ends_at, cost_per_player, arena_cost, opponent_name, status, venue:venues(id, name, address, photo_url)',
         )
         .eq('team_id', teamId)
         .neq('status', 'cancelled')

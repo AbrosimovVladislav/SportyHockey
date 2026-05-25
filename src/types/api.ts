@@ -121,6 +121,7 @@ export type EventVenue = {
   id: string;
   name: string;
   address: string | null;
+  photo_url: string | null;
 };
 
 export type EventDto = {

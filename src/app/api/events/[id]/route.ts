@@ -41,13 +41,13 @@ function asTeamSide(value: string | null | undefined): TeamSide | null {
   return null;
 }
 
-type VenueRow = Pick<EventVenue, 'id' | 'name' | 'address'>;
+type VenueRow = Pick<EventVenue, 'id' | 'name' | 'address' | 'photo_url'>;
 
 function pickVenue(raw: VenueRow | VenueRow[] | null | undefined): EventVenue | null {
   if (!raw) return null;
   const v = Array.isArray(raw) ? raw[0] : raw;
   if (!v) return null;
-  return { id: v.id, name: v.name, address: v.address ?? null };
+  return { id: v.id, name: v.name, address: v.address ?? null, photo_url: v.photo_url ?? null };
 }
 
 export const runtime = 'nodejs';
@@ -77,7 +77,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: event, error } = await sb
       .from('events')
       .select(
-        'id, team_id, type, title, starts_at, ends_at, cost_per_player, arena_cost, opponent_name, status, created_by, cancelled_reason, venue:venues(id, name, address)',
+        'id, team_id, type, title, starts_at, ends_at, cost_per_player, arena_cost, opponent_name, status, created_by, cancelled_reason, venue:venues(id, name, address, photo_url)',
       )
       .eq('id', id)
       .maybeSingle();

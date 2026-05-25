@@ -12,6 +12,7 @@ type Props = {
   kind?: EventCardKind;
   title: string;
   venue?: string;
+  venuePhotoUrl?: string;
   timePrimary: string;
   timeSecondary?: string;
   weekDate?: string;
@@ -33,6 +34,7 @@ export function EventCard({
   kind = 'training',
   title,
   venue,
+  venuePhotoUrl,
   timePrimary,
   timeSecondary,
   weekDate,
@@ -136,7 +138,21 @@ export function EventCard({
         )}
       </div>
       <div style={iconBox}>
-        <IconForKind kind={kind} />
+        {venuePhotoUrl ? (
+          <img
+            src={venuePhotoUrl}
+            alt=""
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              borderRadius: radius.md,
+              display: 'block',
+            }}
+          />
+        ) : (
+          <IconForKind kind={kind} />
+        )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={titleStyle}>{title}</div>

@@ -680,6 +680,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          photo_url: string | null
         }
         Insert: {
           address?: string | null
@@ -689,6 +690,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          photo_url?: string | null
         }
         Update: {
           address?: string | null
@@ -698,6 +700,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          photo_url?: string | null
         }
         Relationships: []
       }

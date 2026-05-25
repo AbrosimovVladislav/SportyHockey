@@ -102,6 +102,7 @@ export default function EventsPage() {
       kind={kindOf(ev)}
       title={titleFor(ev)}
       venue={venueFor(ev)}
+      venuePhotoUrl={ev.venue?.photo_url ?? undefined}
       timePrimary={formatTime(ev.starts_at)}
       timeSecondary={ev.ends_at ? `– ${formatTime(ev.ends_at)}` : undefined}
       count={ev.attendance.going}
@@ -118,6 +119,7 @@ export default function EventsPage() {
         kind={kindOf(ev)}
         title={titleFor(ev)}
         venue={venueFor(ev)}
+        venuePhotoUrl={ev.venue?.photo_url ?? undefined}
         timePrimary={formatTime(ev.starts_at)}
         weekDate={wd.date}
         weekDay={wd.day}
@@ -136,6 +138,7 @@ export default function EventsPage() {
         kind={kindOf(ev)}
         title={titleFor(ev)}
         venue={venueFor(ev)}
+        venuePhotoUrl={ev.venue?.photo_url ?? undefined}
         timePrimary={formatTime(ev.starts_at)}
         weekDate={wd.date}
         weekDay={wd.day}
