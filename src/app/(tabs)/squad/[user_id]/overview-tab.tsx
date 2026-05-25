@@ -10,12 +10,12 @@ import {
   IconClose,
   IconChevronRight,
 } from '@/components/icons';
-import { CardHead, bigValue, caption } from './profile-cards';
+import { CardHead, StatCells, bigValue, caption } from './profile-cards';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 import type { TKey } from '@/i18n/ru';
-import type { AttendanceStatus, PlayerOverview, PlayerStatLine } from '@/types/api';
+import type { AttendanceStatus, PlayerOverview } from '@/types/api';
 
 type TabId = 'finance' | 'stats';
 type Props = {
@@ -197,34 +197,24 @@ function StatsCard({
   return (
     <Card variant="surface">
       <CardHead title={t('player.stats.title')} icon={<IconChart size={22} color={colors.iconFg} />} />
-      <StatRow label={t('player.stats.games')} line={stats.games} t={t} />
+      <div style={{ marginTop: spacing['12'] }}>
+        <StatCells
+          cells={[
+            { label: t('player.stats.games'), value: stats.games.played },
+            { label: t('player.stats.goals'), value: stats.games.goals },
+            { label: t('player.stats.assists'), value: stats.games.assists },
+          ]}
+        />
+      </div>
       <div style={{ height: 1, background: colors.divider, margin: `${spacing['12']}px 0` }} />
-      <StatRow label={t('player.stats.trainings')} line={stats.trainings} t={t} />
+      <StatCells
+        cells={[
+          { label: t('player.stats.trainings'), value: stats.trainings.played },
+          { label: t('player.stats.goals'), value: stats.trainings.goals },
+          { label: t('player.stats.assists'), value: stats.trainings.assists },
+        ]}
+      />
       <OpenLink label={t('player.stats.open')} onOpen={onOpen} />
     </Card>
-  );
-}
-
-function StatRow({
-  label,
-  line,
-  t,
-}: {
-  label: string;
-  line: PlayerStatLine;
-  t: (k: TKey) => string;
-}) {
-  const cell = (cap: string, value: number) => (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ ...caption, marginBottom: spacing['2'] }}>{cap}</div>
-      <div style={{ ...typography.stat, color: colors.text }}>{value}</div>
-    </div>
-  );
-  return (
-    <div style={{ display: 'flex', gap: spacing['8'] }}>
-      {cell(label, line.played)}
-      {cell(t('player.stats.goals'), line.goals)}
-      {cell(t('player.stats.assists'), line.assists)}
-    </div>
   );
 }

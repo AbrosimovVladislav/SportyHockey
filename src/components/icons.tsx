@@ -1,6 +1,7 @@
 import type { SVGProps } from 'react';
 import { LuCalendarCheck, LuWallet, LuTrendingUp, LuDumbbell } from 'react-icons/lu';
 import { SiTelegram, SiWhatsapp } from 'react-icons/si';
+import { MdSportsHockey, MdSports } from 'react-icons/md';
 import { colors } from '@/theme/colors';
 
 type IconProps = SVGProps<SVGSVGElement> & {
@@ -395,6 +396,15 @@ export const IconChart = ({ size = 24, color = 'currentColor' }: IconProps) => (
 
 export const IconDumbbell = ({ size = 24, color = 'currentColor' }: IconProps) => (
   <LuDumbbell size={size} color={color} />
+);
+
+// Игра — хоккеист; тренировка — свисток (оба Material, единый стиль).
+export const IconGame = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <MdSportsHockey size={size} color={color} />
+);
+
+export const IconTraining = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <MdSports size={size} color={color} />
 );
 
 export const IconTelegram = ({ size = 24, color = 'currentColor' }: IconProps) => (

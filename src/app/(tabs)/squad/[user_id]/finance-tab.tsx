@@ -1,6 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
 import { IconFinance } from '@/components/icons';
 import { CardHead, caption } from './profile-cards';
@@ -18,10 +19,15 @@ function formatRub(n: number): string {
 }
 
 export function PlayerFinanceTab({ finance, t }: { finance: PlayerFinance; t: T }) {
+  const router = useRouter();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
       <BalanceCard finance={finance} t={t} />
-      <HistoryCard transactions={finance.transactions} t={t} />
+      <HistoryCard
+        transactions={finance.transactions}
+        t={t}
+        onOpenEvent={(id) => router.push(`/events/${id}`)}
+      />
     </div>
   );
 }
@@ -97,7 +103,15 @@ function ProgressBar({ percent }: { percent: number }) {
 
 const radiusPill = 999;
 
-function HistoryCard({ transactions, t }: { transactions: PlayerFinanceTx[]; t: T }) {
+function HistoryCard({
+  transactions,
+  t,
+  onOpenEvent,
+}: {
+  transactions: PlayerFinanceTx[];
+  t: T;
+  onOpenEvent: (eventId: string) => void;
+}) {
   return (
     <Card variant="surface">
       <div style={{ ...typography.smBold, color: colors.textSecondary, marginBottom: spacing['8'] }}>
@@ -108,21 +122,56 @@ function HistoryCard({ transactions, t }: { transactions: PlayerFinanceTx[]; t: 
           {t('player.finance.empty')}
         </div>
       ) : (
-        transactions.map((tx, i) => (
-          <TxRow key={`${tx.kind}-${tx.id}`} tx={tx} t={t} isLast={i === transactions.length - 1} />
-        ))
+        transactions.map((tx, i) => {
+          const eventId = tx.event_id;
+          return (
+            <TxRow
+              key={`${tx.kind}-${tx.id}`}
+              tx={tx}
+              t={t}
+              isLast={i === transactions.length - 1}
+              onOpen={eventId ? () => onOpenEvent(eventId) : undefined}
+            />
+          );
+        })
       )}
     </Card>
   );
 }
 
-function TxRow({ tx, t, isLast }: { tx: PlayerFinanceTx; t: T; isLast: boolean }) {
+function TxRow({
+  tx,
+  t,
+  isLast,
+  onOpen,
+}: {
+  tx: PlayerFinanceTx;
+  t: T;
+  isLast: boolean;
+  onOpen?: () => void;
+}) {
   const isCharge = tx.kind === 'charge';
   const primary = isCharge ? (tx.title ?? '—') : (tx.title ?? t('player.finance.payment'));
   const kindWord = isCharge ? t('player.finance.charge') : t('player.finance.payment');
   const amountText = `${isCharge ? '+' : '−'}${formatRub(tx.amount)} ₽`;
+  const clickable = Boolean(onOpen);
   return (
     <div
+      className={clickable ? 'pressable' : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={clickable ? primary : undefined}
+      onClick={onOpen}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpen?.();
+              }
+            }
+          : undefined
+      }
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -130,6 +179,7 @@ function TxRow({ tx, t, isLast }: { tx: PlayerFinanceTx; t: T; isLast: boolean }
         gap: spacing['12'],
         padding: `${spacing['12']}px 0`,
         borderBottom: isLast ? 'none' : `1px solid ${colors.divider}`,
+        cursor: clickable ? 'pointer' : 'default',
       }}
     >
       <div style={{ minWidth: 0 }}>

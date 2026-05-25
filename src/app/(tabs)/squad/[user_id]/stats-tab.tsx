@@ -1,9 +1,10 @@
 'use client';
 
 import type { CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/card';
-import { IconSticksCrossed, IconDumbbell } from '@/components/icons';
-import { CardHead, caption } from './profile-cards';
+import { IconGame, IconTraining, IconChevronRight } from '@/components/icons';
+import { CardHead, StatCells, caption } from './profile-cards';
 import { formatDayMonth, formatTime } from '@/lib/event-format';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
@@ -15,30 +16,36 @@ import type { PlayerEventStat, PlayerStats } from '@/types/api';
 type T = (k: TKey) => string;
 
 export function PlayerStatsTab({ stats, t }: { stats: PlayerStats; t: T }) {
+  const router = useRouter();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
       <Card variant="surface">
-        <CardHead
-          title={t('player.stats.games')}
-          icon={<IconSticksCrossed size={22} color={colors.iconFg} />}
-        />
-        <div style={{ display: 'flex', gap: spacing['8'], marginTop: spacing['12'] }}>
-          <StatCell label={t('player.stats.games')} value={stats.games.played} />
-          <StatCell label={t('player.stats.goals')} value={stats.games.goals} />
-          <StatCell label={t('player.stats.assists')} value={stats.games.assists} />
-          <StatCell label={t('player.stats.pim')} value={stats.games.penalty_minutes} />
+        <CardHead title={t('player.stats.games')} icon={<IconGame size={22} color={colors.iconFg} />} />
+        <div style={{ marginTop: spacing['12'] }}>
+          <StatCells
+            cells={[
+              { label: t('player.stats.games'), value: stats.games.played },
+              { label: t('player.stats.goals'), value: stats.games.goals },
+              { label: t('player.stats.assists'), value: stats.games.assists },
+              { label: t('player.stats.pim'), value: stats.games.penalty_minutes },
+            ]}
+          />
         </div>
       </Card>
 
       <Card variant="surface">
         <CardHead
           title={t('player.stats.trainings')}
-          icon={<IconDumbbell size={22} color={colors.iconFg} />}
+          icon={<IconTraining size={22} color={colors.iconFg} />}
         />
-        <div style={{ display: 'flex', gap: spacing['8'], marginTop: spacing['12'] }}>
-          <StatCell label={t('player.stats.trainings')} value={stats.trainings.played} />
-          <StatCell label={t('player.stats.goals')} value={stats.trainings.goals} />
-          <StatCell label={t('player.stats.assists')} value={stats.trainings.assists} />
+        <div style={{ marginTop: spacing['12'] }}>
+          <StatCells
+            cells={[
+              { label: t('player.stats.trainings'), value: stats.trainings.played },
+              { label: t('player.stats.goals'), value: stats.trainings.goals },
+              { label: t('player.stats.assists'), value: stats.trainings.assists },
+            ]}
+          />
         </div>
       </Card>
 
@@ -52,7 +59,13 @@ export function PlayerStatsTab({ stats, t }: { stats: PlayerStats; t: T }) {
           </div>
         ) : (
           stats.events.map((e, i) => (
-            <EventRow key={e.event_id} event={e} t={t} isLast={i === stats.events.length - 1} />
+            <EventRow
+              key={e.event_id}
+              event={e}
+              t={t}
+              isLast={i === stats.events.length - 1}
+              onOpen={() => router.push(`/events/${e.event_id}`)}
+            />
           ))
         )}
       </Card>
@@ -60,24 +73,37 @@ export function PlayerStatsTab({ stats, t }: { stats: PlayerStats; t: T }) {
   );
 }
 
-function StatCell({ label, value }: { label: string; value: number }) {
-  return (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ ...typography.stat, color: colors.text }}>{value}</div>
-      <div style={{ ...caption, marginTop: spacing['2'] }}>{label}</div>
-    </div>
-  );
-}
-
-function EventRow({ event, t, isLast }: { event: PlayerEventStat; t: T; isLast: boolean }) {
+function EventRow({
+  event,
+  t,
+  isLast,
+  onOpen,
+}: {
+  event: PlayerEventStat;
+  t: T;
+  isLast: boolean;
+  onOpen: () => void;
+}) {
   return (
     <div
+      className="pressable"
+      role="button"
+      tabIndex={0}
+      aria-label={event.title}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: spacing['12'],
         padding: `${spacing['12']}px 0`,
         borderBottom: isLast ? 'none' : `1px solid ${colors.divider}`,
+        cursor: 'pointer',
       }}
     >
       <span
@@ -93,9 +119,9 @@ function EventRow({ event, t, isLast }: { event: PlayerEventStat; t: T; isLast: 
         }}
       >
         {event.is_game ? (
-          <IconSticksCrossed size={20} color={colors.iconFg} />
+          <IconGame size={20} color={colors.iconFg} />
         ) : (
-          <IconDumbbell size={20} color={colors.iconFg} />
+          <IconTraining size={20} color={colors.iconFg} />
         )}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -121,6 +147,7 @@ function EventRow({ event, t, isLast }: { event: PlayerEventStat; t: T; isLast: 
           <StatBadge label={t('player.stats.short.pim')} value={event.penalty_minutes} tone="error" />
         ) : null}
       </div>
+      <IconChevronRight size={16} color={colors.iconMuted} />
     </div>
   );
 }

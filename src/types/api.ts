@@ -290,6 +290,8 @@ export type PlayerFinanceTx = {
   title: string | null;
   date: string;
   amount: number; // положительное; знак и цвет — по kind
+  // событие начисления — для перехода по строке (у оплат null).
+  event_id: string | null;
 };
 export type PlayerFinance = {
   balance: number; // > 0 — игрок должен; < 0 — переплата

@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import { colors } from '@/theme/colors';
+import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 
 // Общие стили и шапка карточек профиля (Обзор / Финансы / Статистика).
@@ -44,6 +45,28 @@ export function CardHead({ title, icon }: { title: string; icon: ReactNode }) {
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
       <span style={cardTitle}>{title}</span>
       <RoundIcon>{icon}</RoundIcon>
+    </div>
+  );
+}
+
+// Ряд показателей с крупным числом и подписью, разделённый вертикальными линиями.
+export function StatCells({ cells }: { cells: { label: string; value: number }[] }) {
+  return (
+    <div style={{ display: 'flex' }}>
+      {cells.map((c, i) => (
+        <div
+          key={c.label}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            paddingLeft: i > 0 ? spacing['12'] : 0,
+            borderLeft: i > 0 ? `1px solid ${colors.divider}` : 'none',
+          }}
+        >
+          <div style={{ ...typography.stat, color: colors.text }}>{c.value}</div>
+          <div style={{ ...caption, marginTop: spacing['2'] }}>{c.label}</div>
+        </div>
+      ))}
     </div>
   );
 }

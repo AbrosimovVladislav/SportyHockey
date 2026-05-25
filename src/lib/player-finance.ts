@@ -51,6 +51,7 @@ export async function computePlayerFinance(
         title: eventLabel(ev),
         date: ev.starts_at,
         amount: cost,
+        event_id: ev.id,
       });
     }
   }
@@ -65,6 +66,7 @@ export async function computePlayerFinance(
       title: p.description,
       date: p.created_at ?? nowIso,
       amount: amt,
+      event_id: null,
     });
   }
 
