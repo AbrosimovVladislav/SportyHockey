@@ -83,22 +83,40 @@ export async function POST(req: Request): Promise<Response> {
       return NextResponse.json({ ok: true });
     }
 
-    // Освобождаем и игрока (его прежний слот), и целевой слот (прежнего владельца).
+    const userId = parsed.data.user_id;
+    const targetSlot = parsed.data.slot;
+
+    // Текущий слот перетаскиваемого игрока и тот, кто уже стоит на целевом слоте.
+    const { data: existing, error: selErr } = await sb
+      .from('team_default_lines')
+      .select('user_id, slot')
+      .eq('team_id', teamId)
+      .or(`user_id.eq.${userId},slot.eq.${targetSlot}`);
+    if (selErr) {
+      return NextResponse.json({ error: selErr.message }, { status: 500 });
+    }
+    const sourceSlot = existing?.find((r) => r.user_id === userId)?.slot ?? null;
+    const occupant =
+      existing?.find((r) => r.slot === targetSlot && r.user_id !== userId)?.user_id ?? null;
+
+    // Освобождаем обе задействованные записи.
     const { error: delErr } = await sb
       .from('team_default_lines')
       .delete()
       .eq('team_id', teamId)
-      .or(`user_id.eq.${parsed.data.user_id},slot.eq.${parsed.data.slot}`);
+      .or(`user_id.eq.${userId},slot.eq.${targetSlot}`);
     if (delErr) {
       return NextResponse.json({ error: delErr.message }, { status: 500 });
     }
 
-    const { error: insErr } = await sb.from('team_default_lines').insert({
-      team_id: teamId,
-      user_id: parsed.data.user_id,
-      slot: parsed.data.slot,
-      updated_at: new Date().toISOString(),
-    });
+    const now = new Date().toISOString();
+    const rows = [{ team_id: teamId, user_id: userId, slot: targetSlot, updated_at: now }];
+    // Если оба были в звеньях — меняем их местами. Иначе прежний владелец слота уходит в запасные.
+    if (occupant && sourceSlot) {
+      rows.push({ team_id: teamId, user_id: occupant, slot: sourceSlot, updated_at: now });
+    }
+
+    const { error: insErr } = await sb.from('team_default_lines').insert(rows);
     if (insErr) {
       return NextResponse.json({ error: insErr.message }, { status: 500 });
     }

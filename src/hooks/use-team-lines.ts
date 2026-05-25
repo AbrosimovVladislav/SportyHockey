@@ -34,13 +34,24 @@ export function useSetTeamLine(): UseMutationResult<{ ok: true }, ApiError, SetT
       await qc.cancelQueries({ queryKey: KEY });
       const previous = qc.getQueryData<TeamLinesResponse>(KEY);
       if (previous) {
-        const filtered = previous.lines.filter((l) => {
-          if (l.user_id === vars.user_id) return false;
-          if (vars.slot !== null && l.slot === vars.slot) return false;
-          return true;
-        });
-        const nextLines: TeamDefaultLineEntry[] =
-          vars.slot === null ? filtered : [...filtered, { user_id: vars.user_id, slot: vars.slot }];
+        const sourceSlot = previous.lines.find((l) => l.user_id === vars.user_id)?.slot ?? null;
+        const occupant =
+          vars.slot !== null
+            ? (previous.lines.find((l) => l.slot === vars.slot && l.user_id !== vars.user_id)
+                ?.user_id ?? null)
+            : null;
+
+        const filtered = previous.lines.filter(
+          (l) => l.user_id !== vars.user_id && (vars.slot === null || l.slot !== vars.slot),
+        );
+        const nextLines: TeamDefaultLineEntry[] = [...filtered];
+        if (vars.slot !== null) {
+          nextLines.push({ user_id: vars.user_id, slot: vars.slot });
+          // Свап: вытесненный игрок встаёт на освободившийся слот перетащенного.
+          if (occupant && sourceSlot) {
+            nextLines.push({ user_id: occupant, slot: sourceSlot });
+          }
+        }
         qc.setQueryData<TeamLinesResponse>(KEY, { lines: nextLines });
       }
       return { previous };

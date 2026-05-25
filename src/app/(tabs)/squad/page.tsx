@@ -7,7 +7,6 @@ import { FAB } from '@/components/fab';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ContentTabs } from '@/components/content-tabs';
 import { FilterChips } from '@/components/filter-chips';
-import { SearchInput } from '@/components/search-input';
 import { SectionHeader } from '@/components/section-header';
 import { PlayerRow } from '@/components/player-row';
 import { AttendanceRing } from '@/components/attendance-ring';
@@ -39,7 +38,6 @@ export default function SquadPage() {
   const { isOrganizer } = useIsOrganizer();
   const [tab, setTab] = useState<TabId>('list');
   const [filter, setFilter] = useState<FilterId>('all');
-  const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortId>('attendance');
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
 
@@ -63,17 +61,13 @@ export default function SquadPage() {
 
   const groups = useMemo(() => {
     const byFilter = filter === 'all' ? members : members.filter((m) => m.position === filter);
-    const query = search.trim().toLowerCase();
-    const searched = query
-      ? byFilter.filter((m) => formatName(m).toLowerCase().includes(query))
-      : byFilter;
-    const sorted = [...searched].sort((a, b) => sortMembers(a, b, sort));
+    const sorted = [...byFilter].sort((a, b) => sortMembers(a, b, sort));
     return {
       main: sorted.filter((m) => m.tier === 'main'),
       reserve: sorted.filter((m) => m.tier === 'reserve'),
-      total: searched.length,
+      total: byFilter.length,
     };
-  }, [members, filter, search, sort]);
+  }, [members, filter, sort]);
 
   const root: CSSProperties = {
     minHeight: '100dvh',
@@ -88,13 +82,6 @@ export default function SquadPage() {
     zIndex: 2,
     minHeight: `calc(100dvh - ${BOTTOM_NAV_HEIGHT}px - 140px)`,
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
-  };
-
-  const searchRow: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing['8'],
-    padding: `${spacing['12']}px ${spacing['16']}px`,
   };
 
   return (
@@ -116,11 +103,8 @@ export default function SquadPage() {
             membersTotal={members.length}
             filter={filter}
             setFilter={setFilter}
-            search={search}
-            setSearch={setSearch}
             sort={sort}
             setSortSheetOpen={setSortSheetOpen}
-            searchRow={searchRow}
             onSelect={() => alert(t('squad.soon.profile'))}
             t={t}
           />
@@ -171,11 +155,8 @@ type ListViewProps = {
   membersTotal: number;
   filter: FilterId;
   setFilter: (id: FilterId) => void;
-  search: string;
-  setSearch: (v: string) => void;
   sort: SortId;
   setSortSheetOpen: (open: boolean) => void;
-  searchRow: CSSProperties;
   onSelect: (userId: string) => void;
   t: (k: TKey) => string;
 };
@@ -187,11 +168,8 @@ function ListView({
   membersTotal,
   filter,
   setFilter,
-  search,
-  setSearch,
   sort,
   setSortSheetOpen,
-  searchRow,
   onSelect,
   t,
 }: ListViewProps) {
@@ -215,12 +193,10 @@ function ListView({
         options={filterOptions}
         activeId={filter}
         onChange={(id) => setFilter(id as FilterId)}
+        trailing={
+          <SortButton label={sortButtonLabel(t, sort)} onClick={() => setSortSheetOpen(true)} />
+        }
       />
-
-      <div style={searchRow}>
-        <SearchInput value={search} onChange={setSearch} placeholder={t('squad.search.placeholder')} />
-        <SortButton label={sortButtonLabel(t, sort)} onClick={() => setSortSheetOpen(true)} />
-      </div>
 
       {groups.total === 0 ? (
         <EmptyState title={membersTotal === 0 ? t('squad.empty') : t('squad.emptyFiltered')} />
@@ -276,15 +252,15 @@ function SortButton({ label, onClick }: { label: string; onClick: () => void }) 
   const btn: CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: spacing['6'],
-    padding: `0 ${spacing['12']}px`,
-    minHeight: 44,
-    background: colors.bgMuted,
-    borderRadius: radius.md,
+    gap: spacing['4'],
+    padding: `${spacing['6']}px ${spacing['10']}px`,
+    background: colors.cardSchedule,
+    borderRadius: radius.xl,
     border: 'none',
-    color: colors.text,
-    fontSize: 14,
+    color: colors.textSecondary,
+    fontSize: 13,
     fontWeight: 600,
+    lineHeight: '18px',
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     flexShrink: 0,
@@ -292,7 +268,7 @@ function SortButton({ label, onClick }: { label: string; onClick: () => void }) 
   return (
     <button type="button" className="pressable" style={btn} onClick={onClick}>
       {label}
-      <IconChevronDown size={14} color={colors.textSecondary} />
+      <IconChevronDown size={13} color={colors.textSecondary} />
     </button>
   );
 }
