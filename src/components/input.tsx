@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties, InputHTMLAttributes } from 'react';
+import type { CSSProperties, InputHTMLAttributes, KeyboardEvent } from 'react';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
@@ -11,7 +11,17 @@ type Props = InputHTMLAttributes<HTMLInputElement> & {
   invalid?: boolean;
 };
 
-export function Input({ fullWidth = true, invalid, style, ...rest }: Props) {
+export function Input({
+  fullWidth = true,
+  invalid,
+  style,
+  type,
+  enterKeyHint,
+  onKeyDown,
+  ...rest
+}: Props) {
+  const isDate = type === 'date';
+
   const base: CSSProperties = {
     ...typography.body,
     background: colors.bgMuted,
@@ -22,9 +32,29 @@ export function Input({ fullWidth = true, invalid, style, ...rest }: Props) {
     padding: `${spacing['10']}px ${spacing['12']}px`,
     borderRadius: radius.md,
     width: fullWidth ? '100%' : undefined,
+    boxSizing: 'border-box',
     transition: 'border-color 100ms ease',
+    // iOS: нативный date-инпут игнорирует width и вылезает за контейнер — сбрасываем appearance.
+    ...(isDate ? { WebkitAppearance: 'none', appearance: 'none', minWidth: 0 } : null),
     ...style,
   };
 
-  return <input {...rest} style={base} />;
+  // Enter закрывает клавиатуру на текстовых полях: у одиночного инпута своего submit'а нет,
+  // поэтому return по умолчанию ничего не делает — даём явный blur.
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    onKeyDown?.(e);
+    if (e.key === 'Enter' && !e.defaultPrevented) {
+      e.currentTarget.blur();
+    }
+  };
+
+  return (
+    <input
+      {...rest}
+      type={type}
+      enterKeyHint={enterKeyHint ?? 'done'}
+      onKeyDown={handleKeyDown}
+      style={base}
+    />
+  );
 }

@@ -3,6 +3,7 @@ import { Bot, InlineKeyboard, type Context } from 'grammy';
 import { supabaseServer } from '@/lib/supabase-server';
 import { buildEventCard, type BotEventVote } from '@/lib/bot-event-card';
 import { asEventType } from '@/lib/event-enum';
+import { upsertTelegramUser } from '@/lib/upsert-telegram-user';
 
 let cachedBot: Bot | null = null;
 
@@ -86,6 +87,23 @@ function openMiniAppKeyboard(): InlineKeyboard | null {
   return new InlineKeyboard().webApp('Открыть Mini App', url);
 }
 
+// Гарантирует строку users по данным Telegram и возвращает её id (или null при сбое).
+// Имя/фамилию не затирает — этим занимается upsertTelegramUser (пишет только при создании).
+async function ensureBotUserId(from: TelegramFrom): Promise<string | null> {
+  try {
+    const u = await upsertTelegramUser({
+      telegram_id: from.id,
+      username: from.username ?? null,
+      first_name: from.first_name ?? null,
+      last_name: from.last_name ?? null,
+    });
+    return u.id;
+  } catch (e) {
+    console.error('[bot] ensure user failed:', e);
+    return null;
+  }
+}
+
 async function handleVoteCallback(
   ctx: Context,
   eventId: string,
@@ -97,20 +115,8 @@ async function handleVoteCallback(
   }
   const sb = supabaseServer();
 
-  const { data: user } = await sb
-    .from('users')
-    .upsert(
-      {
-        telegram_id: ctx.from.id,
-        username: ctx.from.username ?? null,
-        first_name: ctx.from.first_name ?? null,
-        last_name: ctx.from.last_name ?? null,
-      },
-      { onConflict: 'telegram_id' },
-    )
-    .select('id')
-    .single();
-  if (!user) {
+  const userId = await ensureBotUserId(ctx.from);
+  if (!userId) {
     await ctx.answerCallbackQuery({ text: 'Не удалось определить пользователя' });
     return;
   }
@@ -130,7 +136,7 @@ async function handleVoteCallback(
   const { data: mem } = await sb
     .from('team_memberships')
     .select('id')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .eq('team_id', event.team_id)
     .maybeSingle();
   if (!mem) {
@@ -142,7 +148,7 @@ async function handleVoteCallback(
     .from('event_attendances')
     .select('vote')
     .eq('event_id', event.id)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .maybeSingle();
   const prevVote = (prev?.vote === 'going' || prev?.vote === 'not_going'
     ? prev.vote
@@ -154,13 +160,13 @@ async function handleVoteCallback(
       .from('event_attendances')
       .delete()
       .eq('event_id', event.id)
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
     finalVote = null;
   } else {
     await sb.from('event_attendances').upsert(
       {
         event_id: event.id,
-        user_id: user.id,
+        user_id: userId,
         vote: next,
         voted_at: new Date().toISOString(),
       },
@@ -201,25 +207,13 @@ async function sendUpcomingEvents(ctx: Context): Promise<void> {
   if (!ctx.from) return;
   const sb = supabaseServer();
 
-  const { data: user } = await sb
-    .from('users')
-    .upsert(
-      {
-        telegram_id: ctx.from.id,
-        username: ctx.from.username ?? null,
-        first_name: ctx.from.first_name ?? null,
-        last_name: ctx.from.last_name ?? null,
-      },
-      { onConflict: 'telegram_id' },
-    )
-    .select('id')
-    .single();
-  if (!user) return;
+  const userId = await ensureBotUserId(ctx.from);
+  if (!userId) return;
 
   const { data: memberships } = await sb
     .from('team_memberships')
     .select('team_id')
-    .eq('user_id', user.id);
+    .eq('user_id', userId);
   const teamIds = (memberships ?? []).map((m) => m.team_id);
   if (teamIds.length === 0) {
     await ctx.reply('Тебя пока нет в команде. Попроси организатора прислать приглашение.');
@@ -245,7 +239,7 @@ async function sendUpcomingEvents(ctx: Context): Promise<void> {
   const { data: votes } = await sb
     .from('event_attendances')
     .select('event_id, vote')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .in('event_id', eventIds);
   const voteMap = new Map<string, BotEventVote>(
     (votes ?? []).map((v) => [
@@ -289,35 +283,20 @@ async function joinTeamByDeeplink(from: TelegramFrom, teamId: string): Promise<J
   if (teamErr) console.error('[bot] team lookup failed:', teamErr);
   if (teamErr || !team) return { kind: 'not_found' };
 
-  const { data: u, error: uErr } = await sb
-    .from('users')
-    .upsert(
-      {
-        telegram_id: from.id,
-        username: from.username ?? null,
-        first_name: from.first_name ?? null,
-        last_name: from.last_name ?? null,
-      },
-      { onConflict: 'telegram_id' },
-    )
-    .select('id')
-    .single();
-  if (uErr || !u) {
-    console.error('[bot] user upsert failed:', uErr);
-    return { kind: 'not_found' };
-  }
+  const userId = await ensureBotUserId(from);
+  if (!userId) return { kind: 'not_found' };
 
   const { data: existing } = await sb
     .from('team_memberships')
     .select('id')
     .eq('team_id', team.id)
-    .eq('user_id', u.id)
+    .eq('user_id', userId)
     .maybeSingle();
   if (existing) return { kind: 'already_in', teamName: team.name };
 
   const { error: insErr } = await sb
     .from('team_memberships')
-    .insert({ team_id: team.id, user_id: u.id, role: 'player' });
+    .insert({ team_id: team.id, user_id: userId, role: 'player' });
   if (insErr) {
     console.error('[bot] membership insert failed:', insErr);
     return { kind: 'not_found' };

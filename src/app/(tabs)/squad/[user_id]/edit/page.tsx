@@ -1,10 +1,18 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LightHeader } from '@/components/light-header';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { Avatar } from '@/components/avatar';
+import { AvatarCropper } from '@/components/avatar-cropper';
 import { Input } from '@/components/input';
 import { CardField } from '@/components/card-field';
 import { Button } from '@/components/button';
@@ -89,6 +97,7 @@ export default function EditPlayerPage() {
   const [tier, setTier] = useState<MemberTier>('main');
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [sheet, setSheet] = useState<SheetId | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -116,11 +125,25 @@ export default function EditPlayerPage() {
     else router.push(`/squad/${userId}`);
   };
 
+  // Выбранный файл сначала отправляем в кадрировщик, а уже его результат — в превью/загрузку.
   const onPickFile = (file: File | null) => {
     if (!file) return;
+    setCropFile(file);
+  };
+
+  const onCropDone = (cropped: File) => {
     if (preview) URL.revokeObjectURL(preview);
-    setPhoto(file);
-    setPreview(URL.createObjectURL(file));
+    setPhoto(cropped);
+    setPreview(URL.createObjectURL(cropped));
+    setCropFile(null);
+  };
+
+  // Тап по пустой области закрывает клавиатуру — у цифровых полей iOS нет своей кнопки «Готово».
+  const dismissKeyboard = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = e.target as HTMLElement;
+    if (el.closest('input, textarea, select, [contenteditable="true"]')) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) active.blur();
   };
 
   const pickAmplua = (p: PlayerPosition) => {
@@ -184,6 +207,7 @@ export default function EditPlayerPage() {
       <LightHeader title={t('editMember.title')} onBack={onBack} />
 
       <div
+        onPointerDown={dismissKeyboard}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -203,7 +227,10 @@ export default function EditPlayerPage() {
           type="file"
           accept="image/jpeg,image/png,image/webp"
           hidden
-          onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            onPickFile(e.target.files?.[0] ?? null);
+            e.target.value = ''; // позволяем выбрать тот же файл повторно
+          }}
         />
 
         <Field label={t('editMember.name')}>
@@ -401,6 +428,18 @@ export default function EditPlayerPage() {
           </Button>
         </div>
       </BottomSheet>
+
+      {cropFile ? (
+        <AvatarCropper
+          file={cropFile}
+          title={t('editMember.cropTitle')}
+          hint={t('editMember.cropHint')}
+          doneLabel={t('editMember.cropDone')}
+          cancelLabel={t('editMember.cancel')}
+          onCancel={() => setCropFile(null)}
+          onDone={onCropDone}
+        />
+      ) : null}
     </div>
   );
 }

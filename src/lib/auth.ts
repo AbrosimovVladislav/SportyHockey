@@ -1,6 +1,7 @@
 import 'server-only';
 import { supabaseServer } from '@/lib/supabase-server';
 import { verifyInitData, type TelegramUser } from '@/lib/telegram-verify';
+import { upsertTelegramUser } from '@/lib/upsert-telegram-user';
 
 export type AuthedUser = {
   id: string;
@@ -39,24 +40,15 @@ export async function requireUser(req: Request): Promise<AuthedUser> {
 }
 
 async function upsertUser(tgUser: TelegramUser): Promise<AuthedUser> {
-  const sb = supabaseServer();
-  const { data, error } = await sb
-    .from('users')
-    .upsert(
-      {
-        telegram_id: tgUser.id,
-        username: tgUser.username ?? null,
-        first_name: tgUser.first_name ?? null,
-        last_name: tgUser.last_name ?? null,
-        photo_url: tgUser.photo_url ?? null,
-      },
-      { onConflict: 'telegram_id' },
-    )
-    .select('id, telegram_id, username, first_name, last_name, photo_url')
-    .single();
-
-  if (error || !data || data.telegram_id == null) {
-    throw new AuthError(`users upsert failed: ${error?.message ?? 'unknown'}`);
+  const data = await upsertTelegramUser({
+    telegram_id: tgUser.id,
+    username: tgUser.username ?? null,
+    first_name: tgUser.first_name ?? null,
+    last_name: tgUser.last_name ?? null,
+    photo_url: tgUser.photo_url ?? null,
+  });
+  if (data.telegram_id == null) {
+    throw new AuthError('users upsert failed: telegram_id отсутствует');
   }
   return {
     id: data.id,

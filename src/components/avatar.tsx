@@ -47,7 +47,11 @@ export function Avatar({ src, name, size = 46, toneIdx }: Props) {
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt={name ?? ''} style={base} />
+      <img
+        src={src}
+        alt={name ?? ''}
+        style={{ ...base, objectFit: 'cover', objectPosition: 'center' }}
+      />
     );
   }
 
