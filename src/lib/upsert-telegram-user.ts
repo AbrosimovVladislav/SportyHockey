@@ -33,7 +33,8 @@ export async function upsertTelegramUser(tg: TgIdentityInput): Promise<TgUserRow
 
   const volatile: { username?: string | null; photo_url?: string | null } = {};
   if (tg.username !== undefined) volatile.username = tg.username;
-  if (tg.photo_url !== undefined) volatile.photo_url = tg.photo_url;
+  // photo_url Telegram присылает в initData не всегда — не затираем сохранённое значение пустым.
+  if (tg.photo_url) volatile.photo_url = tg.photo_url;
 
   // Существующая строка → обновляем только волатильные поля, имя не трогаем.
   if (Object.keys(volatile).length > 0) {

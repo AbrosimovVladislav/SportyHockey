@@ -61,7 +61,9 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
 
     const { data: members, error: memErr } = await sb
       .from('team_memberships')
-      .select('user_id, jersey_number, position, users(first_name, last_name, username, photo_url)')
+      .select(
+        'user_id, jersey_number, position, users(first_name, last_name, username, photo_url, avatar_url)',
+      )
       .eq('team_id', event.team_id);
     if (memErr) {
       return NextResponse.json({ error: memErr.message }, { status: 500 });
@@ -74,7 +76,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
         first_name: u?.first_name ?? null,
         last_name: u?.last_name ?? null,
         username: u?.username ?? null,
-        photo_url: u?.photo_url ?? null,
+        photo_url: u?.avatar_url ?? u?.photo_url ?? null,
         jersey_number: m.jersey_number ?? null,
         position: asPosition(m.position),
       });

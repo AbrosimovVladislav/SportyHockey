@@ -83,7 +83,7 @@ export default function ProfilePage() {
     <Screen title={t('profile.title')}>
       <Card variant="warm">
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing['12'] }}>
-          <Avatar src={user.photo_url} name={formatName(user)} size={56} />
+          <Avatar src={user.avatar_url ?? user.photo_url} name={formatName(user)} size={56} />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ ...typography.bodyBold, color: colors.text }}>{formatName(user)}</span>
             {user.username ? (

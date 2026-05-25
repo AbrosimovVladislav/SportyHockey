@@ -65,7 +65,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: rows, error: rowsErr } = await sb
       .from('media_items')
       .select(
-        'id, storage_path, mime_type, created_at, uploaded_by, uploader:users!media_items_uploaded_by_fkey(id, first_name, last_name, photo_url)',
+        'id, storage_path, mime_type, created_at, uploaded_by, uploader:users!media_items_uploaded_by_fkey(id, first_name, last_name, photo_url, avatar_url)',
       )
       .eq('event_id', event.id)
       .order('created_at', { ascending: false });
@@ -85,7 +85,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
               id: u.id,
               first_name: u.first_name ?? null,
               last_name: u.last_name ?? null,
-              photo_url: u.photo_url ?? null,
+              photo_url: u.avatar_url ?? u.photo_url ?? null,
             }
           : null,
       };
@@ -148,6 +148,14 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
       );
     }
 
+    // Кастомный аватар (если есть) важнее Telegram-фото — отдаём его и в свежем ответе.
+    const { data: uploaderProfile } = await sb
+      .from('users')
+      .select('avatar_url')
+      .eq('id', user.id)
+      .maybeSingle();
+    const uploaderPhoto = uploaderProfile?.avatar_url ?? user.photo_url ?? null;
+
     const items: MediaItemDto[] = inserted.map((r) => ({
       id: r.id,
       url: buildPublicUrl(sb, r.storage_path),
@@ -157,7 +165,7 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
         id: user.id,
         first_name: user.first_name ?? null,
         last_name: user.last_name ?? null,
-        photo_url: user.photo_url ?? null,
+        photo_url: uploaderPhoto,
       },
     }));
 

@@ -103,7 +103,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: members, error: memErr } = await sb
       .from('team_memberships')
       .select(
-        'user_id, role, jersey_number, position, users(first_name, last_name, username, photo_url)',
+        'user_id, role, jersey_number, position, users(first_name, last_name, username, photo_url, avatar_url)',
       )
       .eq('team_id', event.team_id);
     if (memErr) {
@@ -184,7 +184,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
         first_name: u?.first_name ?? null,
         last_name: u?.last_name ?? null,
         username: u?.username ?? null,
-        photo_url: u?.photo_url ?? null,
+        photo_url: u?.avatar_url ?? u?.photo_url ?? null,
         role: asMemberRole(m.role),
         vote: att?.vote ?? null,
         jersey_number: m.jersey_number ?? null,
