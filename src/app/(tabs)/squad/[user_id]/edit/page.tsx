@@ -18,10 +18,10 @@ import { CardField } from '@/components/card-field';
 import { Button } from '@/components/button';
 import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
 import {
-  IconSticksCrossed,
+  IconGame,
   IconLocation,
   IconStick,
-  IconSparkle,
+  IconTrophy,
   IconPeople,
   IconCheckCircle,
   IconImage,
@@ -274,7 +274,7 @@ export default function EditPlayerPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
             <Select
-              icon={<IconSticksCrossed size={22} color={colors.iconFg} />}
+              icon={<IconGame size={22} color={colors.iconFg} />}
               label={t('editMember.amplua')}
               value={position ? t(AMPLUA_LABEL[position]) : t('editMember.notSet')}
               onClick={() => setSheet('amplua')}
@@ -297,7 +297,7 @@ export default function EditPlayerPage() {
         </div>
 
         <Select
-          icon={<IconSparkle size={22} color={colors.iconFg} />}
+          icon={<IconTrophy size={22} color={colors.iconFg} />}
           label={t('editMember.role')}
           value={t(CAPTAINCY_LABEL[captaincy])}
           onClick={() => setSheet('captaincy')}
