@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, type CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
 import { DarkHeader } from '@/components/dark-header';
 import { BellWithDot } from '@/components/bell-with-dot';
 import { FAB } from '@/components/fab';
@@ -33,6 +34,7 @@ type SortId = 'attendance' | 'name' | 'number';
 
 export default function SquadPage() {
   const t = useT();
+  const router = useRouter();
   useTgHeader('#233F30');
   const q = useTeamMembers();
   const { isOrganizer } = useIsOrganizer();
@@ -88,7 +90,7 @@ export default function SquadPage() {
       <DarkHeader
         title={t('squad.title')}
         right={<BellWithDot ariaLabel={t('a11y.notifications')} />}
-        imageSrc="/arena.png"
+        imageSrc="/team.png"
       />
 
       <div style={sheet}>
@@ -104,7 +106,7 @@ export default function SquadPage() {
             setFilter={setFilter}
             sort={sort}
             setSortSheetOpen={setSortSheetOpen}
-            onSelect={() => alert(t('squad.soon.profile'))}
+            onSelect={(userId) => router.push(`/squad/${userId}`)}
             t={t}
           />
         ) : tab === 'lines' ? (

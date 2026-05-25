@@ -6,7 +6,7 @@ import { asEventStatus } from '@/lib/event-enum';
 type SB = SupabaseClient<Database>;
 
 // Прошедшее событие: не отменено + время уже наступило (ends_at, иначе starts_at).
-function isPastEvent(
+export function isPastEvent(
   status: string | null,
   endsAt: string | null,
   startsAt: string,
@@ -20,11 +20,16 @@ function isPastEvent(
   return !Number.isNaN(ts) && ts < now;
 }
 
+function joinedTs(joinedAt: string | null): number {
+  if (!joinedAt) return 0;
+  const ts = new Date(joinedAt).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+}
+
 /**
- * Считает посещаемость каждого игрока: showed_up=true / число прошедших
- * не-отменённых событий команды. Знаменатель общий по команде.
- * Возвращает Map user_id → процент (0–100) или null, если у команды нет
- * прошедших событий.
+ * Посещаемость («Надёжность») каждого игрока: showed_up=true / число прошедших
+ * не-отменённых событий команды, начавшихся ПОСЛЕ вступления игрока (joined_at).
+ * Справедливо к новичкам. null — у игрока ещё не было событий за период членства.
  */
 export async function computeAttendanceRates(
   sb: SB,
@@ -40,30 +45,48 @@ export async function computeAttendanceRates(
     .eq('team_id', teamId);
 
   const now = Date.now();
-  const pastIds = (events ?? [])
+  const pastEvents = (events ?? [])
     .filter((e) => isPastEvent(e.status, e.ends_at, e.starts_at, now))
-    .map((e) => e.id);
+    .map((e) => ({ id: e.id, startsTs: new Date(e.starts_at).getTime() }));
 
-  if (pastIds.length === 0) {
+  if (pastEvents.length === 0) {
     for (const id of userIds) result.set(id, null);
     return result;
   }
 
+  const { data: mems } = await sb
+    .from('team_memberships')
+    .select('user_id, joined_at')
+    .eq('team_id', teamId)
+    .in('user_id', userIds);
+  const joinedByUser = new Map<string, number>();
+  for (const m of mems ?? []) joinedByUser.set(m.user_id, joinedTs(m.joined_at));
+
+  const pastIds = pastEvents.map((e) => e.id);
   const { data: attendances } = await sb
     .from('event_attendances')
-    .select('user_id')
+    .select('user_id, event_id')
     .eq('showed_up', true)
     .in('event_id', pastIds)
     .in('user_id', userIds);
-
-  const showed = new Map<string, number>();
+  const showedByUser = new Map<string, Set<string>>();
   for (const a of attendances ?? []) {
-    showed.set(a.user_id, (showed.get(a.user_id) ?? 0) + 1);
+    const set = showedByUser.get(a.user_id) ?? new Set<string>();
+    set.add(a.event_id);
+    showedByUser.set(a.user_id, set);
   }
 
-  const total = pastIds.length;
-  for (const id of userIds) {
-    result.set(id, Math.round(((showed.get(id) ?? 0) / total) * 100));
+  for (const uid of userIds) {
+    const joined = joinedByUser.get(uid) ?? 0;
+    const eligible = pastEvents.filter((e) => e.startsTs >= joined);
+    if (eligible.length === 0) {
+      result.set(uid, null);
+      continue;
+    }
+    const showed = showedByUser.get(uid) ?? new Set<string>();
+    let num = 0;
+    for (const e of eligible) if (showed.has(e.id)) num += 1;
+    result.set(uid, Math.round((num / eligible.length) * 100));
   }
   return result;
 }

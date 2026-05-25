@@ -177,6 +177,19 @@ export const IconSearch = (p: IconProps) => (
   </Svg>
 );
 
+export const IconPhone = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 4h3l1.6 4-2 1.4a11 11 0 005 5l1.4-2 4 1.6v3a2 2 0 01-2.2 2A16 16 0 013 6.2 2 2 0 015 4z" />
+  </Svg>
+);
+
+export const IconSend = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M22 3L2 10.5l7 2.5 2.5 7z" />
+    <path d="M22 3L9 13" />
+  </Svg>
+);
+
 export const IconPerson = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="8" r="3.6" />

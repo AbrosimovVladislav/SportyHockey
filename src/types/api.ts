@@ -266,6 +266,21 @@ export type SetTeamSideRequest = {
 export type SetTeamLineResponse = { ok: true };
 export type SetTeamSideResponse = { ok: true };
 
+// Публичный профиль игрока — агрегаты для вкладки «Обзор».
+export type AttendanceStatus = 'showed' | 'missed' | 'unknown';
+export type AttendanceLast5Item = { event_id: string; status: AttendanceStatus };
+export type PlayerStatLine = { played: number; goals: number; assists: number };
+
+export type PlayerOverview = {
+  // Посещаемость: rate 0–100 или null (нет прошедших событий за период членства).
+  attendance: { rate: number | null; last5: AttendanceLast5Item[] };
+  // balance > 0 — игрок должен команде; < 0 — команда должна игроку.
+  finance: { balance: number };
+  stats: { games: PlayerStatLine; trainings: PlayerStatLine };
+};
+
+export type PlayerOverviewResponse = PlayerOverview;
+
 export type PaymentClaimResponse = { ok: true };
 
 export type VoteRequest = {
