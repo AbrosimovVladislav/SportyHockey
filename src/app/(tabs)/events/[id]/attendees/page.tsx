@@ -450,8 +450,10 @@ function PlayerActions({
 
   const paidActive = paidVariant !== 'empty';
   const paidActiveColor = paidVariant === 'partial' ? '#FF9500' : colors.headerAccent;
+  // переплату (сдал больше взноса) показываем суммой, как и частичную; ровно взнос — «Сдал»
+  const overpaid = cost != null && cost > 0 && paid > cost;
   const paidLabel =
-    paidVariant === 'partial' ? `${paid.toLocaleString('ru-RU')} ₽` : tPaid;
+    paidVariant === 'partial' || overpaid ? `${paid.toLocaleString('ru-RU')} ₽` : tPaid;
 
   if (!isOrganizer) {
     if (isMe && paidVariant !== 'full' && cost != null && cost > 0) {
