@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState, type CSSProperties } from 'react';
-import { useRouter } from 'next/navigation';
 import { LightHeader } from '@/components/light-header';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ContentTabs } from '@/components/content-tabs';
@@ -13,6 +12,8 @@ import { AttendanceRing } from '@/components/attendance-ring';
 import { EmptyState } from '@/components/empty-state';
 import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
 import { IconPlus, IconChevronDown } from '@/components/icons';
+import { SquadLinesTab } from './lines-tab';
+import { SquadSidesTab } from './sides-tab';
 import { useT } from '@/hooks/use-t';
 import { useTeamMembers } from '@/hooks/use-team-members';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
@@ -30,7 +31,6 @@ type SortId = 'attendance' | 'name' | 'number';
 
 export default function SquadPage() {
   const t = useT();
-  const router = useRouter();
   const q = useTeamMembers();
   const { isOrganizer } = useIsOrganizer();
   const [tab, setTab] = useState<TabId>('list');
@@ -91,7 +91,7 @@ export default function SquadPage() {
         title={t('squad.title')}
         right={
           isOrganizer ? (
-            <AddButton label={t('squad.fabLabel')} onClick={() => router.push('/squad/new')} />
+            <AddButton label={t('squad.fabLabel')} onClick={() => alert(t('squad.soon.add'))} />
           ) : undefined
         }
       />
@@ -111,19 +111,13 @@ export default function SquadPage() {
           sort={sort}
           setSortSheetOpen={setSortSheetOpen}
           searchRow={searchRow}
-          onSelect={(id) => router.push(`/squad/${id}`)}
+          onSelect={() => alert(t('squad.soon.profile'))}
           t={t}
         />
       ) : tab === 'lines' ? (
-        <SoonStub
-          title={t('squad.tabs.lines.soonTitle')}
-          description={t('squad.tabs.lines.soonDescription')}
-        />
+        <SquadLinesTab members={members} canEdit={isOrganizer} />
       ) : (
-        <SoonStub
-          title={t('squad.tabs.sides.soonTitle')}
-          description={t('squad.tabs.sides.soonDescription')}
-        />
+        <SquadSidesTab members={members} canEdit={isOrganizer} />
       )}
 
       <BottomSheet
@@ -300,26 +294,6 @@ function SortButton({ label, onClick }: { label: string; onClick: () => void }) 
       {label}
       <IconChevronDown size={14} color={colors.textSecondary} />
     </button>
-  );
-}
-
-function SoonStub({ title, description }: { title: string; description: string }) {
-  const wrap: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    padding: `${spacing['40']}px ${spacing['16']}px`,
-    gap: spacing['8'],
-  };
-  return (
-    <div style={wrap}>
-      <span style={{ ...typography.h3, color: colors.text }}>{title}</span>
-      <span style={{ ...typography.body, color: colors.textSecondary, maxWidth: 320 }}>
-        {description}
-      </span>
-    </div>
   );
 }
 

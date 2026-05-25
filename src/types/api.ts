@@ -233,6 +233,39 @@ export type SetLineRequest = {
 
 export type SetLineResponse = { ok: true };
 
+// Дефолты команды (team-level): звенья и распределение Светлые/Тёмные.
+// Звенья — единое построение без деления на light/dark; стороны — независимая раскладка.
+export type TeamDefaultLineEntry = {
+  user_id: string;
+  slot: LineSlot;
+};
+
+export type TeamDefaultSideEntry = {
+  user_id: string;
+  team_side: TeamSide;
+};
+
+export type TeamLinesResponse = {
+  lines: TeamDefaultLineEntry[];
+};
+
+export type TeamSidesResponse = {
+  sides: TeamDefaultSideEntry[];
+};
+
+export type SetTeamLineRequest = {
+  user_id: string;
+  slot: LineSlot | null;
+};
+
+export type SetTeamSideRequest = {
+  user_id: string;
+  team_side: TeamSide | null;
+};
+
+export type SetTeamLineResponse = { ok: true };
+export type SetTeamSideResponse = { ok: true };
+
 export type PaymentClaimResponse = { ok: true };
 
 export type VoteRequest = {

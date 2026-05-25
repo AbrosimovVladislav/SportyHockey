@@ -17,6 +17,7 @@ export function ContentTabs({ tabs, activeId, onChange }: Props) {
     display: 'flex',
     borderBottom: `1px solid ${colors.line}`,
     position: 'relative',
+    padding: `0 ${spacing['8']}px`,
   };
 
   return (
@@ -26,8 +27,8 @@ export function ContentTabs({ tabs, activeId, onChange }: Props) {
         const tabStyle: CSSProperties = {
           flex: 1,
           textAlign: 'center',
-          padding: `${spacing['16']}px 0 ${spacing['12']}px`,
-          fontSize: 16,
+          padding: `${spacing['16']}px ${spacing['4']}px ${spacing['12']}px`,
+          fontSize: 15,
           fontWeight: active ? 600 : 400,
           color: active ? colors.text : colors.tabInactive,
           position: 'relative',

@@ -473,6 +473,78 @@ export type Database = {
           },
         ]
       }
+      team_default_lines: {
+        Row: {
+          slot: string
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          slot: string
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          slot?: string
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_default_lines_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_default_lines_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_default_sides: {
+        Row: {
+          team_id: string
+          team_side: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          team_id: string
+          team_side: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          team_id?: string
+          team_side?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_default_sides_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_default_sides_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_memberships: {
         Row: {
           contact_email: string | null
