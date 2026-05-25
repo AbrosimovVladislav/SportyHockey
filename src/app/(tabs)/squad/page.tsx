@@ -28,7 +28,7 @@ import type { TKey } from '@/i18n/ru';
 import type { PlayerPosition, TeamMember } from '@/types/api';
 
 type TabId = 'list' | 'lines' | 'sides';
-type FilterId = 'all' | PlayerPosition;
+type FilterId = PlayerPosition | null;
 type SortId = 'attendance' | 'name' | 'number';
 
 export default function SquadPage() {
@@ -37,7 +37,7 @@ export default function SquadPage() {
   const q = useTeamMembers();
   const { isOrganizer } = useIsOrganizer();
   const [tab, setTab] = useState<TabId>('list');
-  const [filter, setFilter] = useState<FilterId>('all');
+  const [filter, setFilter] = useState<FilterId>(null);
   const [sort, setSort] = useState<SortId>('attendance');
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
 
@@ -51,7 +51,6 @@ export default function SquadPage() {
 
   const counts = useMemo(
     () => ({
-      all: members.length,
       forward: members.filter((m) => m.position === 'forward').length,
       defender: members.filter((m) => m.position === 'defender').length,
       goalie: members.filter((m) => m.position === 'goalie').length,
@@ -60,7 +59,7 @@ export default function SquadPage() {
   );
 
   const groups = useMemo(() => {
-    const byFilter = filter === 'all' ? members : members.filter((m) => m.position === filter);
+    const byFilter = filter === null ? members : members.filter((m) => m.position === filter);
     const sorted = [...byFilter].sort((a, b) => sortMembers(a, b, sort));
     return {
       main: sorted.filter((m) => m.tier === 'main'),
@@ -146,7 +145,7 @@ export default function SquadPage() {
 }
 
 type Groups = { main: TeamMember[]; reserve: TeamMember[]; total: number };
-type Counts = { all: number; forward: number; defender: number; goalie: number };
+type Counts = { forward: number; defender: number; goalie: number };
 
 type ListViewProps = {
   q: ReturnType<typeof useTeamMembers>;
@@ -181,7 +180,6 @@ function ListView({
   }
 
   const filterOptions = [
-    { id: 'all', label: t('squad.filters.all'), count: counts.all },
     { id: 'forward', label: t('squad.filters.forward'), count: counts.forward },
     { id: 'defender', label: t('squad.filters.defender'), count: counts.defender },
     { id: 'goalie', label: t('squad.filters.goalie'), count: counts.goalie },
@@ -191,8 +189,8 @@ function ListView({
     <>
       <FilterChips
         options={filterOptions}
-        activeId={filter}
-        onChange={(id) => setFilter(id as FilterId)}
+        activeId={filter ?? ''}
+        onChange={(id) => setFilter(filter === id ? null : (id as PlayerPosition))}
         trailing={
           <SortButton label={sortButtonLabel(t, sort)} onClick={() => setSortSheetOpen(true)} />
         }
