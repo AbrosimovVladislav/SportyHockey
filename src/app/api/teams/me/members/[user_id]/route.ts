@@ -4,6 +4,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { getUserTeamId } from '@/lib/user-team';
 import { asMemberRole } from '@/lib/role';
 import { asPosition, asSlotRole, asTier } from '@/lib/team-member';
+import { computeAttendanceRates } from '@/lib/attendance-rate';
 import type { TeamMember, TeamMemberDetailResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
@@ -59,6 +60,8 @@ export async function GET(
       return NextResponse.json({ error: usersErr.message }, { status: 500 });
     }
 
+    const rates = await computeAttendanceRates(sb, team.id, [memberUserId]);
+
     const member: TeamMember = {
       user_id: membership.user_id,
       telegram_id: u?.telegram_id ?? null,
@@ -78,6 +81,7 @@ export async function GET(
       contact_phone: membership.contact_phone ?? null,
       contact_email: membership.contact_email ?? null,
       is_placeholder: u?.telegram_id == null,
+      attendance_rate: rates.get(memberUserId) ?? null,
     };
 
     const body: TeamMemberDetailResponse = {

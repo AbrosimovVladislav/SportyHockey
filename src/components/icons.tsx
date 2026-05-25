@@ -170,6 +170,13 @@ export const IconClose = (p: IconProps) => (
   </Svg>
 );
 
+export const IconSearch = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="7" />
+    <line x1="16.2" y1="16.2" x2="21" y2="21" />
+  </Svg>
+);
+
 export const IconPerson = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="8" r="3.6" />

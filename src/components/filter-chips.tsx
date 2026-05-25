@@ -5,7 +5,7 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 
-type Option = { id: string; label: string };
+type Option = { id: string; label: string; count?: number };
 
 type Props = {
   options: Option[];
@@ -38,6 +38,13 @@ export function FilterChips({ options, activeId, onChange }: Props) {
           border: 'none',
           cursor: 'pointer',
         };
+        const countStyle: CSSProperties = {
+          marginLeft: spacing['6'],
+          fontWeight: 700,
+          color: active ? colors.textInverse : colors.textSecondary,
+          opacity: active ? 0.75 : 1,
+          fontVariantNumeric: 'tabular-nums',
+        };
         return (
           <button
             key={o.id}
@@ -47,6 +54,7 @@ export function FilterChips({ options, activeId, onChange }: Props) {
             style={chipStyle}
           >
             {o.label}
+            {o.count != null ? <span style={countStyle}>{o.count}</span> : null}
           </button>
         );
       })}

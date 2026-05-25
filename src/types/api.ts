@@ -55,6 +55,9 @@ export type TeamMember = {
   contact_phone: string | null;
   contact_email: string | null;
   is_placeholder: boolean;
+  // Посещаемость: showed_up / число прошедших не-отменённых событий команды (0–100).
+  // null — у команды ещё нет прошедших событий.
+  attendance_rate: number | null;
 };
 
 export type TeamMembersResponse = {
