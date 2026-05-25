@@ -1,4 +1,6 @@
 import type { SVGProps } from 'react';
+import { LuCalendarCheck, LuWallet, LuTrendingUp } from 'react-icons/lu';
+import { SiTelegram, SiWhatsapp } from 'react-icons/si';
 import { colors } from '@/theme/colors';
 
 type IconProps = SVGProps<SVGSVGElement> & {
@@ -376,4 +378,25 @@ export const IconCheckCircle = ({ size = 24, color = 'currentColor', ...p }: Ico
     <circle cx="12" cy="12" r="10" fill={color} />
     <path d="M7 12l3.5 3.5L17 9" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
+);
+
+// react-icons: используются на профиле игрока, дальше мигрируем остальные экраны
+export const IconAttendance = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuCalendarCheck size={size} color={color} />
+);
+
+export const IconFinance = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuWallet size={size} color={color} />
+);
+
+export const IconChart = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuTrendingUp size={size} color={color} />
+);
+
+export const IconTelegram = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <SiTelegram size={size} color={color} />
+);
+
+export const IconWhatsApp = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <SiWhatsapp size={size} color={color} />
 );

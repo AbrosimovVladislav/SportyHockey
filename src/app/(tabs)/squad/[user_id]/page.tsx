@@ -9,7 +9,7 @@ import { Avatar } from '@/components/avatar';
 import { Chip } from '@/components/chip';
 import { ContentTabs } from '@/components/content-tabs';
 import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
-import { IconPhone, IconSend, IconChat, IconCheck, IconMore } from '@/components/icons';
+import { IconPhone, IconTelegram, IconWhatsApp, IconCheck, IconMore } from '@/components/icons';
 import { PlayerOverviewTab } from './overview-tab';
 import { useTeamMember, usePlayerOverview } from '@/hooks/use-team-member';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
@@ -109,7 +109,11 @@ export default function PlayerProfilePage() {
 
         {tab === 'overview' ? (
           overviewQ.data ? (
-            <PlayerOverviewTab overview={overviewQ.data} t={t} />
+            <PlayerOverviewTab
+              overview={overviewQ.data}
+              onOpenTab={(id) => setTab(id)}
+              t={t}
+            />
           ) : (
             <StatusText text={t('common.loading')} color={colors.textSecondary} />
           )
@@ -146,7 +150,7 @@ function HeaderCard({ member, t }: { member: TeamMember; t: (k: TKey) => string 
 
   const phone = member.contact_phone;
   const username = member.username;
-  const hasContacts = Boolean(phone || username);
+  const waDigits = phone ? phone.replace(/[^\d]/g, '') : '';
 
   return (
     <Card variant="surface">
@@ -175,86 +179,104 @@ function HeaderCard({ member, t }: { member: TeamMember; t: (k: TKey) => string 
         </div>
       </div>
 
-      {hasContacts ? (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: spacing['12'],
-            marginTop: spacing['16'],
-            paddingTop: spacing['16'],
-            borderTop: `1px solid ${colors.divider}`,
-          }}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: spacing['12'],
+          marginTop: spacing['16'],
+          paddingTop: spacing['16'],
+          borderTop: `1px solid ${colors.divider}`,
+        }}
+      >
+        {phone ? (
+          <a href={`tel:${phone}`} style={phoneLink}>
+            <IconPhone size={20} color={colors.iconFg} />
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{phone}</span>
+          </a>
+        ) : (
+          <span style={{ ...phoneLink, color: colors.textTertiary }}>
+            <IconPhone size={20} color={colors.iconMuted} />
+            <span>{t('player.contact.none')}</span>
+          </span>
+        )}
+
+        <ContactDivider />
+        <ContactCircle
+          available={Boolean(username)}
+          href={username ? `https://t.me/${username}` : undefined}
+          ariaLabel="Telegram"
         >
-          {phone ? (
-            <a
-              href={`tel:${phone}`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: spacing['8'],
-                color: colors.text,
-                textDecoration: 'none',
-                ...typography.body,
-                minWidth: 0,
-              }}
-            >
-              <IconPhone size={20} color={colors.iconFg} />
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{phone}</span>
-            </a>
-          ) : (
-            <span />
-          )}
-          <div style={{ display: 'flex', gap: spacing['8'], flexShrink: 0 }}>
-            {username ? (
-              <ContactIcon href={`https://t.me/${username}`} ariaLabel="Telegram">
-                <IconSend size={18} color={colors.iconFg} />
-              </ContactIcon>
-            ) : null}
-            {phone ? (
-              <ContactIcon
-                href={`https://wa.me/${phone.replace(/[^\d]/g, '')}`}
-                ariaLabel="WhatsApp"
-              >
-                <IconChat size={18} color={colors.iconFg} />
-              </ContactIcon>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+          <IconTelegram size={18} color={username ? colors.success : colors.error} />
+        </ContactCircle>
+
+        <ContactDivider />
+        <ContactCircle
+          available={Boolean(phone)}
+          href={phone ? `https://wa.me/${waDigits}` : undefined}
+          ariaLabel="WhatsApp"
+        >
+          <IconWhatsApp size={18} color={phone ? colors.success : colors.error} />
+        </ContactCircle>
+      </div>
     </Card>
   );
 }
 
-function ContactIcon({
+const phoneLink: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: spacing['8'],
+  color: colors.text,
+  textDecoration: 'none',
+  ...typography.body,
+};
+
+function ContactDivider() {
+  return <span style={{ width: 1, height: 28, background: colors.divider, flexShrink: 0 }} />;
+}
+
+function ContactCircle({
+  available,
   href,
   ariaLabel,
   children,
 }: {
-  href: string;
+  available: boolean;
+  href?: string;
   ariaLabel: string;
   children: ReactNode;
 }) {
+  const style: CSSProperties = {
+    width: 40,
+    height: 40,
+    borderRadius: '50%',
+    background: available ? colors.successBg : colors.errorBg,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  };
+  if (available && href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={ariaLabel}
+        className="pressable"
+        style={style}
+      >
+        {children}
+      </a>
+    );
+  }
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={ariaLabel}
-      className="pressable"
-      style={{
-        width: 40,
-        height: 40,
-        borderRadius: '50%',
-        background: colors.iconBg,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <span aria-label={ariaLabel} aria-disabled style={style}>
       {children}
-    </a>
+    </span>
   );
 }
 

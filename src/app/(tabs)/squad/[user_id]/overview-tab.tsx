@@ -3,9 +3,9 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { Card } from '@/components/card';
 import {
-  IconCalendar,
-  IconWallet,
-  IconStats,
+  IconAttendance,
+  IconFinance,
+  IconChart,
   IconCheck,
   IconClose,
   IconChevronRight,
@@ -16,18 +16,23 @@ import { typography } from '@/theme/typography';
 import type { TKey } from '@/i18n/ru';
 import type { AttendanceStatus, PlayerOverview, PlayerStatLine } from '@/types/api';
 
-type Props = { overview: PlayerOverview; t: (k: TKey) => string };
+type TabId = 'finance' | 'stats';
+type Props = {
+  overview: PlayerOverview;
+  onOpenTab: (tab: TabId) => void;
+  t: (k: TKey) => string;
+};
 
 function formatRub(n: number): string {
   return Math.abs(n).toLocaleString('ru-RU');
 }
 
-export function PlayerOverviewTab({ overview, t }: Props) {
+export function PlayerOverviewTab({ overview, onOpenTab, t }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
+      <FinanceCard balance={overview.finance.balance} onOpen={() => onOpenTab('finance')} t={t} />
       <AttendanceCard attendance={overview.attendance} t={t} />
-      <FinanceCard balance={overview.finance.balance} t={t} />
-      <StatsCard stats={overview.stats} t={t} />
+      <StatsCard stats={overview.stats} onOpen={() => onOpenTab('stats')} t={t} />
     </div>
   );
 }
@@ -104,11 +109,10 @@ function AttendanceCard({
     <Card variant="surface">
       <CardHead
         title={t('player.attendance.title')}
-        icon={<IconCalendar size={22} color={colors.iconFg} />}
+        icon={<IconAttendance size={22} color={colors.iconFg} />}
       />
       <div style={{ marginTop: spacing['4'] }}>
         <div style={bigValue}>{attendance.rate == null ? '—' : `${attendance.rate}%`}</div>
-        <div style={{ ...caption, marginTop: spacing['2'] }}>{t('player.attendance.subtitle')}</div>
       </div>
       <div style={linkRowStatic}>
         <span style={caption}>{t('player.attendance.last5')}</span>
@@ -165,29 +169,32 @@ function Last5Dot({ status }: { status: AttendanceStatus }) {
   return <span style={{ ...base, background: colors.bgMuted, color: colors.textTertiary }}>?</span>;
 }
 
-function FinanceCard({ balance, t }: { balance: number; t: (k: TKey) => string }) {
+function FinanceCard({
+  balance,
+  onOpen,
+  t,
+}: {
+  balance: number;
+  onOpen: () => void;
+  t: (k: TKey) => string;
+}) {
   const label =
     balance > 0
       ? `${t('player.finance.debt')} ${formatRub(balance)} ₽`
       : balance < 0
         ? `${t('player.finance.credit')} ${formatRub(balance)} ₽`
         : t('player.finance.zero');
+  const valueColor = balance > 0 ? colors.error : balance < 0 ? colors.success : colors.text;
   return (
     <Card variant="surface">
       <CardHead
         title={t('player.finance.title')}
-        icon={<IconWallet size={22} color={colors.iconFg} />}
+        icon={<IconFinance size={22} color={colors.iconFg} />}
       />
       <div style={{ marginTop: spacing['4'] }}>
-        <div style={bigValue}>{label}</div>
-        <div style={{ ...caption, marginTop: spacing['2'] }}>{t('player.finance.balance')}</div>
+        <div style={{ ...bigValue, color: valueColor }}>{label}</div>
       </div>
-      <div
-        className="pressable"
-        style={linkRow}
-        onClick={() => alert(t('player.soon'))}
-        role="button"
-      >
+      <div className="pressable" style={linkRow} onClick={onOpen} role="button">
         <span>{t('player.finance.open')}</span>
         <IconChevronRight size={16} color={colors.primary} />
       </div>
@@ -195,22 +202,22 @@ function FinanceCard({ balance, t }: { balance: number; t: (k: TKey) => string }
   );
 }
 
-function StatsCard({ stats, t }: { stats: PlayerOverview['stats']; t: (k: TKey) => string }) {
+function StatsCard({
+  stats,
+  onOpen,
+  t,
+}: {
+  stats: PlayerOverview['stats'];
+  onOpen: () => void;
+  t: (k: TKey) => string;
+}) {
   return (
     <Card variant="surface">
-      <CardHead
-        title={t('player.stats.title')}
-        icon={<IconStats size={22} color={colors.iconFg} />}
-      />
+      <CardHead title={t('player.stats.title')} icon={<IconChart size={22} color={colors.iconFg} />} />
       <StatRow label={t('player.stats.games')} line={stats.games} t={t} />
       <div style={{ height: 1, background: colors.divider, margin: `${spacing['12']}px 0` }} />
       <StatRow label={t('player.stats.trainings')} line={stats.trainings} t={t} />
-      <div
-        className="pressable"
-        style={linkRow}
-        onClick={() => alert(t('player.soon'))}
-        role="button"
-      >
+      <div className="pressable" style={linkRow} onClick={onOpen} role="button">
         <span>{t('player.stats.open')}</span>
         <IconChevronRight size={16} color={colors.primary} />
       </div>
