@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { shareURL } from '@telegram-apps/sdk-react';
 import { LightHeader } from '@/components/light-header';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { Button } from '@/components/button';
@@ -71,6 +72,20 @@ export default function NewPlayerPage() {
         },
       },
     );
+  };
+
+  // Нативный шит «Поделиться»: ссылка уже в сообщении, орг выбирает игрока из списка.
+  const onShare = () => {
+    if (!inviteLink) return;
+    try {
+      if (shareURL.isAvailable()) {
+        shareURL(inviteLink, t('newMember.shareText'));
+        return;
+      }
+    } catch {
+      // вне Telegram — падаем в копирование
+    }
+    void onCopy();
   };
 
   const onCopy = async () => {
@@ -165,12 +180,15 @@ export default function NewPlayerPage() {
           </div>
         ) : null}
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
-          <Button variant="primary" size="lg" fullWidth onClick={onCopy}>
+          <Button variant="primary" size="lg" fullWidth onClick={onShare}>
+            {t('newMember.send')}
+          </Button>
+          <Button variant="secondary" size="lg" fullWidth onClick={onCopy}>
             {copied ? t('newMember.linkCopied') : t('newMember.copyLink')}
           </Button>
           <Button
-            variant="secondary"
-            size="lg"
+            variant="ghost"
+            size="md"
             fullWidth
             onClick={() => {
               setInviteLink(null);

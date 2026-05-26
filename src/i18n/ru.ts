@@ -144,7 +144,10 @@ export const ru = {
   'newMember.inviteHint':
     'Игроку будет отправлено приглашение для создания аккаунта и доступа к команде.',
   'newMember.createdTitle': 'Игрок создан',
-  'newMember.inviteText': 'Чтобы пригласить игрока, скопируйте ссылку и отправьте ему.',
+  'newMember.inviteText':
+    'Отправьте игроку приглашение — он перейдёт по ссылке и попадёт в команду.',
+  'newMember.send': 'Отправить приглашение',
+  'newMember.shareText': 'Приглашаю тебя в команду в SportyHockey 🏒',
   'newMember.copyLink': 'Скопировать ссылку',
   'newMember.linkCopied': 'Ссылка скопирована',
   'newMember.done': 'Готово',
