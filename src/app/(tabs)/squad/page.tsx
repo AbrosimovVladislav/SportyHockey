@@ -232,7 +232,7 @@ function Group({
 }) {
   return (
     <div>
-      <SectionHeader title={title} variant="group" />
+      <SectionHeader title={title} subtitle={String(members.length)} variant="group" />
       {members.map((m, i) => (
         <PlayerRow
           key={m.user_id}
