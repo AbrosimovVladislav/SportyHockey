@@ -52,6 +52,9 @@ export async function POST(req: Request): Promise<Response> {
       return NextResponse.json({ error: memErr.message }, { status: 500 });
     }
 
+    // Создание команды завершает онбординг организатора.
+    await sb.from('users').update({ onboarded: true }).eq('id', user.id);
+
     const body: CreateTeamResponse = {
       team: { id: team.id, name: team.name },
       membership: { role: 'organizer' },

@@ -545,6 +545,71 @@ export type Database = {
           },
         ]
       }
+      team_join_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          kind: string
+          status: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          kind: string
+          status?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          kind?: string
+          status?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_join_requests_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_join_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_join_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_join_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_memberships: {
         Row: {
           captaincy: string
@@ -638,6 +703,7 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          onboarded: boolean
           photo_url: string | null
           shoots: string | null
           telegram_id: number | null
@@ -651,6 +717,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          onboarded?: boolean
           photo_url?: string | null
           shoots?: string | null
           telegram_id?: number | null
@@ -664,6 +731,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          onboarded?: boolean
           photo_url?: string | null
           shoots?: string | null
           telegram_id?: number | null

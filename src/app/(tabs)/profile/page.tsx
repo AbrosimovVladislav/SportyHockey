@@ -10,6 +10,7 @@ import { Button } from '@/components/button';
 import { IconCheck } from '@/components/icons';
 import { useT } from '@/hooks/use-t';
 import { useMe } from '@/hooks/use-me';
+import { JoinRequestsCard } from './join-requests-card';
 import { formatName } from '@/lib/format-name';
 import { useActiveTeamStore } from '@/store/active-team';
 import { spacing } from '@/theme/spacing';
@@ -121,6 +122,8 @@ export default function ProfilePage() {
           playerLabel={t('profile.role.player')}
         />
       ) : null}
+
+      <JoinRequestsCard enabled={activeMembership?.role === 'organizer'} />
 
       {invite_link ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>

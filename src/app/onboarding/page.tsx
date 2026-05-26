@@ -6,7 +6,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Screen } from '@/components/screen';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
-import { EmptyState } from '@/components/empty-state';
 import { useT } from '@/hooks/use-t';
 import { useMe } from '@/hooks/use-me';
 import { useBackButton } from '@/hooks/use-back-button';
@@ -15,6 +14,9 @@ import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 import { colors } from '@/theme/colors';
 import type { CreateTeamRequest, CreateTeamResponse } from '@/types/api';
+import { ConfirmStep } from './confirm-step';
+import { PlayerStep } from './player-step';
+import { WaitingStep } from './waiting-step';
 
 type Step = 'welcome' | 'organizer' | 'player';
 
@@ -28,13 +30,22 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
 
   const goWelcome = useCallback(() => setStep('welcome'), []);
-  useBackButton(step === 'welcome' ? null : goWelcome);
+
+  const data = me.data;
+  const hasMembership = data ? data.memberships.length > 0 : false;
+  const onboarded = data?.user.onboarded ?? false;
+  const pending = data?.pending_join_request ?? null;
+  // Приглашённый (членство есть, профиль не подтверждён) или ожидающий аппрува заявки —
+  // у них своё представление, локального шага welcome/organizer/player нет.
+  const derived = Boolean(data && ((hasMembership && !onboarded) || (!hasMembership && pending)));
+
+  useBackButton(step === 'welcome' || derived ? null : goWelcome);
 
   useEffect(() => {
-    if (me.data && me.data.memberships.length > 0) {
+    if (data && onboarded && hasMembership) {
       router.replace('/');
     }
-  }, [me.data, router]);
+  }, [data, onboarded, hasMembership, router]);
 
   const createTeam = useMutation({
     mutationFn: (name: string) =>
@@ -51,7 +62,7 @@ export default function OnboardingPage() {
     },
   });
 
-  if (me.isLoading) {
+  if (me.isLoading || !data) {
     return (
       <Screen withTabBar={false}>
         <span style={{ ...typography.body, color: colors.textSecondary }}>
@@ -59,6 +70,20 @@ export default function OnboardingPage() {
         </span>
       </Screen>
     );
+  }
+
+  if (onboarded && hasMembership) {
+    return null; // редирект на '/' в эффекте
+  }
+
+  // Flow 2: приглашённый подтверждает предзаполненный профиль.
+  if (hasMembership && !onboarded) {
+    return <ConfirmStep user={data.user} />;
+  }
+
+  // Flow 1: заявка отправлена — ждём аппрува.
+  if (!hasMembership && pending) {
+    return <WaitingStep teamName={pending.team_name} />;
   }
 
   if (step === 'organizer') {
@@ -72,9 +97,7 @@ export default function OnboardingPage() {
           autoFocus
           maxLength={50}
         />
-        {error ? (
-          <span style={{ ...typography.sm, color: colors.error }}>{error}</span>
-        ) : null}
+        {error ? <span style={{ ...typography.sm, color: colors.error }}>{error}</span> : null}
         <Button
           fullWidth
           size="lg"
@@ -91,14 +114,7 @@ export default function OnboardingPage() {
   }
 
   if (step === 'player') {
-    return (
-      <Screen withTabBar={false}>
-        <EmptyState
-          title={t('onboarding.player.title')}
-          description={t('onboarding.player.description')}
-        />
-      </Screen>
-    );
+    return <PlayerStep user={data.user} />;
   }
 
   return (

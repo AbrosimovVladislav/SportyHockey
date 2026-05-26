@@ -8,9 +8,10 @@ import { upsertTelegramUser } from '@/lib/upsert-telegram-user';
 let cachedBot: Bot | null = null;
 
 type TelegramFrom = NonNullable<Context['from']>;
-type JoinResult =
-  | { kind: 'ok'; teamName: string }
-  | { kind: 'already_in'; teamName: string }
+type ClaimResult =
+  | { kind: 'ok' } // привязали Telegram к игроку без аккаунта
+  | { kind: 'already_claimed' } // та же ссылка, тот же пользователь — повторный переход
+  | { kind: 'has_account' } // перешедший уже зарегистрирован отдельно — нужен мердж
   | { kind: 'not_found' };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -49,34 +50,33 @@ function registerHandlers(bot: Bot): void {
 
   bot.command('start', async (ctx) => {
     const payload = (ctx.match ?? '').trim();
+    const kb = openMiniAppKeyboard();
+    const withKb = kb ? { reply_markup: kb } : undefined;
 
-    if (payload.startsWith('team_') && ctx.from) {
-      const teamId = payload.slice('team_'.length);
-      const result = await joinTeamByDeeplink(ctx.from, teamId);
-      const kb = openMiniAppKeyboard();
-
-      if (result.kind === 'ok') {
+    // Flow 2: персональное приглашение игрока без аккаунта — привязываем Telegram перешедшего.
+    if (payload.startsWith('invite_') && ctx.from) {
+      const userId = payload.slice('invite_'.length);
+      const res = await claimInviteByDeeplink(ctx.from, userId);
+      if (res.kind === 'ok' || res.kind === 'already_claimed') {
+        await ctx.reply('Готово! Открой приложение и проверь свой профиль.', withKb);
+        return;
+      }
+      if (res.kind === 'has_account') {
         await ctx.reply(
-          `Привет! Ты в команде «${result.teamName}». Открой Mini App, чтобы голосовать за события.`,
-          kb ? { reply_markup: kb } : undefined,
+          'У тебя уже есть аккаунт в приложении. Попроси организатора добавить тебя в команду.',
+          withKb,
         );
         return;
       }
-      if (result.kind === 'already_in') {
-        await ctx.reply(
-          `Ты уже в команде «${result.teamName}». Открой Mini App.`,
-          kb ? { reply_markup: kb } : undefined,
-        );
-        return;
-      }
-      await ctx.reply('Не удалось найти команду по этой ссылке. Попроси организатора прислать новую.');
+      await ctx.reply('Ссылка-приглашение недействительна. Попроси организатора прислать новую.');
       return;
     }
 
-    const kb = openMiniAppKeyboard();
+    // Flow 1: ссылка на команду/приложение — ведём в онбординг, где игрок сам выберет команду
+    // и отправит заявку (без аппрува организатора в команду не попадает).
     await ctx.reply(
-      'Привет! Я бот SportyHockey. Открой Mini App, чтобы начать.',
-      kb ? { reply_markup: kb } : undefined,
+      'Привет! Я бот SportyHockey. Открой приложение, выбери команду и отправь заявку на вступление.',
+      withKb,
     );
   });
 }
@@ -269,38 +269,52 @@ async function sendUpcomingEvents(ctx: Context): Promise<void> {
   }
 }
 
-async function joinTeamByDeeplink(from: TelegramFrom, teamId: string): Promise<JoinResult> {
-  if (!UUID_RE.test(teamId)) {
-    return { kind: 'not_found' };
-  }
+// Flow 2: переход по invite-ссылке игрока без аккаунта. По userId находим его карточку
+// (telegram_id NULL) и привязываем к ней реальный Telegram перешедшего.
+async function claimInviteByDeeplink(from: TelegramFrom, userId: string): Promise<ClaimResult> {
+  if (!UUID_RE.test(userId)) return { kind: 'not_found' };
   const sb = supabaseServer();
 
-  const { data: team, error: teamErr } = await sb
-    .from('teams')
-    .select('id, name')
-    .eq('id', teamId)
+  const { data: placeholder, error } = await sb
+    .from('users')
+    .select('id, telegram_id, username')
+    .eq('id', userId)
     .maybeSingle();
-  if (teamErr) console.error('[bot] team lookup failed:', teamErr);
-  if (teamErr || !team) return { kind: 'not_found' };
+  if (error) console.error('[bot] invite lookup failed:', error);
+  if (error || !placeholder) return { kind: 'not_found' };
 
-  const userId = await ensureBotUserId(from);
-  if (!userId) return { kind: 'not_found' };
-
-  const { data: existing } = await sb
-    .from('team_memberships')
-    .select('id')
-    .eq('team_id', team.id)
-    .eq('user_id', userId)
-    .maybeSingle();
-  if (existing) return { kind: 'already_in', teamName: team.name };
-
-  const { error: insErr } = await sb
-    .from('team_memberships')
-    .insert({ team_id: team.id, user_id: userId, role: 'player' });
-  if (insErr) {
-    console.error('[bot] membership insert failed:', insErr);
-    return { kind: 'not_found' };
+  // Уже привязан: этим же пользователем — ок (повторный переход), иначе ссылка занята.
+  if (placeholder.telegram_id != null) {
+    return placeholder.telegram_id === from.id
+      ? { kind: 'already_claimed' }
+      : { kind: 'has_account' };
   }
 
-  return { kind: 'ok', teamName: team.name };
+  // Перешедший уже зарегистрирован отдельной строкой — простая привязка невозможна (нужен мердж).
+  const { data: existing } = await sb
+    .from('users')
+    .select('id')
+    .eq('telegram_id', from.id)
+    .maybeSingle();
+  if (existing) return { kind: 'has_account' };
+
+  const { error: updErr } = await sb
+    .from('users')
+    .update({ telegram_id: from.id, username: from.username ?? placeholder.username })
+    .eq('id', placeholder.id)
+    .is('telegram_id', null); // защита от гонки двух переходов
+  if (updErr) {
+    console.error('[bot] invite claim failed:', updErr);
+    return { kind: 'has_account' };
+  }
+
+  // Помечаем invite-заявку принятой.
+  await sb
+    .from('team_join_requests')
+    .update({ status: 'approved', decided_at: new Date().toISOString() })
+    .eq('user_id', placeholder.id)
+    .eq('kind', 'invite')
+    .eq('status', 'pending');
+
+  return { kind: 'ok' };
 }

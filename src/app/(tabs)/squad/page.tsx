@@ -120,7 +120,7 @@ export default function SquadPage() {
         <FAB
           variant="dark"
           ariaLabel={t('squad.fabLabel')}
-          onClick={() => alert(t('squad.soon.add'))}
+          onClick={() => router.push('/squad/new')}
           bottom={BOTTOM_NAV_HEIGHT + 24}
         />
       ) : null}

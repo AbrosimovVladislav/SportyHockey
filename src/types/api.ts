@@ -10,6 +10,9 @@ export type MeUser = {
   avatar_url: string | null;
   birth_date: string | null;
   bio: string | null;
+  shoots: PlayerShoots | null;
+  // Прошёл ли пользователь онбординг (заполнил/подтвердил свой профиль).
+  onboarded: boolean;
 };
 
 export type MeMembership = {
@@ -18,10 +21,17 @@ export type MeMembership = {
   role: MemberRole;
 };
 
+// Активная (pending) заявка пользователя на вступление — для экрана ожидания.
+export type PendingJoinRequest = {
+  team_id: string;
+  team_name: string;
+};
+
 export type MeResponse = {
   user: MeUser;
   memberships: MeMembership[];
   invite_link: string | null;
+  pending_join_request: PendingJoinRequest | null;
 };
 
 export type CreateTeamRequest = {
@@ -83,6 +93,8 @@ export type UpdateMemberRequest = {
   birth_date?: string | null;
   shoots?: PlayerShoots | null;
   avatar_path?: string | null;
+  // Telegram-ник (users.username) — редактируется руками, в т.ч. для игрока без аккаунта.
+  username?: string | null;
   contact_phone?: string | null;
   jersey_number?: number | null;
   position?: PlayerPosition | null;
@@ -92,6 +104,66 @@ export type UpdateMemberRequest = {
 };
 export type UpdateMemberResponse = { ok: true };
 export type DeleteMemberResponse = { ok: true };
+
+// Создание игрока организатором (flow 2). Те же поля, что и в редактировании,
+// плюс invite — отправлять ли приглашение (генерировать invite-ссылку).
+export type CreateMemberRequest = {
+  first_name?: string | null;
+  last_name?: string | null;
+  birth_date?: string | null;
+  shoots?: PlayerShoots | null;
+  avatar_path?: string | null;
+  username?: string | null;
+  contact_phone?: string | null;
+  jersey_number?: number | null;
+  position?: PlayerPosition | null;
+  slot_role?: PlayerSlotRole | null;
+  captaincy?: PlayerCaptaincy;
+  tier?: MemberTier;
+  invite?: boolean;
+};
+export type CreateMemberResponse = {
+  user_id: string;
+  // Заполнено только если invite=true — ссылка, которую организатор пересылает игроку.
+  invite_link: string | null;
+};
+
+// Завершение онбординга (flow 1 — игрок сам / flow 2 — приглашённый подтверждает профиль).
+// join_team_id задаётся только при самостоятельном приходе игрока без членства.
+export type OnboardRequest = {
+  first_name?: string | null;
+  last_name?: string | null;
+  birth_date?: string | null;
+  shoots?: PlayerShoots | null;
+  avatar_path?: string | null;
+  username?: string | null;
+  join_team_id?: string | null;
+};
+export type OnboardResponse = { ok: true };
+
+// Поиск команды при онбординге игрока.
+export type TeamSearchItem = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  member_count: number;
+};
+export type TeamSearchResponse = { teams: TeamSearchItem[] };
+
+// Входящая заявка на вступление (для приёма организатором в профиле).
+export type JoinRequestItem = {
+  id: string;
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  photo_url: string | null;
+  avatar_url: string | null;
+  created_at: string;
+};
+export type JoinRequestsResponse = { requests: JoinRequestItem[] };
+export type JoinRequestDecisionRequest = { action: 'approve' | 'reject' };
+export type JoinRequestDecisionResponse = { ok: true };
 
 export type SignAvatarRequest = { mime: string };
 export type SignAvatarResponse = SignMediaUpload;

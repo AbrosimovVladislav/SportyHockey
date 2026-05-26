@@ -21,9 +21,19 @@ export const ru = {
   'onboarding.organizer.title': 'Создай команду',
   'onboarding.organizer.namePlaceholder': 'Название команды',
   'onboarding.organizer.create': 'Создать команду',
-  'onboarding.player.title': 'Жди ссылку от организатора',
-  'onboarding.player.description':
-    'Попроси организатора прислать ссылку приглашения в Telegram. Нажми её — попадёшь в команду.',
+  'onboarding.player.title': 'Расскажи о себе',
+  'onboarding.player.subtitle': 'Заполни профиль и выбери команду — отправим заявку организатору.',
+  'onboarding.player.chooseTeam': 'Команда',
+  'onboarding.player.searchPlaceholder': 'Поиск команды по названию',
+  'onboarding.player.searchEmpty': 'Команды не найдены',
+  'onboarding.player.submit': 'Отправить заявку',
+  'onboarding.player.noTeam': 'Сначала выбери команду',
+  'onboarding.confirm.title': 'Подтверди профиль',
+  'onboarding.confirm.subtitle': 'Данные завёл организатор. Поправь, если нужно, и подтверди.',
+  'onboarding.confirm.submit': 'Всё верно, продолжить',
+  'onboarding.waiting.title': 'Заявка отправлена',
+  'onboarding.waiting.description':
+    'Ждём, пока организатор подтвердит вступление. Как только одобрит — ты окажешься в команде.',
   'onboarding.back': 'Назад',
 
   // Profile
@@ -86,6 +96,8 @@ export const ru = {
   'editMember.birthDate': 'Дата рождения',
   'editMember.phone': 'Телефон',
   'editMember.phonePlaceholder': '+7 (___) ___-__-__',
+  'editMember.telegram': 'Telegram',
+  'editMember.telegramPlaceholder': '@username',
   'editMember.number': 'Номер',
   'editMember.numberPlaceholder': '—',
   'editMember.gameProfile': 'Игровой профиль',
@@ -124,6 +136,24 @@ export const ru = {
   'editMember.cap.captain': 'Капитан',
   'editMember.tier.main': 'Основа',
   'editMember.tier.reserve': 'Резерв',
+
+  // Создание игрока (flow 2)
+  'newMember.title': 'Новый игрок',
+  'newMember.save': 'Создать игрока',
+  'newMember.invite': 'Пригласить в приложение',
+  'newMember.inviteHint':
+    'Игроку будет отправлено приглашение для создания аккаунта и доступа к команде.',
+  'newMember.createdTitle': 'Игрок создан',
+  'newMember.inviteText': 'Чтобы пригласить игрока, скопируйте ссылку и отправьте ему.',
+  'newMember.copyLink': 'Скопировать ссылку',
+  'newMember.linkCopied': 'Ссылка скопирована',
+  'newMember.done': 'Готово',
+
+  // Приём заявок организатором (в профиле)
+  'profile.requests.title': 'Заявки на вступление',
+  'profile.requests.empty': 'Новых заявок нет',
+  'profile.requests.approve': 'Принять',
+  'profile.requests.reject': 'Отклонить',
 
   // Squad
   'squad.empty': 'В команде пока никого нет',

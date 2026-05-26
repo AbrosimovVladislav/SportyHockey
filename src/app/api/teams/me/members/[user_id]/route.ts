@@ -6,6 +6,7 @@ import { getUserTeamId } from '@/lib/user-team';
 import { asMemberRole } from '@/lib/role';
 import { asCaptaincy, asPosition, asShoots, asSlotRole, asTier } from '@/lib/team-member';
 import { computeAttendanceRates } from '@/lib/attendance-rate';
+import { normStr, normTelegramUsername } from '@/lib/normalize-contact';
 import type { TablesUpdate } from '@/types/db';
 import type {
   DeleteMemberResponse,
@@ -114,6 +115,7 @@ const PatchBody = z.object({
   birth_date: z.string().max(20).nullable().optional(),
   shoots: z.enum(['left', 'right']).nullable().optional(),
   avatar_path: z.string().max(300).nullable().optional(),
+  username: z.string().max(100).nullable().optional(),
   contact_phone: z.string().max(50).nullable().optional(),
   jersey_number: z.number().int().min(0).max(999).nullable().optional(),
   position: z.enum(['forward', 'defender', 'goalie']).nullable().optional(),
@@ -121,13 +123,6 @@ const PatchBody = z.object({
   captaincy: z.enum(['none', 'assistant', 'captain']).optional(),
   tier: z.enum(['main', 'reserve']).optional(),
 });
-
-// Пустую строку трактуем как «очищено» → null.
-function normStr(v: string | null | undefined): string | null {
-  if (v == null) return null;
-  const t = v.trim();
-  return t === '' ? null : t;
-}
 
 export async function PATCH(
   req: Request,
@@ -164,6 +159,7 @@ export async function PATCH(
     if (d.last_name !== undefined) userUpdate.last_name = normStr(d.last_name);
     if (d.birth_date !== undefined) userUpdate.birth_date = normStr(d.birth_date);
     if (d.shoots !== undefined) userUpdate.shoots = d.shoots;
+    if (d.username !== undefined) userUpdate.username = normTelegramUsername(d.username);
     if (d.avatar_path) {
       userUpdate.avatar_url = sb.storage.from(MEDIA_BUCKET).getPublicUrl(d.avatar_path).data.publicUrl;
     }

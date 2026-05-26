@@ -14,15 +14,19 @@ export default function TabsLayout({ children }: { children: ReactNode }) {
   const me = useMe();
   const t = useT();
 
-  const noTeam = me.data ? me.data.memberships.length === 0 : false;
+  // В приложение пускаем только тех, кто прошёл онбординг и состоит в команде.
+  // Остальные (нет команды / приглашённый не подтвердил профиль / ждёт аппрува) — на онбординг.
+  const needsOnboarding = me.data
+    ? me.data.memberships.length === 0 || !me.data.user.onboarded
+    : false;
 
   useEffect(() => {
-    if (noTeam) {
+    if (needsOnboarding) {
       router.replace('/onboarding');
     }
-  }, [noTeam, router]);
+  }, [needsOnboarding, router]);
 
-  if (me.isLoading || noTeam) {
+  if (me.isLoading || needsOnboarding) {
     return (
       <Screen>
         <span style={{ ...typography.body, color: colors.textSecondary }}>{t('common.loading')}</span>

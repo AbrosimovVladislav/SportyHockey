@@ -25,6 +25,7 @@ export const colors = {
   iconFg: '#3A7A50',
   iconMuted: '#C4C4C4',
   primaryDrop: 'rgba(232, 79, 0, 0.06)',
+  switchOff: '#E5E5EA',
 
   // Lines & borders
   divider: '#E8E8E8',
