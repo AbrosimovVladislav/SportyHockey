@@ -102,24 +102,37 @@ export default function PlayerProfilePage() {
     );
   }
 
-  const tabs = [
-    { id: 'overview', label: t('player.tabs.overview') },
-    { id: 'finance', label: t('player.tabs.finance') },
-    { id: 'stats', label: t('player.tabs.stats') },
-  ];
+  // Игрок не видит финансы чужого профиля — только «Обзор» и «Статистика».
+  const tabs = isOrganizer
+    ? [
+        { id: 'overview', label: t('player.tabs.overview') },
+        { id: 'finance', label: t('player.tabs.finance') },
+        { id: 'stats', label: t('player.tabs.stats') },
+      ]
+    : [
+        { id: 'overview', label: t('player.tabs.overview') },
+        { id: 'stats', label: t('player.tabs.stats') },
+      ];
 
   return (
     <div style={root}>
       <LightHeader title={t('player.title')} onBack={onBack} right={menuButton} />
 
       <div style={content}>
-        <HeaderCard member={member} t={t} />
+        <HeaderCard member={member} isOrganizer={isOrganizer} t={t} />
 
         <ContentTabs tabs={tabs} activeId={tab} onChange={(id) => setTab(id as TabId)} />
 
         {tab === 'overview' ? (
           <QueryGate q={overviewQ} t={t}>
-            {(d) => <PlayerOverviewTab overview={d} onOpenTab={(id) => setTab(id)} t={t} />}
+            {(d) => (
+              <PlayerOverviewTab
+                overview={d}
+                isOrganizer={isOrganizer}
+                onOpenTab={(id) => setTab(id)}
+                t={t}
+              />
+            )}
           </QueryGate>
         ) : tab === 'finance' ? (
           <QueryGate q={financeQ} t={t}>

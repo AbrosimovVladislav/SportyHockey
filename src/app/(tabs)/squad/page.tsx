@@ -66,6 +66,7 @@ export default function SquadPage() {
     return {
       main: sorted.filter((m) => m.tier === 'main'),
       reserve: sorted.filter((m) => m.tier === 'reserve'),
+      all: sorted,
       total: byFilter.length,
     };
   }, [members, filter, sort]);
@@ -102,6 +103,7 @@ export default function SquadPage() {
             groups={groups}
             counts={counts}
             membersTotal={members.length}
+            isOrganizer={isOrganizer}
             filter={filter}
             setFilter={setFilter}
             sort={sort}
@@ -110,9 +112,9 @@ export default function SquadPage() {
             t={t}
           />
         ) : tab === 'lines' ? (
-          <SquadLinesTab members={members} canEdit={isOrganizer} />
+          <SquadLinesTab members={members} canEdit />
         ) : (
-          <SquadSidesTab members={members} canEdit={isOrganizer} />
+          <SquadSidesTab members={members} canEdit />
         )}
       </div>
 
@@ -146,7 +148,7 @@ export default function SquadPage() {
   );
 }
 
-type Groups = { main: TeamMember[]; reserve: TeamMember[]; total: number };
+type Groups = { main: TeamMember[]; reserve: TeamMember[]; all: TeamMember[]; total: number };
 type Counts = { forward: number; defender: number; goalie: number };
 
 type ListViewProps = {
@@ -154,6 +156,7 @@ type ListViewProps = {
   groups: Groups;
   counts: Counts;
   membersTotal: number;
+  isOrganizer: boolean;
   filter: FilterId;
   setFilter: (id: FilterId) => void;
   sort: SortId;
@@ -167,6 +170,7 @@ function ListView({
   groups,
   counts,
   membersTotal,
+  isOrganizer,
   filter,
   setFilter,
   sort,
@@ -200,7 +204,7 @@ function ListView({
 
       {groups.total === 0 ? (
         <EmptyState title={membersTotal === 0 ? t('squad.empty') : t('squad.emptyFiltered')} />
-      ) : (
+      ) : isOrganizer ? (
         <>
           {groups.main.length > 0 ? (
             <Group title={t('squad.group.main')} members={groups.main} onSelect={onSelect} t={t} />
@@ -214,6 +218,9 @@ function ListView({
             />
           ) : null}
         </>
+      ) : (
+        // Игрок не видит деления основа/резерв — единый список «Состав».
+        <Group title={t('squad.group.all')} members={groups.all} onSelect={onSelect} t={t} />
       )}
     </>
   );

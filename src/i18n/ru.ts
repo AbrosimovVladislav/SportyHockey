@@ -182,6 +182,7 @@ export const ru = {
   'squad.sort.button.number': 'По номеру',
   'squad.group.main': 'Основа',
   'squad.group.reserve': 'Резерв',
+  'squad.group.all': 'Состав',
   'squad.soon.add': 'Добавление игрока скоро появится',
   'squad.soon.profile': 'Профиль игрока скоро появится',
   'squad.sides.poolTitle': 'Не распределены',

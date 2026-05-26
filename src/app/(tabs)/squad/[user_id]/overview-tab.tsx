@@ -20,6 +20,7 @@ import type { AttendanceStatus, PlayerOverview } from '@/types/api';
 type TabId = 'finance' | 'stats';
 type Props = {
   overview: PlayerOverview;
+  isOrganizer: boolean;
   onOpenTab: (tab: TabId) => void;
   t: (k: TKey) => string;
 };
@@ -28,10 +29,13 @@ function formatRub(n: number): string {
   return Math.abs(n).toLocaleString('ru-RU');
 }
 
-export function PlayerOverviewTab({ overview, onOpenTab, t }: Props) {
+export function PlayerOverviewTab({ overview, isOrganizer, onOpenTab, t }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
-      <FinanceCard balance={overview.finance.balance} onOpen={() => onOpenTab('finance')} t={t} />
+      {/* Финансы чужого игрока — только организатору. */}
+      {isOrganizer ? (
+        <FinanceCard balance={overview.finance.balance} onOpen={() => onOpenTab('finance')} t={t} />
+      ) : null}
       <AttendanceCard attendance={overview.attendance} t={t} />
       <StatsCard stats={overview.stats} onOpen={() => onOpenTab('stats')} t={t} />
     </div>

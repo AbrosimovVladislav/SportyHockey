@@ -12,7 +12,15 @@ import { typography } from '@/theme/typography';
 import type { TKey } from '@/i18n/ru';
 import type { PlayerPosition, TeamMember } from '@/types/api';
 
-export function HeaderCard({ member, t }: { member: TeamMember; t: (k: TKey) => string }) {
+export function HeaderCard({
+  member,
+  isOrganizer,
+  t,
+}: {
+  member: TeamMember;
+  isOrganizer: boolean;
+  t: (k: TKey) => string;
+}) {
   const subtitleParts: string[] = [];
   if (member.jersey_number != null) subtitleParts.push(`#${member.jersey_number}`);
   const pos = positionLabel(t, member.position);
@@ -36,9 +44,11 @@ export function HeaderCard({ member, t }: { member: TeamMember; t: (k: TKey) => 
           <div
             style={{ display: 'flex', flexWrap: 'wrap', gap: spacing['6'], marginTop: spacing['8'] }}
           >
-            <Chip tone={member.tier === 'reserve' ? 'warning' : 'neutral'}>
-              {member.tier === 'reserve' ? t('player.tier.reserve') : t('player.tier.main')}
-            </Chip>
+            {isOrganizer ? (
+              <Chip tone={member.tier === 'reserve' ? 'warning' : 'neutral'}>
+                {member.tier === 'reserve' ? t('player.tier.reserve') : t('player.tier.main')}
+              </Chip>
+            ) : null}
             {member.is_placeholder ? (
               <Chip tone="warning">{t('player.account.no')}</Chip>
             ) : (

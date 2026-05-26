@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireUser, requireOrganizer } from '@/lib/auth';
+import { AuthError, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getUserTeamId } from '@/lib/user-team';
 import type { TeamDefaultSideEntry, TeamSidesResponse } from '@/types/api';
@@ -48,8 +48,12 @@ const Body = z.object({
 
 export async function POST(req: Request): Promise<Response> {
   try {
-    const ctx = await requireOrganizer(req);
-    const teamId = ctx.team_id;
+    // Распределение Светлые/Тёмные пока двигают все участники команды (см. roadmap 32.5).
+    const user = await requireUser(req);
+    const teamId = await getUserTeamId(user.id, req);
+    if (!teamId) {
+      return NextResponse.json({ error: 'Команды нет' }, { status: 404 });
+    }
 
     const json = await req.json().catch(() => null);
     const parsed = Body.safeParse(json);
