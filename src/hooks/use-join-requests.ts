@@ -39,7 +39,8 @@ export function useDecideJoinRequest(): UseMutationResult<
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['join-requests'] });
-      qc.invalidateQueries({ queryKey: ['team-members'] });
+      // Принятый игрок должен появиться в /squad даже если список не смонтирован.
+      qc.invalidateQueries({ queryKey: ['team-members'], refetchType: 'all' });
     },
   });
 }

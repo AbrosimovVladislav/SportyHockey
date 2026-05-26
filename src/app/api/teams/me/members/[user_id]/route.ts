@@ -176,6 +176,13 @@ export async function PATCH(
     if (Object.keys(userUpdate).length > 0) {
       const { error } = await sb.from('users').update(userUpdate).eq('id', memberUserId);
       if (error) {
+        // Ник уникален среди игроков — подсказываем, а не отдаём сырую ошибку.
+        if (error.code === '23505') {
+          return NextResponse.json(
+            { error: 'Этот Telegram-ник уже занят другим игроком' },
+            { status: 409 },
+          );
+        }
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
     }

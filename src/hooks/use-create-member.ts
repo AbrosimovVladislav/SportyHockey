@@ -56,7 +56,9 @@ export function useCreateMember(): UseMutationResult<CreateMemberResponse, ApiEr
       return created;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['team-members'] });
+      // refetchType: 'all' — список /squad в момент создания не смонтирован; форсируем
+      // рефетч сразу в кэш, иначе на возврате Next отдаёт страницу из роутер-кэша без обновления.
+      qc.invalidateQueries({ queryKey: ['team-members'], refetchType: 'all' });
     },
   });
 }

@@ -11,7 +11,15 @@ export function buildMemberInviteLink(userId: string): string {
 }
 
 function botUsername(): string {
-  const name = process.env.BOT_USERNAME;
+  const raw = process.env.BOT_USERNAME;
+  if (!raw) {
+    throw new Error('BOT_USERNAME должен быть задан');
+  }
+  // Устойчиво к вводу с @, ссылкой t.me/ и пробелами — Telegram резолвит только чистый юзернейм.
+  const name = raw
+    .trim()
+    .replace(/^https?:\/\/t\.me\//i, '')
+    .replace(/^@/, '');
   if (!name) {
     throw new Error('BOT_USERNAME должен быть задан');
   }

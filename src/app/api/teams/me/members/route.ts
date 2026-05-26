@@ -156,30 +156,67 @@ export async function POST(req: Request): Promise<Response> {
       return NextResponse.json({ error: 'Некорректные данные игрока' }, { status: 400 });
     }
     const d = parsed.data;
+    const username = normTelegramUsername(d.username);
 
-    const userInsert: TablesInsert<'users'> = {
-      first_name: normStr(d.first_name),
-      last_name: normStr(d.last_name),
-      username: normTelegramUsername(d.username),
-      birth_date: normStr(d.birth_date),
-      shoots: d.shoots ?? null,
-      onboarded: false,
-    };
-    const { data: createdUser, error: userErr } = await sb
-      .from('users')
-      .insert(userInsert)
-      .select('id')
-      .single();
-    if (userErr || !createdUser) {
-      return NextResponse.json(
-        { error: userErr?.message ?? 'Не удалось создать игрока' },
-        { status: 500 },
-      );
+    // Если игрок с таким ником уже есть в системе — не создаём дубль, а привязываем
+    // существующего к команде новым membership. Ник в users остаётся уникальным.
+    let resolved: { id: string; telegram_id: number | null } | null = null;
+    if (username) {
+      const likePattern = username.replace(/([\\%_])/g, '\\$1'); // ник может содержать _
+      const { data: existing, error: exErr } = await sb
+        .from('users')
+        .select('id, telegram_id')
+        .ilike('username', likePattern)
+        .maybeSingle();
+      if (exErr) {
+        return NextResponse.json({ error: exErr.message }, { status: 500 });
+      }
+      if (existing) {
+        const { data: dupMember, error: dmErr } = await sb
+          .from('team_memberships')
+          .select('id')
+          .eq('team_id', org.team_id)
+          .eq('user_id', existing.id)
+          .maybeSingle();
+        if (dmErr) {
+          return NextResponse.json({ error: dmErr.message }, { status: 500 });
+        }
+        if (dupMember) {
+          return NextResponse.json({ error: 'Этот игрок уже в твоей команде' }, { status: 409 });
+        }
+        resolved = { id: existing.id, telegram_id: existing.telegram_id };
+      }
+    }
+
+    // Ника нет или игрок не найден → заводим новую карточку (плейсхолдер без telegram_id).
+    let createdNew = false;
+    if (!resolved) {
+      const userInsert: TablesInsert<'users'> = {
+        first_name: normStr(d.first_name),
+        last_name: normStr(d.last_name),
+        username,
+        birth_date: normStr(d.birth_date),
+        shoots: d.shoots ?? null,
+        onboarded: false,
+      };
+      const { data: createdUser, error: userErr } = await sb
+        .from('users')
+        .insert(userInsert)
+        .select('id')
+        .single();
+      if (userErr || !createdUser) {
+        return NextResponse.json(
+          { error: userErr?.message ?? 'Не удалось создать игрока' },
+          { status: 500 },
+        );
+      }
+      resolved = { id: createdUser.id, telegram_id: null };
+      createdNew = true;
     }
 
     const memberInsert: TablesInsert<'team_memberships'> = {
       team_id: org.team_id,
-      user_id: createdUser.id,
+      user_id: resolved.id,
       role: 'player',
       contact_phone: normStr(d.contact_phone),
       jersey_number: d.jersey_number ?? null,
@@ -190,26 +227,27 @@ export async function POST(req: Request): Promise<Response> {
     };
     const { error: memErr2 } = await sb.from('team_memberships').insert(memberInsert);
     if (memErr2) {
-      // Откатываем осиротевшую строку users, чтобы не плодить «ничьих» игроков.
-      await sb.from('users').delete().eq('id', createdUser.id);
+      // Откатываем только что созданную строку users, чтобы не плодить «ничьих» игроков.
+      if (createdNew) await sb.from('users').delete().eq('id', resolved.id);
       return NextResponse.json({ error: memErr2.message }, { status: 500 });
     }
 
+    // Приглашение есть смысл слать только тем, у кого ещё нет аккаунта (плейсхолдер/новый).
     let inviteLink: string | null = null;
-    if (d.invite) {
+    if (d.invite && resolved.telegram_id === null) {
       const { error: reqErr } = await sb.from('team_join_requests').insert({
         team_id: org.team_id,
-        user_id: createdUser.id,
+        user_id: resolved.id,
         kind: 'invite',
         created_by: org.id,
       });
       if (reqErr) {
         return NextResponse.json({ error: reqErr.message }, { status: 500 });
       }
-      inviteLink = buildMemberInviteLink(createdUser.id);
+      inviteLink = buildMemberInviteLink(resolved.id);
     }
 
-    const body: CreateMemberResponse = { user_id: createdUser.id, invite_link: inviteLink };
+    const body: CreateMemberResponse = { user_id: resolved.id, invite_link: inviteLink };
     return NextResponse.json(body, { status: 201 });
   } catch (e) {
     if (e instanceof AuthError) {
