@@ -6,6 +6,9 @@ import {
   init,
   expandViewport,
   mountMiniApp,
+  mountViewport,
+  requestFullscreen,
+  isFullscreen,
   mountSwipeBehavior,
   setMiniAppHeaderColor,
   setMiniAppBackgroundColor,
@@ -38,9 +41,28 @@ async function bootstrapTelegram(): Promise<void> {
     if (setMiniAppBackgroundColor.isAvailable()) setMiniAppBackgroundColor('#FFFFFF');
     if (backButton.mount.isAvailable()) backButton.mount();
     if (mountSwipeBehavior.isAvailable()) mountSwipeBehavior();
+    await enterFullscreen();
   } catch (e) {
     if (process.env.NODE_ENV === 'development') {
       console.warn('[tma] init skipped — not in Telegram:', e);
+    }
+  }
+}
+
+// Просим полноэкранный режим на старте, чтобы приложение всегда открывалось
+// во весь экран независимо от точки запуска: кнопка-меню бота игнорирует
+// BotFather-режим Fullscreen, а рантайм-вызов работает везде (меню, «Открыть»,
+// ярлык с домашнего экрана). Вёрстка под safe-area — отдельным шагом.
+// Изолируем в свой try/catch: сбой fullscreen не должен ломать остальной bootstrap.
+async function enterFullscreen(): Promise<void> {
+  try {
+    if (mountViewport.isAvailable()) await mountViewport();
+    if (requestFullscreen.isAvailable() && !isFullscreen()) {
+      await requestFullscreen();
+    }
+  } catch (e) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[tma] fullscreen skipped:', e);
     }
   }
 }
