@@ -390,6 +390,8 @@ export const ru = {
   'lineup.positionShort.forward': 'Нап',
   'lineup.positionShort.defender': 'Защ',
   'lineup.positionShort.goalie': 'Вр',
+  'lineup.menuLabel': 'Меню раскидки',
+  'lineup.menu.title': 'Раскидка',
   'lineup.reset.button': 'Сбросить к дефолту',
   'lineup.reset.confirmTitle': 'Сбросить к дефолту команды?',
   'lineup.reset.confirmHint': 'Текущая раскидка события заменится дефолтной из раздела «Команда». Явка не изменится.',

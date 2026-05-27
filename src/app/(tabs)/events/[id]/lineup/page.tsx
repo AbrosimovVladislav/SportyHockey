@@ -18,6 +18,8 @@ import { RosterCard } from '@/components/roster-card';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { Button } from '@/components/button';
 import { BottomSheet } from '@/components/bottom-sheet';
+import { MenuButton } from '@/components/menu-button';
+import { IconReset, IconSettings } from '@/components/icons';
 import { LinesView } from './lines-view';
 import { useEvent } from '@/hooks/use-event';
 import { useSetLine } from '@/hooks/use-set-line';
@@ -76,6 +78,7 @@ export default function EventLineupPage() {
   const resetLineup = useResetLineup(id);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('teams');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
 
   const sensors = useLineupDndSensors();
@@ -238,7 +241,32 @@ export default function EventLineupPage() {
 
   return (
     <div style={root}>
-      <LightHeader title={pageTitle} subtitle={subtitle} onBack={onBack} />
+      <LightHeader
+        title={pageTitle}
+        subtitle={subtitle}
+        onBack={onBack}
+        right={
+          <button
+            type="button"
+            className="pressable"
+            aria-label={t('lineup.menuLabel')}
+            onClick={() => setMenuOpen(true)}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: colors.bgMuted,
+              border: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <IconSettings size={20} color={colors.text} />
+          </button>
+        }
+      />
 
       {showTabs ? (
         <ContentTabs
@@ -247,22 +275,6 @@ export default function EventLineupPage() {
           onChange={(id) => setActiveTab(id as TabId)}
         />
       ) : null}
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          padding: `${spacing['8']}px ${spacing['16']}px 0`,
-        }}
-      >
-        <Button
-          variant="ghost"
-          onClick={() => setResetOpen(true)}
-          disabled={resetLineup.isPending}
-        >
-          {resetLineup.isPending ? t('lineup.reset.busy') : t('lineup.reset.button')}
-        </Button>
-      </div>
 
       <DndContext
         sensors={sensors}
@@ -347,6 +359,21 @@ export default function EventLineupPage() {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      <BottomSheet
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={t('lineup.menu.title')}
+      >
+        <MenuButton
+          icon={<IconReset size={20} color={colors.iconFg} />}
+          label={t('lineup.reset.button')}
+          onClick={() => {
+            setMenuOpen(false);
+            setResetOpen(true);
+          }}
+        />
+      </BottomSheet>
 
       <BottomSheet
         open={resetOpen}

@@ -1,7 +1,20 @@
 import 'server-only';
 import { supabaseServer } from '@/lib/supabase-server';
-import { asLineSlot, slotKind, lineIndexOfSlot } from '@/lib/event-lines';
-import type { EventType, LineSlot, TeamSide } from '@/types/api';
+import {
+  asLineSlot,
+  slotKind,
+  lineIndexOfSlot,
+  forwardSlot,
+  defenseSlot,
+} from '@/lib/event-lines';
+import type {
+  DefenseRole,
+  EventType,
+  ForwardRole,
+  LineIndex,
+  LineSlot,
+  TeamSide,
+} from '@/types/api';
 
 type DefaultLine = { user_id: string; slot: LineSlot };
 type LineRow = {
@@ -91,6 +104,8 @@ export async function applyDefaultLineup(
 
     // Тренировка: звенья по сторонам.
     const lineRows: LineRow[] = [];
+
+    // Группируем полевых по (вид, исходный индекс звена команды); вратарь — сразу в слот 'g'.
     const groups = new Map<string, DefaultLine[]>();
     for (const l of lines) {
       if (slotKind(l.slot) === 'goalie') {
@@ -100,22 +115,42 @@ export async function applyDefaultLineup(
         }
         continue;
       }
-      const key = `${slotKind(l.slot)}${lineIndexOfSlot(l.slot)}`;
+      const idx = lineIndexOfSlot(l.slot);
+      if (idx == null) continue;
+      const key = `${slotKind(l.slot)}:${idx}`;
       const arr = groups.get(key) ?? [];
       arr.push(l);
       groups.set(key, arr);
     }
 
-    for (const members of groups.values()) {
-      for (const side of ['light', 'dark'] as TeamSide[]) {
-        const onSide = members.filter((m) => sideOf.get(m.user_id) === side);
-        // Ставим звено/пару на сторону, только если на ней ≥2 игрока этой группы.
-        // Одиночка (напарника по звену на стороне нет) остаётся в пуле стороны.
-        if (onSide.length >= 2) {
-          for (const m of onSide) {
-            lineRows.push({ event_id: eventId, team_side: side, slot: m.slot, user_id: m.user_id, updated_at: now });
-          }
+    // Дефолт команды хранит АБСОЛЮТНЫЕ индексы звеньев (f1, f2…). На стороне они должны
+    // идти подряд с первого: тёмные «звено 2 команды» становятся «Нападением 1» своей
+    // стороны. Поэтому для каждой стороны и вида (нападение/защита) собираем попавшие на
+    // сторону звенья (≥2 игрока — иначе одиночка остаётся в пуле), сортируем по исходному
+    // индексу и переномеровываем подряд с 1, сохраняя роль игрока в слоте.
+    for (const side of ['light', 'dark'] as TeamSide[]) {
+      for (const kind of ['forward', 'defense'] as const) {
+        const placed: { index: LineIndex; members: DefaultLine[] }[] = [];
+        for (const [key, members] of groups) {
+          if (!key.startsWith(`${kind}:`)) continue;
+          const onSide = members.filter((m) => sideOf.get(m.user_id) === side);
+          if (onSide.length < 2) continue;
+          const index = lineIndexOfSlot(onSide[0].slot);
+          if (index == null) continue;
+          placed.push({ index, members: onSide });
         }
+        placed.sort((a, b) => a.index - b.index);
+        placed.forEach(({ members }, i) => {
+          const compactIndex = (i + 1) as LineIndex;
+          for (const m of members) {
+            const role = m.slot.split('_')[1];
+            const slot =
+              kind === 'forward'
+                ? forwardSlot(compactIndex, role as ForwardRole)
+                : defenseSlot(compactIndex, role as DefenseRole);
+            lineRows.push({ event_id: eventId, team_side: side, slot, user_id: m.user_id, updated_at: now });
+          }
+        });
       }
     }
 

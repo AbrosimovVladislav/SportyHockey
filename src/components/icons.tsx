@@ -1,5 +1,5 @@
 import type { SVGProps } from 'react';
-import { LuCalendarCheck, LuWallet, LuTrendingUp, LuDumbbell, LuSettings } from 'react-icons/lu';
+import { LuCalendarCheck, LuWallet, LuTrendingUp, LuDumbbell, LuSettings, LuRotateCcw } from 'react-icons/lu';
 import { SiTelegram, SiWhatsapp } from 'react-icons/si';
 import { MdSportsHockey, MdSports } from 'react-icons/md';
 import { colors } from '@/theme/colors';
@@ -85,6 +85,10 @@ export const IconMore = ({ size = 24, color = 'currentColor', ...p }: IconProps)
 
 export const IconSettings = ({ size = 24, color = 'currentColor' }: IconProps) => (
   <LuSettings size={size} color={color} />
+);
+
+export const IconReset = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuRotateCcw size={size} color={color} />
 );
 
 export const IconMenu = (p: IconProps) => (

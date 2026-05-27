@@ -10,6 +10,7 @@ import { AvatarStack } from '@/components/avatar-stack';
 import { ProgressBar } from '@/components/progress-bar';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { BottomSheet } from '@/components/bottom-sheet';
+import { MenuButton } from '@/components/menu-button';
 import { EventHeaderBadge } from '@/components/event-header-badge';
 import { PlayerVoteCompact } from '@/components/player-vote-compact';
 import { PlayerLineupBlock } from '@/components/player-lineup-block';
@@ -931,51 +932,6 @@ function PlayerVoteButton({ kind, active, label, disabled, onClick }: PlayerVote
         <Icon size={14} color={iconColor} />
       </span>
       {label}
-    </button>
-  );
-}
-
-function MenuButton({
-  icon,
-  label,
-  onClick,
-  tone = 'neutral',
-}: {
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
-  tone?: 'neutral' | 'danger';
-}) {
-  const isDanger = tone === 'danger';
-  const row: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing['12'],
-    padding: `${spacing['12']}px ${spacing['4']}px`,
-    width: '100%',
-    border: 'none',
-    background: 'transparent',
-    cursor: 'pointer',
-    textAlign: 'left',
-    color: isDanger ? colors.error : colors.text,
-    borderRadius: radius.md,
-    fontSize: 16,
-    fontWeight: 500,
-  };
-  const iconBox: CSSProperties = {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    background: isDanger ? 'rgba(211,47,47,0.10)' : colors.bgMuted,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  };
-  return (
-    <button type="button" className="pressable" onClick={onClick} style={row}>
-      <span style={iconBox}>{icon}</span>
-      <span style={{ flex: 1 }}>{label}</span>
     </button>
   );
 }

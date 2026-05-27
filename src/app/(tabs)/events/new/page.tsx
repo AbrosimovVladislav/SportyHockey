@@ -9,9 +9,9 @@ import { TypeChips } from '@/components/type-chips';
 import { Input } from '@/components/input';
 import { Textarea } from '@/components/textarea';
 import { Button } from '@/components/button';
+import { LightHeader } from '@/components/light-header';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import {
-  IconBack,
   IconCalendar,
   IconClock,
   IconStopwatch,
@@ -167,67 +167,6 @@ function SectionLabel({ children }: { children: ReactNode }) {
   return <div style={style}>{children}</div>;
 }
 
-function LightHeader({
-  title,
-  onBack,
-  backLabel,
-}: {
-  title: string;
-  onBack: () => void;
-  backLabel: string;
-}) {
-  // 3 колонки: back (40) / title (центр) / spacer (40) — title всегда строго по центру
-  const wrap: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '40px 1fr 40px',
-    alignItems: 'center',
-    gap: spacing['8'],
-    padding: `${spacing['10']}px ${spacing['12']}px`,
-    background: colors.bg,
-    position: 'sticky',
-    top: 0,
-    zIndex: 5,
-    minHeight: 56,
-  };
-  const backBtn: CSSProperties = {
-    width: 40,
-    height: 40,
-    borderRadius: '50%',
-    background: colors.bgMuted,
-    border: 'none',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    flexShrink: 0,
-  };
-  const titleStyle: CSSProperties = {
-    fontSize: 17,
-    fontWeight: 700,
-    margin: 0,
-    color: colors.text,
-    textAlign: 'center',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  };
-  return (
-    <header style={wrap}>
-      <button
-        type="button"
-        className="pressable"
-        onClick={onBack}
-        style={backBtn}
-        aria-label={backLabel}
-      >
-        <IconBack size={20} color={colors.text} />
-      </button>
-      <h1 style={titleStyle}>{title}</h1>
-      <span aria-hidden />
-    </header>
-  );
-}
-
 export default function EventNewPage() {
   const t = useT();
   const router = useRouter();
@@ -371,7 +310,7 @@ export default function EventNewPage() {
 
   return (
     <div style={root}>
-      <LightHeader title={t('eventNew.title')} onBack={onBack} backLabel={t('common.back')} />
+      <LightHeader title={t('eventNew.title')} onBack={onBack} ariaLabelBack={t('common.back')} />
 
       <div style={content}>
         <SectionLabel>{t('eventNew.sections.type')}</SectionLabel>
