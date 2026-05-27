@@ -20,7 +20,6 @@ export type Database = {
           id: string
           payment_claim: boolean
           showed_up: boolean | null
-          team_side: string | null
           user_id: string
           vote: string | null
           voted_at: string | null
@@ -30,7 +29,6 @@ export type Database = {
           id?: string
           payment_claim?: boolean
           showed_up?: boolean | null
-          team_side?: string | null
           user_id: string
           vote?: string | null
           voted_at?: string | null
@@ -40,7 +38,6 @@ export type Database = {
           id?: string
           payment_claim?: boolean
           showed_up?: boolean | null
-          team_side?: string | null
           user_id?: string
           vote?: string | null
           voted_at?: string | null
