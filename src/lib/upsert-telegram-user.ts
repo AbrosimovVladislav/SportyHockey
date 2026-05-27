@@ -74,7 +74,35 @@ export async function upsertTelegramUser(tg: TgIdentityInput): Promise<TgUserRow
     if (data) return data as TgUserRow;
   }
 
-  // Строки ещё нет → создаём с полным набором (имя из Telegram как стартовое).
+  // Строки с этим telegram_id ещё нет. Но организатор мог завести игрока заранее
+  // (placeholder: telegram_id NULL, ник вписан руками). Если ник заготовки совпал с
+  // Telegram-ником входящего — это тот же человек: привязываем Telegram к заготовке,
+  // а не плодим второй профиль. Так же, как бот по invite-ссылке, только по нику.
+  if (tg.username) {
+    const pattern = tg.username.replace(/([\\%_])/g, '\\$1'); // ник может содержать _
+    const { data: placeholder, error: phErr } = await sb
+      .from('users')
+      .select('id')
+      .is('telegram_id', null)
+      .ilike('username', pattern)
+      .maybeSingle();
+    if (phErr) throw new Error(`users placeholder lookup failed: ${phErr.message}`);
+    if (placeholder) {
+      const claim: { telegram_id: number; photo_url?: string } = { telegram_id: tg.telegram_id };
+      if (tg.photo_url) claim.photo_url = tg.photo_url; // имя/ник заготовки не трогаем
+      const { data: claimed, error: claimErr } = await sb
+        .from('users')
+        .update(claim)
+        .eq('id', placeholder.id)
+        .is('telegram_id', null) // защита от гонки: забираем только свободную заготовку
+        .select(COLS);
+      if (claimErr) throw new Error(`users claim failed: ${claimErr.message}`);
+      if (claimed && claimed.length > 0) return claimed[0] as TgUserRow;
+      // Гонку проиграли (заготовку уже забрали) — падаем в обычную вставку ниже.
+    }
+  }
+
+  // Заготовки нет → создаём с полным набором (имя из Telegram как стартовое).
   // ignoreDuplicates, чтобы гонка двух первых запросов не перезаписала имя.
   const base = {
     telegram_id: tg.telegram_id,
@@ -92,7 +120,8 @@ export async function upsertTelegramUser(tg: TgIdentityInput): Promise<TgUserRow
     .maybeSingle();
   if (insErr) {
     if (insErr.code !== '23505') throw new Error(`users insert failed: ${insErr.message}`);
-    // Ник занят другой строкой — регистрируем без ника (вход важнее).
+    // Заготовку уже исключили выше — значит ник занят строкой с аккаунтом (редкий край,
+    // напр. кто-то сменил ник в Telegram на занятый). Регистрируем без ника, вход важнее.
     const retry = await sb
       .from('users')
       .upsert({ ...base, username: null }, { onConflict: 'telegram_id', ignoreDuplicates: true })

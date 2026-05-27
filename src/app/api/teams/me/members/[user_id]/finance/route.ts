@@ -1,26 +1,22 @@
 import { NextResponse } from 'next/server';
-import { AuthError, requireUser } from '@/lib/auth';
+import { AuthError, requireOrganizer } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
-import { getUserTeamId } from '@/lib/user-team';
 import { computePlayerFinance } from '@/lib/player-finance';
 import type { PlayerFinanceResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Финансы чужого игрока видит только организатор (см. roadmap 32.3).
 export async function GET(
   req: Request,
   ctx: { params: Promise<{ user_id: string }> },
 ): Promise<Response> {
   try {
-    const user = await requireUser(req);
+    const org = await requireOrganizer(req);
     const sb = supabaseServer();
     const { user_id: memberUserId } = await ctx.params;
-
-    const teamId = await getUserTeamId(user.id, req);
-    if (!teamId) {
-      return NextResponse.json({ error: 'Команды нет' }, { status: 404 });
-    }
+    const teamId = org.team_id;
 
     const { data: membership } = await sb
       .from('team_memberships')

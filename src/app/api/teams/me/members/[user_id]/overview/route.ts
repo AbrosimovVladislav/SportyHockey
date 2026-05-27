@@ -32,8 +32,20 @@ export async function GET(
       return NextResponse.json({ error: 'Игрок не найден в команде' }, { status: 404 });
     }
 
+    // Баланс чужого игрока — только организатору. Остальным зануляем, чтобы данные
+    // не утекали в JSON (на фронте плашка финансов и так скрыта, см. roadmap 32.3).
+    const { data: caller } = await sb
+      .from('team_memberships')
+      .select('role')
+      .eq('team_id', teamId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const isOrganizer = caller?.role === 'organizer';
+
     const overview = await computePlayerOverview(sb, teamId, memberUserId);
-    const body: PlayerOverviewResponse = overview;
+    const body: PlayerOverviewResponse = isOrganizer
+      ? overview
+      : { ...overview, finance: { balance: 0 } };
     return NextResponse.json(body);
   } catch (e) {
     if (e instanceof AuthError) {
