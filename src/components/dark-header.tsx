@@ -14,16 +14,26 @@ type Props = {
 };
 
 export function DarkHeader({ title, role, subtitle, badge, left, right, paddingTop = spacing['12'], imageSrc }: Props) {
+  // В полноэкранном режиме хедер начинается у самой кромки экрана. Сдвигаем контент
+  // вниз на «опасную зону» (статус-бар + телеграм-кнопки), а картинке даём столько же
+  // дополнительной высоты — чтобы она не сжималась, а органично уходила под верх.
+  // Сверху на опасную зону кладём градиент тёмный→прозрачный, чтобы телеграм-кнопки
+  // читались на картинке. Вне fullscreen --app-safe-top = 0 → всё как было.
+  const topScrim =
+    'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) calc(var(--app-safe-top) * 0.55), rgba(0,0,0,0) var(--app-safe-top))';
+  const bottomScrim =
+    'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.8) 100%)';
+
   const wrapper: CSSProperties = {
     background: imageSrc
-      ? `linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.8) 100%), url(${imageSrc}) center/cover no-repeat`
+      ? `${topScrim}, ${bottomScrim}, url(${imageSrc}) center/cover no-repeat`
       : colors.headerBg,
     color: colors.textInverse,
-    paddingTop,
+    paddingTop: `calc(${paddingTop}px + var(--app-safe-top))`,
     paddingBottom: imageSrc ? spacing['32'] : spacing['20'],
     paddingLeft: spacing['20'],
     paddingRight: spacing['20'],
-    minHeight: imageSrc ? 234 : undefined,
+    minHeight: imageSrc ? `calc(234px + var(--app-safe-top))` : undefined,
     display: 'flex',
     flexDirection: 'column',
   };

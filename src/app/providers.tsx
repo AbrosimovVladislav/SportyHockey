@@ -7,6 +7,8 @@ import {
   expandViewport,
   mountMiniApp,
   mountViewport,
+  bindViewportCssVars,
+  isViewportCssVarsBound,
   requestFullscreen,
   isFullscreen,
   mountSwipeBehavior,
@@ -52,11 +54,17 @@ async function bootstrapTelegram(): Promise<void> {
 // Просим полноэкранный режим на старте, чтобы приложение всегда открывалось
 // во весь экран независимо от точки запуска: кнопка-меню бота игнорирует
 // BotFather-режим Fullscreen, а рантайм-вызов работает везде (меню, «Открыть»,
-// ярлык с домашнего экрана). Вёрстка под safe-area — отдельным шагом.
+// ярлык с домашнего экрана).
 // Изолируем в свой try/catch: сбой fullscreen не должен ломать остальной bootstrap.
 async function enterFullscreen(): Promise<void> {
   try {
     if (mountViewport.isAvailable()) await mountViewport();
+    // Привязываем insets к CSS-переменным (--tg-viewport-safe-area-inset-*,
+    // --tg-viewport-content-safe-area-inset-*), чтобы хедеры могли отступать от
+    // системной зоны и зоны телеграм-кнопок. Обновляются реактивно при смене режима.
+    if (bindViewportCssVars.isAvailable() && !isViewportCssVarsBound()) {
+      bindViewportCssVars();
+    }
     if (requestFullscreen.isAvailable() && !isFullscreen()) {
       await requestFullscreen();
     }

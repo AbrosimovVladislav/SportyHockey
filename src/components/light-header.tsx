@@ -19,7 +19,12 @@ export function LightHeader({ title, subtitle, onBack, right, ariaLabelBack = '�
     gridTemplateColumns: '40px 1fr 40px',
     alignItems: 'center',
     gap: spacing['8'],
-    padding: `${spacing['10']}px ${spacing['12']}px`,
+    // Верхний отступ под «опасную зону» (статус-бар + телеграм-кнопки) в fullscreen,
+    // иначе sticky-хедер уедет под них. Вне fullscreen --app-safe-top = 0.
+    paddingTop: `calc(${spacing['10']}px + var(--app-safe-top))`,
+    paddingBottom: spacing['10'],
+    paddingLeft: spacing['12'],
+    paddingRight: spacing['12'],
     background: colors.bg,
     position: 'sticky',
     top: 0,

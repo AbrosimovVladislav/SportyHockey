@@ -5,6 +5,13 @@
   --color-primary: #1A5C35;
   --color-bg: #FFFFFF;
   --color-text: #1C1C1E;
+
+  /* Fallback'и safe-area: вне Telegram / до bindViewportCssVars = 0px.
+     В Telegram SDK перетирает их inline-стилем на <html> (inline побеждает). */
+  --tg-viewport-safe-area-inset-top: 0px;
+  --tg-viewport-content-safe-area-inset-top: 0px;
+  /* Низ «опасной зоны» сверху: системный вырез/статус-бар + зона телеграм-кнопок. */
+  --app-safe-top: calc(var(--tg-viewport-safe-area-inset-top) + var(--tg-viewport-content-safe-area-inset-top));
 }
 
 *,
