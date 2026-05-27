@@ -8,7 +8,7 @@ import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ContentTabs } from '@/components/content-tabs';
 import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
 import { Button } from '@/components/button';
-import { IconMore } from '@/components/icons';
+import { IconSettings } from '@/components/icons';
 import { HeaderCard } from './header-card';
 import { PlayerOverviewTab } from './overview-tab';
 import { PlayerFinanceTab } from './finance-tab';
@@ -81,7 +81,7 @@ export default function PlayerProfilePage() {
           cursor: 'pointer',
         }}
       >
-        <IconMore size={20} color={colors.text} />
+        <IconSettings size={20} color={colors.text} />
       </button>
     ) : undefined;
 

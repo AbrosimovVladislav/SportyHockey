@@ -16,7 +16,6 @@ import { WeekDays } from '@/components/week-days';
 import { DayEventRow } from '@/components/day-event-row';
 import { MonthSheet, dayKey } from '@/components/month-sheet';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
-import { BellWithDot } from '@/components/bell-with-dot';
 import { useEvents } from '@/hooks/use-events';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
@@ -222,11 +221,7 @@ export default function EventsPage() {
 
   return (
     <div style={{ background: colors.bg, minHeight: '100dvh' }}>
-      <DarkHeader
-        title={t('schedule.title')}
-        right={<BellWithDot ariaLabel={t('a11y.notifications')} />}
-        imageSrc="/bus.png"
-      />
+      <DarkHeader title={t('schedule.title')} imageSrc="/bus.png" />
 
       <div style={sheet}>
         <ContentTabs tabs={tabsOptions} activeId={tab} onChange={(id) => setTab(id as TabId)} />

@@ -28,6 +28,9 @@ export function Screen({
     flexDirection: 'column',
     gap: spacing['16'],
     padding,
+    // Опускаем контент под «опасную зону» (статус-бар + телеграм-кнопки) в fullscreen —
+    // как на экранах с DarkHeader. Вне fullscreen --app-safe-top = 0.
+    paddingTop: `calc(${padding}px + var(--app-safe-top))`,
     paddingBottom: resolvedBottom,
     minHeight: '100dvh',
     background,

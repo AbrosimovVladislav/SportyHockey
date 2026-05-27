@@ -16,7 +16,7 @@ import { PlayerLineupBlock } from '@/components/player-lineup-block';
 import { PlayerCompletedBlock } from '@/components/player-completed-block';
 import {
   IconBack,
-  IconMore,
+  IconSettings,
   IconInfo,
   IconCheck,
   IconClose,
@@ -269,7 +269,7 @@ export default function EventDetailPage() {
             onClick={() => setMenuOpen(true)}
             size={40}
           >
-            <IconMore size={20} color={colors.textInverse} />
+            <IconSettings size={20} color={colors.textInverse} />
           </GlassButton>
         ) : undefined
       }

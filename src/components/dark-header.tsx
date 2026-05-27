@@ -14,26 +14,63 @@ type Props = {
 };
 
 export function DarkHeader({ title, role, subtitle, badge, left, right, paddingTop = spacing['12'], imageSrc }: Props) {
-  // В полноэкранном режиме хедер начинается у самой кромки экрана. Сдвигаем контент
-  // вниз на «опасную зону» (статус-бар + телеграм-кнопки), а картинке даём столько же
-  // дополнительной высоты — чтобы она не сжималась, а органично уходила под верх.
-  // Сверху на опасную зону кладём градиент тёмный→прозрачный, чтобы телеграм-кнопки
-  // читались на картинке. Вне fullscreen --app-safe-top = 0 → всё как было.
-  const topScrim =
-    'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) calc(var(--app-safe-top) * 0.55), rgba(0,0,0,0) var(--app-safe-top))';
-  const bottomScrim =
-    'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.8) 100%)';
-
+  // Полноэкранный режим: хедер занимает экран от самой кромки. Тёмный фон-основа
+  // лежит под всем; контент опускаем ниже «опасной зоны» (статус-бар + телеграм-кнопки).
+  // Вне fullscreen --app-safe-top и safe-area-top = 0 → всё как было.
   const wrapper: CSSProperties = {
-    background: imageSrc
-      ? `${topScrim}, ${bottomScrim}, url(${imageSrc}) center/cover no-repeat`
-      : colors.headerBg,
+    position: 'relative',
+    overflow: 'hidden',
+    background: colors.headerBg,
     color: colors.textInverse,
     paddingTop: `calc(${paddingTop}px + var(--app-safe-top))`,
     paddingBottom: imageSrc ? spacing['32'] : spacing['20'],
     paddingLeft: spacing['20'],
     paddingRight: spacing['20'],
-    minHeight: imageSrc ? `calc(234px + var(--app-safe-top))` : undefined,
+    // Картинку начинаем от зоны телеграм-кнопок (см. imageLayer), поэтому полную высоту
+    // считаем как исходные 234 + высота статус-бара — кадр картинки остаётся как раньше.
+    minHeight: imageSrc ? `calc(234px + var(--tg-viewport-safe-area-inset-top))` : undefined,
+    display: 'flex',
+    flexDirection: 'column',
+  };
+
+  // Картинка стартует там, где начинаются телеграм-кнопки (ниже статус-бара) — выше неё
+  // всё равно затемнение, тянуть под самый верх незачем; так кадр не «приближается».
+  const imageLayer: CSSProperties = {
+    position: 'absolute',
+    top: 'var(--tg-viewport-safe-area-inset-top)',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: `url(${imageSrc}) center/cover no-repeat`,
+    zIndex: 0,
+  };
+
+  // Затемнение для читаемости заголовка внизу.
+  const bottomScrim: CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    background:
+      'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.55) 72%, rgba(0,0,0,0.82) 100%)',
+    zIndex: 1,
+  };
+
+  // Затемнение опасной зоны: плотное у самой кромки (часы/батарея), к концу зоны
+  // телеграм-кнопок сходит в прозрачность — кнопки телеги читаются на картинке.
+  const topScrim: CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 'calc(var(--app-safe-top) + 14px)',
+    background:
+      'linear-gradient(180deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0) 100%)',
+    zIndex: 2,
+  };
+
+  const content: CSSProperties = {
+    position: 'relative',
+    zIndex: 3,
+    flex: 1,
     display: 'flex',
     flexDirection: 'column',
   };

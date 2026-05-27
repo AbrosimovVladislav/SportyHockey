@@ -3,7 +3,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { DarkHeader } from '@/components/dark-header';
-import { BellWithDot } from '@/components/bell-with-dot';
 import { FAB } from '@/components/fab';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ContentTabs } from '@/components/content-tabs';
@@ -88,11 +87,7 @@ export default function SquadPage() {
 
   return (
     <div style={root}>
-      <DarkHeader
-        title={t('squad.title')}
-        right={<BellWithDot ariaLabel={t('a11y.notifications')} />}
-        imageSrc="/team.png"
-      />
+      <DarkHeader title={t('squad.title')} imageSrc="/team.png" />
 
       <div style={sheet}>
         <ContentTabs tabs={tabs} activeId={tab} onChange={(id) => setTab(id as TabId)} />
