@@ -1,5 +1,6 @@
 import 'server-only';
 import { supabaseServer } from '@/lib/supabase-server';
+import { normTelegramUsername } from '@/lib/normalize-contact';
 
 export type TgIdentityInput = {
   telegram_id: number;
@@ -31,8 +32,12 @@ const COLS = 'id, telegram_id, username, first_name, last_name, photo_url';
 export async function upsertTelegramUser(tg: TgIdentityInput): Promise<TgUserRow> {
   const sb = supabaseServer();
 
+  // Ник из Telegram нормализуем сразу — в `users` всегда без @ (и без t.me/),
+  // чтобы запись и матч заготовки были единообразны независимо от формата.
+  const username = normTelegramUsername(tg.username);
+
   const volatile: { username?: string | null; photo_url?: string | null } = {};
-  if (tg.username !== undefined) volatile.username = tg.username;
+  if (tg.username !== undefined) volatile.username = username;
   // photo_url Telegram присылает в initData не всегда — не затираем сохранённое значение пустым.
   if (tg.photo_url) volatile.photo_url = tg.photo_url;
 
@@ -78,8 +83,8 @@ export async function upsertTelegramUser(tg: TgIdentityInput): Promise<TgUserRow
   // (placeholder: telegram_id NULL, ник вписан руками). Если ник заготовки совпал с
   // Telegram-ником входящего — это тот же человек: привязываем Telegram к заготовке,
   // а не плодим второй профиль. Так же, как бот по invite-ссылке, только по нику.
-  if (tg.username) {
-    const pattern = tg.username.replace(/([\\%_])/g, '\\$1'); // ник может содержать _
+  if (username) {
+    const pattern = username.replace(/([\\%_])/g, '\\$1'); // ник может содержать _
     const { data: placeholder, error: phErr } = await sb
       .from('users')
       .select('id')
@@ -113,7 +118,7 @@ export async function upsertTelegramUser(tg: TgIdentityInput): Promise<TgUserRow
   const { data: inserted, error: insErr } = await sb
     .from('users')
     .upsert(
-      { ...base, username: tg.username ?? null },
+      { ...base, username },
       { onConflict: 'telegram_id', ignoreDuplicates: true },
     )
     .select(COLS)

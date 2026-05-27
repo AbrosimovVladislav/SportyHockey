@@ -57,18 +57,10 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
       return NextResponse.json({ ok: true });
     }
 
-    if (isGame) {
-      const { data: att } = await sb
-        .from('event_attendances')
-        .select('vote, showed_up')
-        .eq('event_id', event.id)
-        .eq('user_id', parsed.data.user_id)
-        .maybeSingle();
-      const isEligible = att && (att.vote === 'going' || att.showed_up === true);
-      if (!isEligible) {
-        return NextResponse.json({ error: 'Игрок не идёт на игру' }, { status: 400 });
-      }
-    } else {
+    // На игру в звено можно поставить любого участника команды (assertTeamMember выше) —
+    // в том числе ещё не записавшегося (roadmap 33.8). Для тренировки игрок сначала
+    // должен быть распределён на сторону (Светлые/Тёмные).
+    if (!isGame) {
       const { data: lineup } = await sb
         .from('event_lineups')
         .select('team_side')

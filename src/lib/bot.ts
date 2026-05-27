@@ -4,6 +4,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { buildEventCard, type BotEventVote } from '@/lib/bot-event-card';
 import { asEventType } from '@/lib/event-enum';
 import { upsertTelegramUser } from '@/lib/upsert-telegram-user';
+import { normTelegramUsername } from '@/lib/normalize-contact';
 
 let cachedBot: Bot | null = null;
 
@@ -300,7 +301,10 @@ async function claimInviteByDeeplink(from: TelegramFrom, userId: string): Promis
 
   const { error: updErr } = await sb
     .from('users')
-    .update({ telegram_id: from.id, username: from.username ?? placeholder.username })
+    .update({
+      telegram_id: from.id,
+      username: normTelegramUsername(from.username) ?? placeholder.username,
+    })
     .eq('id', placeholder.id)
     .is('telegram_id', null); // защита от гонки двух переходов
   if (updErr) {
