@@ -1,6 +1,14 @@
-import type { CSSProperties, ReactNode } from 'react';
+'use client';
+
+import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
+
+// Тёмный градиент «опасной зоны» для глобального <SafeAreaScrim/>. Включаем его, пока
+// открыт тёмный хедер (картинка/тёмный фон) — статус-бар и кнопки телеги ложатся на
+// затемнение. На светлых экранах переменная сбрасывается → скрим прозрачный.
+const DARK_TOP_SCRIM =
+  'linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.88) 45%, rgba(0,0,0,0.55) 78%, rgba(0,0,0,0) 100%)';
 
 type Props = {
   title: string;
@@ -14,6 +22,16 @@ type Props = {
 };
 
 export function DarkHeader({ title, role, subtitle, badge, left, right, paddingTop = spacing['12'], imageSrc }: Props) {
+  // Пока открыт тёмный хедер — глобальный скрим опасной зоны делаем тёмным; на выходе
+  // сбрасываем (светлые экраны остаются без затемнения сверху).
+  useEffect(() => {
+    const el = document.documentElement;
+    el.style.setProperty('--app-top-scrim', DARK_TOP_SCRIM);
+    return () => {
+      el.style.removeProperty('--app-top-scrim');
+    };
+  }, []);
+
   // Полноэкранный режим: картинка идёт с самой кромки экрана (top:0) — в т.ч. под
   // статус-баром и телеграм-кнопками. Контент опускаем ниже «опасной зоны».
   // Вне fullscreen --app-safe-top = 0 → всё как было.
