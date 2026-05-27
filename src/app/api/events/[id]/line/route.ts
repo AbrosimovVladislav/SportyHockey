@@ -72,6 +72,23 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
       }
     }
 
+    // Текущий слот перетаскиваемого и тот, кто уже стоит на целевом слоте — для свапа
+    // (как в разделе «Состав», POST /api/teams/me/lines): два игрока в звеньях меняются
+    // местами, а не вытесняют друг друга в пул.
+    const { data: existing, error: selErr } = await sb
+      .from('event_lines')
+      .select('user_id, slot')
+      .eq('event_id', event.id)
+      .eq('team_side', sideForStorage)
+      .or(`user_id.eq.${parsed.data.user_id},slot.eq.${parsed.data.slot}`);
+    if (selErr) {
+      return NextResponse.json({ error: selErr.message }, { status: 500 });
+    }
+    const sourceSlot = existing?.find((r) => r.user_id === parsed.data.user_id)?.slot ?? null;
+    const occupant =
+      existing?.find((r) => r.slot === parsed.data.slot && r.user_id !== parsed.data.user_id)
+        ?.user_id ?? null;
+
     const { error: delPrevErr } = await sb
       .from('event_lines')
       .delete()
@@ -82,13 +99,29 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
       return NextResponse.json({ error: delPrevErr.message }, { status: 500 });
     }
 
-    const { error: insErr } = await sb.from('event_lines').insert({
-      event_id: event.id,
-      team_side: sideForStorage,
-      slot: parsed.data.slot,
-      user_id: parsed.data.user_id,
-      updated_at: new Date().toISOString(),
-    });
+    const now = new Date().toISOString();
+    const rows = [
+      {
+        event_id: event.id,
+        team_side: sideForStorage,
+        slot: parsed.data.slot,
+        user_id: parsed.data.user_id,
+        updated_at: now,
+      },
+    ];
+    // Оба были в звеньях → свап: вытесненный встаёт на освободившийся слот перетащенного.
+    // Перетащили из пула (sourceSlot нет) → прежний владелец слота уходит в пул.
+    if (occupant && sourceSlot) {
+      rows.push({
+        event_id: event.id,
+        team_side: sideForStorage,
+        slot: sourceSlot,
+        user_id: occupant,
+        updated_at: now,
+      });
+    }
+
+    const { error: insErr } = await sb.from('event_lines').insert(rows);
     if (insErr) {
       return NextResponse.json({ error: insErr.message }, { status: 500 });
     }

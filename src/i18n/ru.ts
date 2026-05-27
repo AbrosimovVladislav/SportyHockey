@@ -390,6 +390,11 @@ export const ru = {
   'lineup.positionShort.forward': 'Нап',
   'lineup.positionShort.defender': 'Защ',
   'lineup.positionShort.goalie': 'Вр',
+  'lineup.reset.button': 'Сбросить к дефолту',
+  'lineup.reset.confirmTitle': 'Сбросить к дефолту команды?',
+  'lineup.reset.confirmHint': 'Текущая раскидка события заменится дефолтной из раздела «Команда». Явка не изменится.',
+  'lineup.reset.confirm': 'Сбросить',
+  'lineup.reset.busy': 'Сбрасываем…',
 
   // Media (/events/[id]/media)
   'media.title.training': 'Медиа тренировки',

@@ -22,19 +22,33 @@ export function useSetLine(
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueryData<EventDetailDto>(key);
       if (previous) {
+        const sourceSlot =
+          previous.lines.find((l) => l.team_side === vars.team_side && l.user_id === vars.user_id)
+            ?.slot ?? null;
+        const occupant =
+          vars.slot !== null
+            ? (previous.lines.find(
+                (l) =>
+                  l.team_side === vars.team_side &&
+                  l.slot === vars.slot &&
+                  l.user_id !== vars.user_id,
+              )?.user_id ?? null)
+            : null;
+
         const filtered = previous.lines.filter((l) => {
           if (l.team_side !== vars.team_side) return true;
           if (l.user_id === vars.user_id) return false;
           if (vars.slot !== null && l.slot === vars.slot) return false;
           return true;
         });
-        const nextLines: EventLineEntry[] =
-          vars.slot === null
-            ? filtered
-            : [
-                ...filtered,
-                { team_side: vars.team_side, slot: vars.slot, user_id: vars.user_id },
-              ];
+        const nextLines: EventLineEntry[] = [...filtered];
+        if (vars.slot !== null) {
+          nextLines.push({ team_side: vars.team_side, slot: vars.slot, user_id: vars.user_id });
+          // Свап: вытесненный игрок встаёт на освободившийся слот перетащенного.
+          if (occupant && sourceSlot) {
+            nextLines.push({ team_side: vars.team_side, slot: sourceSlot, user_id: occupant });
+          }
+        }
         qc.setQueryData<EventDetailDto>(key, { ...previous, lines: nextLines });
       }
       return { previous };

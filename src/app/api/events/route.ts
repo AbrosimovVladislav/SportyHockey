@@ -7,6 +7,7 @@ import { loadAttendance } from '@/lib/event-attendance';
 import { getUserTeamId } from '@/lib/user-team';
 import { notifyEventCreated } from '@/lib/notify';
 import { buildEventTitle } from '@/lib/event-title';
+import { applyDefaultLineup } from '@/lib/apply-default-lineup';
 import type {
   CreateEventResponse,
   EventDto,
@@ -172,6 +173,9 @@ export async function POST(req: Request): Promise<Response> {
         { status: 500 },
       );
     }
+
+    // Прокидываем дефолтную раскидку команды (звенья + стороны для тренировки).
+    await applyDefaultLineup(data.id, parsed.data.type, ctx.team_id);
 
     await notifyEventCreated(data.id);
 

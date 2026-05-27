@@ -16,10 +16,13 @@ import { LineupChip } from '@/components/lineup-chip';
 import { LineupZone } from '@/components/lineup-zone';
 import { RosterCard } from '@/components/roster-card';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
+import { Button } from '@/components/button';
+import { BottomSheet } from '@/components/bottom-sheet';
 import { LinesView } from './lines-view';
 import { useEvent } from '@/hooks/use-event';
 import { useSetLine } from '@/hooks/use-set-line';
 import { useSetLineup } from '@/hooks/use-set-lineup';
+import { useResetLineup } from '@/hooks/use-reset-lineup';
 import { useLineupDndSensors } from '@/hooks/use-lineup-dnd-sensors';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
@@ -70,8 +73,10 @@ export default function EventLineupPage() {
   const data = ev.data;
   const setLineup = useSetLineup(id);
   const setLine = useSetLine(id);
+  const resetLineup = useResetLineup(id);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('teams');
+  const [resetOpen, setResetOpen] = useState(false);
 
   const sensors = useLineupDndSensors();
 
@@ -243,6 +248,22 @@ export default function EventLineupPage() {
         />
       ) : null}
 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          padding: `${spacing['8']}px ${spacing['16']}px 0`,
+        }}
+      >
+        <Button
+          variant="ghost"
+          onClick={() => setResetOpen(true)}
+          disabled={resetLineup.isPending}
+        >
+          {resetLineup.isPending ? t('lineup.reset.busy') : t('lineup.reset.button')}
+        </Button>
+      </div>
+
       <DndContext
         sensors={sensors}
         collisionDetection={pointerWithin}
@@ -326,6 +347,30 @@ export default function EventLineupPage() {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      <BottomSheet
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title={t('lineup.reset.confirmTitle')}
+      >
+        <p
+          style={{
+            ...typography.body,
+            color: colors.textSecondary,
+            marginBottom: spacing['16'],
+          }}
+        >
+          {t('lineup.reset.confirmHint')}
+        </p>
+        <Button
+          variant="primary"
+          fullWidth
+          disabled={resetLineup.isPending}
+          onClick={() => resetLineup.mutate(undefined, { onSuccess: () => setResetOpen(false) })}
+        >
+          {resetLineup.isPending ? t('lineup.reset.busy') : t('lineup.reset.confirm')}
+        </Button>
+      </BottomSheet>
     </div>
   );
 }
