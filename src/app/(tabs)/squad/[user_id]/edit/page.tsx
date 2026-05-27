@@ -196,7 +196,7 @@ export default function EditPlayerPage() {
             size="lg"
             fullWidth
             disabled={del.isPending}
-            onClick={() => del.mutate(undefined, { onSuccess: () => router.replace('/squad') })}
+            onClick={() => del.mutate(undefined, { onSuccess: () => router.replace('/squad/roster') })}
           >
             {t('editMember.deleteCta')}
           </Button>

@@ -3,6 +3,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { DarkHeader } from '@/components/dark-header';
+import { GlassButton } from '@/components/glass-button';
 import { FAB } from '@/components/fab';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ContentTabs } from '@/components/content-tabs';
@@ -12,7 +13,7 @@ import { PlayerRow } from '@/components/player-row';
 import { AttendanceRing } from '@/components/attendance-ring';
 import { EmptyState } from '@/components/empty-state';
 import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
-import { IconChevronDown } from '@/components/icons';
+import { IconChevronDown, IconBack } from '@/components/icons';
 import { SquadLinesTab } from './lines-tab';
 import { SquadSidesTab } from './sides-tab';
 import { useT } from '@/hooks/use-t';
@@ -87,7 +88,15 @@ export default function SquadPage() {
 
   return (
     <div style={root}>
-      <DarkHeader title={t('squad.title')} imageSrc="/team.png" />
+      <DarkHeader
+        title={t('squad.title')}
+        imageSrc="/team.png"
+        left={
+          <GlassButton ariaLabel={t('schedule.backLabel')} onClick={() => router.back()} size={44}>
+            <IconBack size={20} color={colors.textInverse} />
+          </GlassButton>
+        }
+      />
 
       <div style={sheet}>
         <ContentTabs tabs={tabs} activeId={tab} onChange={(id) => setTab(id as TabId)} />

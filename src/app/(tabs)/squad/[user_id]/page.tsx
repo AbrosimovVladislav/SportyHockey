@@ -48,7 +48,7 @@ export default function PlayerProfilePage() {
 
   const onBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push('/squad');
+    else router.push('/squad/roster');
   };
 
   const root: CSSProperties = { minHeight: '100dvh', background: colors.bg };
@@ -176,7 +176,7 @@ export default function PlayerProfilePage() {
             size="lg"
             fullWidth
             disabled={del.isPending}
-            onClick={() => del.mutate(undefined, { onSuccess: () => router.replace('/squad') })}
+            onClick={() => del.mutate(undefined, { onSuccess: () => router.replace('/squad/roster') })}
           >
             {t('editMember.deleteCta')}
           </Button>

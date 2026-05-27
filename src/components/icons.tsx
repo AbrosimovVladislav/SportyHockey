@@ -2,6 +2,7 @@ import type { SVGProps } from 'react';
 import { LuCalendarCheck, LuWallet, LuTrendingUp, LuDumbbell, LuSettings, LuRotateCcw } from 'react-icons/lu';
 import { SiTelegram, SiWhatsapp } from 'react-icons/si';
 import { MdSportsHockey, MdSports } from 'react-icons/md';
+import { GiGoalKeeper } from 'react-icons/gi';
 import { colors } from '@/theme/colors';
 
 type IconProps = SVGProps<SVGSVGElement> & {
@@ -344,6 +345,18 @@ export const IconStick = (p: IconProps) => (
     <path d="M13 6l4 3" />
     <circle cx="18.5" cy="18.5" r="1.5" />
   </Svg>
+);
+
+// Щит — амплуа «защитник» в карточке-сводке команды.
+export const IconShield = (p: IconProps) => (
+  <Svg {...p} strokeWidth={1.7}>
+    <path d="M12 3l7 3v5.5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z" />
+  </Svg>
+);
+
+// Вратарь — амплуа «вратарь» в карточке-сводке команды.
+export const IconGoalie = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <GiGoalKeeper size={size} color={color} />
 );
 
 export const IconSticksCrossed = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (

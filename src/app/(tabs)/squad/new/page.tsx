@@ -31,7 +31,7 @@ export default function NewPlayerPage() {
 
   const onBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push('/squad');
+    else router.push('/squad/roster');
   };
 
   const dismissKeyboard = (e: ReactPointerEvent<HTMLDivElement>) => {

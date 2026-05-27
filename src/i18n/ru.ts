@@ -1,14 +1,36 @@
 export const ru = {
-  // Tabs (нижняя навигация: Команда / События / Деньги / Состав / Ещё)
-  'tabs.home': 'Команда',
+  // Tabs (нижняя навигация: Главное / События / Деньги / Команда / Ещё)
+  'tabs.home': 'Главное',
   'tabs.events': 'События',
-  'tabs.squad': 'Состав',
+  'tabs.squad': 'Команда',
   'tabs.money': 'Деньги',
   'tabs.profile': 'Ещё',
 
   // Pages — заголовки-заглушки
-  'home.title': 'Команда',
+  'home.title': 'Главное',
   'events.title': 'События',
+
+  // Раздел «Команда» — главная (хаб)
+  'team.title': 'Команда',
+  'team.players.one': 'игрок',
+  'team.players.few': 'игрока',
+  'team.players.many': 'игроков',
+  'team.stat.players': 'игроков',
+  'team.stat.forwards': 'напад.',
+  'team.stat.defenders': 'защ.',
+  'team.stat.goalies': 'врат.',
+  'team.section.roster.title': 'Состав',
+  'team.section.roster.subtitle': 'Игроки, амплуа, основа и резерв',
+  'team.section.stats.title': 'Статистика и аналитика',
+  'team.section.stats.subtitle': 'Посещаемость, активность, показатели',
+  'team.section.tactics.title': 'Тактика',
+  'team.section.tactics.subtitle': 'Звенья, сочетания, игровые схемы',
+  'team.section.media.title': 'Медиа',
+  'team.section.media.subtitle': 'Фото и видео команды',
+  'team.section.settings.title': 'Настройки команды',
+  'team.section.settings.subtitle': 'Название, логотип, роли, параметры',
+  'team.soon': 'Раздел в разработке — появится в одном из ближайших обновлений.',
+
   'squad.title': 'Состав команды',
   'money.title': 'Деньги',
   'profile.title': 'Профиль',
