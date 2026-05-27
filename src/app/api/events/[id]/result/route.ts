@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { AuthError, requireUser } from '@/lib/auth';
+import { requireUser } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType } from '@/lib/event-enum';
 import {
@@ -238,9 +239,6 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     };
     return NextResponse.json(dto satisfies EventResultDto & { score: { side_a: ResultSide } });
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

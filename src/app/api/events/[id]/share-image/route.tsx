@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
-import { AuthError, requireUser } from '@/lib/auth';
+import { requireUser } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType } from '@/lib/event-enum';
 import { asResultSide, sidesForEventType } from '@/lib/event-result';
@@ -404,9 +405,6 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       { width: WIDTH, height: HEIGHT },
     );
   } catch (e) {
-    if (e instanceof AuthError) {
-      return new Response(e.message, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

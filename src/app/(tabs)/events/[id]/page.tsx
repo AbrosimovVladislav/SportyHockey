@@ -259,7 +259,7 @@ export default function EventDetailPage() {
       badge={headerBadge ?? undefined}
       imageSrc="/arena.png"
       left={
-        <GlassButton ariaLabel={t('schedule.backLabel')} onClick={() => router.back()} size={40}>
+        <GlassButton ariaLabel={t('schedule.backLabel')} onClick={() => router.back()} size={44}>
           <IconBack size={20} color={colors.textInverse} />
         </GlassButton>
       }
@@ -268,7 +268,7 @@ export default function EventDetailPage() {
           <GlassButton
             ariaLabel={t('eventDetail.menuLabel')}
             onClick={() => setMenuOpen(true)}
-            size={40}
+            size={44}
           >
             <IconSettings size={20} color={colors.textInverse} />
           </GlassButton>

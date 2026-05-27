@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireOrganizer, requireUser } from '@/lib/auth';
+import { requireOrganizer, requireUser } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType, effectiveEventStatus } from '@/lib/event-enum';
 import { loadAttendance } from '@/lib/event-attendance';
@@ -83,16 +84,13 @@ export async function GET(req: Request): Promise<Response> {
       arena_cost: r.arena_cost != null ? Number(r.arena_cost) : null,
       opponent_name: r.opponent_name ?? null,
       status: effectiveEventStatus(r.status, r.ends_at),
-      attendance: attendanceMap.get(r.id) ?? { going: 0, maybe: 0, not_going: 0 },
+      attendance: attendanceMap.get(r.id) ?? { going: 0, not_going: 0 },
     }));
 
     const body: EventsListResponse = { team_size: teamSize ?? 0, events };
     return NextResponse.json(body);
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }
 
@@ -182,9 +180,6 @@ export async function POST(req: Request): Promise<Response> {
     const body: CreateEventResponse = { id: data.id };
     return NextResponse.json(body, { status: 201 });
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireUser, assertTeamMember } from '@/lib/auth';
+import { requireUser, assertTeamMember } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType } from '@/lib/event-enum';
 import { isValidSideForEvent } from '@/lib/event-result';
@@ -153,10 +154,7 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
 
     return NextResponse.json({ ok: true } satisfies UpdateGoalResponse);
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }
 
@@ -192,9 +190,6 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
     }
     return NextResponse.json({ ok: true } satisfies DeleteGoalResponse);
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

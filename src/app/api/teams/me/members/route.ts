@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireUser, requireOrganizer } from '@/lib/auth';
+import { requireUser, requireOrganizer } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getUserTeamId } from '@/lib/user-team';
 import { asMemberRole } from '@/lib/role';
@@ -121,10 +122,7 @@ export async function GET(req: Request): Promise<Response> {
     };
     return NextResponse.json(body);
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }
 
@@ -250,9 +248,6 @@ export async function POST(req: Request): Promise<Response> {
     const body: CreateMemberResponse = { user_id: resolved.id, invite_link: inviteLink };
     return NextResponse.json(body, { status: 201 });
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

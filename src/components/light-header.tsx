@@ -16,7 +16,7 @@ type Props = {
 export function LightHeader({ title, subtitle, onBack, right, ariaLabelBack = 'Назад' }: Props) {
   const wrap: CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: '40px 1fr 40px',
+    gridTemplateColumns: '44px 1fr 44px',
     alignItems: 'center',
     gap: spacing['8'],
     // Верхний отступ под «опасную зону» (статус-бар + телеграм-кнопки) в fullscreen,
@@ -33,8 +33,8 @@ export function LightHeader({ title, subtitle, onBack, right, ariaLabelBack = '�
   };
 
   const backBtn: CSSProperties = {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: '50%',
     background: colors.bgMuted,
     border: 'none',

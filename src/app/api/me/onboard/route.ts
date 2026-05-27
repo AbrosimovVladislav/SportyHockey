@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireUser } from '@/lib/auth';
+import { requireUser } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { normStr, normTelegramUsername } from '@/lib/normalize-contact';
 import type { TablesUpdate } from '@/types/db';
@@ -93,9 +94,6 @@ export async function POST(req: Request): Promise<Response> {
     const body: OnboardResponse = { ok: true };
     return NextResponse.json(body);
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

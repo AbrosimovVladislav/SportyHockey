@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { AuthError, requireOrganizer } from '@/lib/auth';
+import { requireOrganizer } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import type { JoinRequestItem, JoinRequestsResponse } from '@/types/api';
 
@@ -55,9 +56,6 @@ export async function GET(req: Request): Promise<Response> {
     const body: JoinRequestsResponse = { requests };
     return NextResponse.json(body);
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

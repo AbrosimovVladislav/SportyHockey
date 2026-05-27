@@ -30,7 +30,7 @@ DRAFT. Опирается на CSS-переменные темы Telegram (`var(
 
 - TypeScript strict, без `any`. Если нужен — `// FIXME:type` + причина.
 - Файлы < 300 строк. Одна ответственность.
-- API-запросы — в `src/api/`, никогда не из компонентов.
+- Запросы к серверу — через хуки в `src/hooks/` (TanStack Query) поверх `src/lib/api-client.ts`, никогда напрямую из компонентов. Сама серверная логика (эндпоинты) — в `src/app/api/`.
 - Стейт: серверный → TanStack Query; UI-стейт → Zustand; локальный → useState.
 - Цвета/отступы/шрифты — из `src/theme/`. Никакого хардкода hex или `marginTop: 14`.
 - Тач-таргеты ≥ 44px.
@@ -56,7 +56,7 @@ DRAFT. Опирается на CSS-переменные темы Telegram (`var(
 pnpm dev              # Next.js dev-сервер (frontend + API)
 pnpm build            # production-сборка
 pnpm typecheck        # tsc --noEmit
-pnpm test             # vitest
+# тестов на PoC нет: проверка = typecheck + build
 
 supabase start                     # локальный Postgres + Storage
 supabase db reset                  # пересоздать БД локально + применить миграции

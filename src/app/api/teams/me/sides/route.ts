@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireUser } from '@/lib/auth';
+import { requireUser, requireOrganizer } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getUserTeamId } from '@/lib/user-team';
 import type { TeamDefaultSideEntry, TeamSidesResponse } from '@/types/api';
@@ -34,10 +35,7 @@ export async function GET(req: Request): Promise<Response> {
     const body: TeamSidesResponse = { sides };
     return NextResponse.json(body);
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }
 
@@ -48,12 +46,9 @@ const Body = z.object({
 
 export async function POST(req: Request): Promise<Response> {
   try {
-    // Распределение Светлые/Тёмные пока двигают все участники команды (см. roadmap 32.5).
-    const user = await requireUser(req);
-    const teamId = await getUserTeamId(user.id, req);
-    if (!teamId) {
-      return NextResponse.json({ error: 'Команды нет' }, { status: 404 });
-    }
+    // Распределение Светлые/Тёмные двигает только организатор.
+    const ctx = await requireOrganizer(req);
+    const teamId = ctx.team_id;
 
     const json = await req.json().catch(() => null);
     const parsed = Body.safeParse(json);
@@ -100,9 +95,6 @@ export async function POST(req: Request): Promise<Response> {
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

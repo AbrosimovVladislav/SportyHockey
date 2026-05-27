@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireOrganizer } from '@/lib/auth';
+import { requireOrganizer } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 
 export const runtime = 'nodejs';
@@ -87,9 +88,6 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

@@ -4,7 +4,7 @@ import type { Database } from '@/types/db';
 import type { AttendanceCount } from '@/types/api';
 
 export function emptyAttendance(): AttendanceCount {
-  return { going: 0, maybe: 0, not_going: 0 };
+  return { going: 0, not_going: 0 };
 }
 
 export async function loadAttendance(
@@ -25,7 +25,6 @@ export async function loadAttendance(
     const cnt = map.get(row.event_id);
     if (!cnt) continue;
     if (row.vote === 'going') cnt.going += 1;
-    else if (row.vote === 'maybe') cnt.maybe += 1;
     else if (row.vote === 'not_going') cnt.not_going += 1;
   }
   return map;

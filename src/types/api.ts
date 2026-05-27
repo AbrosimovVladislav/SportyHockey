@@ -173,7 +173,6 @@ export type EventStatus = 'scheduled' | 'cancelled' | 'completed';
 
 export type AttendanceCount = {
   going: number;
-  maybe: number;
   not_going: number;
 };
 
@@ -210,7 +209,7 @@ export type EventDto = {
   attendance: AttendanceCount;
 };
 
-export type EventVote = 'going' | 'maybe' | 'not_going';
+export type EventVote = 'going' | 'not_going';
 
 export type PlayerPosition = 'forward' | 'defender' | 'goalie';
 

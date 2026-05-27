@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { AuthError, requireUser } from '@/lib/auth';
+import { requireUser } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getUserTeamId } from '@/lib/user-team';
 import { computePlayerStats } from '@/lib/player-stats';
@@ -35,9 +36,6 @@ export async function GET(
     const body: PlayerStatsResponse = await computePlayerStats(sb, teamId, memberUserId);
     return NextResponse.json(body);
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

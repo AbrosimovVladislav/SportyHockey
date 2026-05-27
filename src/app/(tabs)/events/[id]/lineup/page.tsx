@@ -26,6 +26,7 @@ import { useSetLine } from '@/hooks/use-set-line';
 import { useSetLineup } from '@/hooks/use-set-lineup';
 import { useResetLineup } from '@/hooks/use-reset-lineup';
 import { useLineupDndSensors } from '@/hooks/use-lineup-dnd-sensors';
+import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useTgSwipes } from '@/hooks/use-tg-swipes';
@@ -73,6 +74,8 @@ export default function EventLineupPage() {
 
   const ev = useEvent(id);
   const data = ev.data;
+  // Раскидку (стороны/звенья) правит только организатор; остальные видят её в режиме чтения.
+  const { isOrganizer } = useIsOrganizer(data?.team_id);
   const setLineup = useSetLineup(id);
   const setLine = useSetLine(id);
   const resetLineup = useResetLineup(id);
@@ -119,6 +122,7 @@ export default function EventLineupPage() {
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
+    if (!isOrganizer) return;
     const userId = String(e.active.id);
     const overId = e.over?.id ? String(e.over.id) : null;
     if (!overId) return;
@@ -246,25 +250,27 @@ export default function EventLineupPage() {
         subtitle={subtitle}
         onBack={onBack}
         right={
-          <button
-            type="button"
-            className="pressable"
-            aria-label={t('lineup.menuLabel')}
-            onClick={() => setMenuOpen(true)}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              background: colors.bgMuted,
-              border: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <IconSettings size={20} color={colors.text} />
-          </button>
+          isOrganizer ? (
+            <button
+              type="button"
+              className="pressable"
+              aria-label={t('lineup.menuLabel')}
+              onClick={() => setMenuOpen(true)}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: colors.bgMuted,
+                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <IconSettings size={20} color={colors.text} />
+            </button>
+          ) : undefined
         }
       />
 
@@ -277,7 +283,7 @@ export default function EventLineupPage() {
       ) : null}
 
       <DndContext
-        sensors={sensors}
+        sensors={isOrganizer ? sensors : []}
         collisionDetection={pointerWithin}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -361,7 +367,7 @@ export default function EventLineupPage() {
       </DndContext>
 
       <BottomSheet
-        open={menuOpen}
+        open={menuOpen && isOrganizer}
         onClose={() => setMenuOpen(false)}
         title={t('lineup.menu.title')}
       >

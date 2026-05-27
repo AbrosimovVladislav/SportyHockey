@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireOrganizer, requireUser } from '@/lib/auth';
+import { requireOrganizer, requireUser } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType, effectiveEventStatus } from '@/lib/event-enum';
 import { buildEventTitle } from '@/lib/event-title';
@@ -22,13 +23,12 @@ import type {
 
 const VOTE_ORDER: Record<string, number> = {
   going: 0,
-  maybe: 1,
   not_going: 2,
   null: 3,
 };
 
 function asVote(value: string | null | undefined): EventVote | null {
-  if (value === 'going' || value === 'maybe' || value === 'not_going') return value;
+  if (value === 'going' || value === 'not_going') return value;
   return null;
 }
 
@@ -254,7 +254,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       opponent_name: event.opponent_name ?? null,
       status: effectiveEventStatus(event.status, event.ends_at),
       created_by: event.created_by,
-      attendance: attendanceMap.get(event.id) ?? { going: 0, maybe: 0, not_going: 0 },
+      attendance: attendanceMap.get(event.id) ?? { going: 0, not_going: 0 },
       team_size: attendees.length,
       attendees,
       payments,
@@ -264,10 +264,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     };
     return NextResponse.json(dto);
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }
 
@@ -369,6 +366,17 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     const becameCancelled = d.status === 'cancelled' && existing.status !== 'cancelled';
     const stillCancelled = d.status === 'cancelled' && existing.status === 'cancelled';
     if (becameCancelled) {
+      // Оплаты за отменённое событие превращаем в депозит игрока: снимаем привязку к
+      // событию (event_id → null). Иначе деньги «зависают» — начисление по отменённому
+      // событию не считается, и баланс уехал бы в переплату. Депозит виден на «Финансах».
+      const { error: depErr } = await sb
+        .from('finance_transactions')
+        .update({ event_id: null, description: 'Депозит с отменённого события' })
+        .eq('event_id', id)
+        .eq('type', 'player_payment');
+      if (depErr) {
+        return NextResponse.json({ error: depErr.message }, { status: 500 });
+      }
       await notifyEventCancelled(id);
     } else if (!stillCancelled) {
       await notifyEventUpdated(id);
@@ -376,9 +384,6 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

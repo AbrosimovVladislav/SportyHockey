@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthError, requireUser, assertTeamMember } from '@/lib/auth';
+import { requireOrganizer } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { LINE_SLOT_REGEX } from '@/lib/event-lines';
 
@@ -17,7 +18,7 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: Request, { params }: Params): Promise<Response> {
   try {
-    const user = await requireUser(req);
+    const ctx = await requireOrganizer(req);
     const { id: eventId } = await params;
     const json = await req.json().catch(() => null);
     const parsed = Body.safeParse(json);
@@ -35,10 +36,9 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
     if (evErr) {
       return NextResponse.json({ error: evErr.message }, { status: 500 });
     }
-    if (!event) {
+    if (!event || event.team_id !== ctx.team_id) {
       return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
     }
-    await assertTeamMember(user.id, event.team_id);
 
     const isGame = event.type === 'game';
     // Для игры стороны нет — нормализуем к 'light'.
@@ -57,9 +57,9 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
       return NextResponse.json({ ok: true });
     }
 
-    // На игру в звено можно поставить любого участника команды (assertTeamMember выше) —
-    // в том числе ещё не записавшегося (roadmap 33.8). Для тренировки игрок сначала
-    // должен быть распределён на сторону (Светлые/Тёмные).
+    // На игру в звено можно поставить любого участника команды — в том числе ещё не
+    // записавшегося (roadmap 33.8). Для тренировки игрок сначала должен быть распределён
+    // на сторону (Светлые/Тёмные).
     if (!isGame) {
       const { data: lineup } = await sb
         .from('event_lineups')
@@ -128,9 +128,6 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    throw e;
+    return handleRouteError(e);
   }
 }

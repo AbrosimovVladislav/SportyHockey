@@ -107,9 +107,9 @@ export default function SquadPage() {
             t={t}
           />
         ) : tab === 'lines' ? (
-          <SquadLinesTab members={members} canEdit />
+          <SquadLinesTab members={members} canEdit={isOrganizer} />
         ) : (
-          <SquadSidesTab members={members} canEdit />
+          <SquadSidesTab members={members} canEdit={isOrganizer} />
         )}
       </div>
 

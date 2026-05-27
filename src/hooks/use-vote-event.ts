@@ -58,7 +58,6 @@ function patch(
   const attendance: AttendanceCount = {
     going: ev.attendance.going + delta(prevVote, nextVote, 'going'),
     not_going: ev.attendance.not_going + delta(prevVote, nextVote, 'not_going'),
-    maybe: ev.attendance.maybe + delta(prevVote, nextVote, 'maybe'),
   };
 
   return { ...ev, attendees, attendance };

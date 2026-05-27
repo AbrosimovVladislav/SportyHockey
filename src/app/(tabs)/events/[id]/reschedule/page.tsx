@@ -258,9 +258,7 @@ export default function EventReschedulePage() {
       : t('reschedule.summary.training');
   const venueName = data.venue?.name ?? null;
 
-  const notifyCount = data.attendees.filter(
-    (a) => a.vote === 'going' || a.vote === 'maybe',
-  ).length;
+  const notifyCount = data.attendees.filter((a) => a.vote === 'going').length;
   const paymentsTouched = data.payments.paid_count + data.payments.partial_count > 0;
 
   const changesItems = [
