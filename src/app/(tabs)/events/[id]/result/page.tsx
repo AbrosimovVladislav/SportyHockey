@@ -449,15 +449,11 @@ export default function EventResultPage() {
               paddingTop: spacing['24'],
             }}
           >
-            <EmptyState title={t('result.empty.overview.title')} />
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() => {
-                setGoalError(null);
-                setGoalSheet({ open: true, initial: null });
-              }}
-            >
+            <EmptyState
+              title={t('result.empty.overview.title')}
+              description={t('result.empty.overview.description')}
+            />
+            <Button variant="primary" size="lg" onClick={() => setPickerOpen(true)}>
               <IconPlus size={20} color={colors.textInverse} />
               {t('result.empty.cta')}
             </Button>

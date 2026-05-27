@@ -97,11 +97,6 @@ export default function EventLineupPage() {
     return { light, dark, signed, unsigned };
   }, [attendees]);
 
-  const gameRoster = useMemo(
-    () => attendees.filter((a) => a.vote === 'going' || a.showed_up === true),
-    [attendees],
-  );
-
   const linesIndex = useMemo(() => {
     const m = new Map<string, { team_side: TeamSide; slot: LineSlotKey }>();
     for (const l of lines) m.set(l.user_id, { team_side: l.team_side, slot: l.slot });
@@ -257,7 +252,7 @@ export default function EventLineupPage() {
         {isGame ? (
           <LinesView
             side="light"
-            teamPlayers={gameRoster}
+            teamPlayers={attendees}
             lines={lines}
             isGame
           />

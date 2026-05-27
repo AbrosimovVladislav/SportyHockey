@@ -484,7 +484,7 @@ export const ru = {
   'result.empty.events.description':
     'Когда организатор внесёт голы и удаления — они появятся здесь.',
   'result.empty.events.descriptionOrganizer': 'Нажмите «+», чтобы внести гол или удаление.',
-  'result.empty.cta': 'Отметить первый гол',
+  'result.empty.cta': 'Добавить событие',
   'result.unknownPlayer': 'Игрок не указан',
   'result.assistsPrefix': 'Передачи',
   'result.add': 'Добавить',

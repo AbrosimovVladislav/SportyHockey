@@ -98,6 +98,10 @@ export function LinesView({ side, teamPlayers, lines, isGame = false }: Props) {
   }, [teamPlayers]);
 
   const reserves = teamPlayers.filter((p) => !userToSlot.has(p.user_id));
+  // На игре пул делим на записавшихся и нет — тянуть в звенья можно из обоих (как на тренировке).
+  const isSignedUp = (p: EventAttendee) => p.vote === 'going' || p.showed_up === true;
+  const signedReserves = isGame ? reserves.filter(isSignedUp) : reserves;
+  const unsignedReserves = isGame ? reserves.filter((p) => !isSignedUp(p)) : [];
 
   if (teamPlayers.length === 0) {
     return (
@@ -220,42 +224,101 @@ export function LinesView({ side, teamPlayers, lines, isGame = false }: Props) {
       </section>
 
       <ReservesPool>
-        <div style={{ fontSize: 13, fontWeight: 700, color: colors.text }}>
-          {t('lineup.lines.poolTitle')} · {reserves.length}
-        </div>
-        {reserves.length === 0 ? (
-          <div
-            style={{
-              fontSize: 12,
-              color: colors.textTertiary,
-              textAlign: 'center',
-              padding: `${spacing['12']}px 0`,
-            }}
-          >
-            {t('lineup.lines.poolEmpty')}
+        {isGame ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
+            <PoolGroup title={t('lineup.pool.signed')} players={signedReserves} t={t} />
+            <PoolGroup title={t('lineup.pool.notSigned')} players={unsignedReserves} t={t} />
+            {reserves.length === 0 ? (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: colors.textTertiary,
+                  textAlign: 'center',
+                  padding: `${spacing['8']}px 0`,
+                }}
+              >
+                {t('lineup.lines.poolEmpty')}
+              </div>
+            ) : null}
           </div>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: spacing['6'],
-            }}
-          >
-            {reserves.map((a) => (
-              <RosterCard
-                key={a.user_id}
-                dragId={a.user_id}
-                firstName={a.first_name}
-                lastName={a.last_name}
-                photoUrl={a.photo_url}
-                jersey={a.jersey_number}
-                positionLabel={positionLabel(a.position, t as (k: never) => string)}
-              />
-            ))}
-          </div>
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: colors.text }}>
+              {t('lineup.lines.poolTitle')} · {reserves.length}
+            </div>
+            {reserves.length === 0 ? (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: colors.textTertiary,
+                  textAlign: 'center',
+                  padding: `${spacing['12']}px 0`,
+                }}
+              >
+                {t('lineup.lines.poolEmpty')}
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: spacing['6'],
+                }}
+              >
+                {reserves.map((a) => (
+                  <RosterCard
+                    key={a.user_id}
+                    dragId={a.user_id}
+                    firstName={a.first_name}
+                    lastName={a.last_name}
+                    photoUrl={a.photo_url}
+                    jersey={a.jersey_number}
+                    positionLabel={positionLabel(a.position, t as (k: never) => string)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </ReservesPool>
+    </div>
+  );
+}
+
+// Группа пула на игре: «Записались» / «Не записаны» — карточки тянутся в звенья.
+function PoolGroup({
+  title,
+  players,
+  t,
+}: {
+  title: string;
+  players: EventAttendee[];
+  t: ReturnType<typeof useT>;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['6'] }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: colors.text }}>
+        {title} · {players.length}
+      </div>
+      {players.length === 0 ? (
+        <div style={{ fontSize: 12, color: colors.textTertiary, padding: `${spacing['4']}px 0` }}>
+          —
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing['6'] }}>
+          {players.map((a) => (
+            <RosterCard
+              key={a.user_id}
+              dragId={a.user_id}
+              firstName={a.first_name}
+              lastName={a.last_name}
+              photoUrl={a.photo_url}
+              jersey={a.jersey_number}
+              positionLabel={positionLabel(a.position, t as (k: never) => string)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

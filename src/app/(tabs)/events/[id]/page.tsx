@@ -169,9 +169,10 @@ export default function EventDetailPage() {
 
   const goingAttendees = useMemo(() => (data?.attendees ?? []).filter((a) => a.vote === 'going'), [data]);
   const noAnswer = data ? data.team_size - data.attendance.going - data.attendance.not_going : 0;
-  // После завершения в плашке участников показываем явку по факту (roadmap 33.6).
-  const showedCount = useMemo(
-    () => (data?.attendees ?? []).filter((a) => a.showed_up === true).length,
+  // После завершения в плашке участников показываем явку по факту (roadmap 33.6):
+  // и число, и аватары — по тем, кто реально пришёл (showed_up), а не записался.
+  const showedAttendees = useMemo(
+    () => (data?.attendees ?? []).filter((a) => a.showed_up === true),
     [data],
   );
 
@@ -661,7 +662,7 @@ export default function EventDetailPage() {
           <div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing['12'] }}>
             {data.status === 'completed'
               ? interp(t('eventDetail.attendees.summaryCompleted'), {
-                  showed: showedCount,
+                  showed: showedAttendees.length,
                   total: data.team_size,
                 })
               : interp(t('eventDetail.attendees.summary'), {
@@ -670,16 +671,20 @@ export default function EventDetailPage() {
                   noAnswer: Math.max(0, noAnswer),
                 })}
           </div>
-          {goingAttendees.length > 0 ? (
-            <div style={{ marginBottom: isOrganizer && fund ? spacing['12'] : 0 }}>
-              <AvatarStack
-                items={goingAttendees.map((a) => ({
-                  src: a.photo_url,
-                  name: formatName(a),
-                }))}
-              />
-            </div>
-          ) : null}
+          {(() => {
+            const rosterForAvatars =
+              data.status === 'completed' ? showedAttendees : goingAttendees;
+            return rosterForAvatars.length > 0 ? (
+              <div style={{ marginBottom: isOrganizer && fund ? spacing['12'] : 0 }}>
+                <AvatarStack
+                  items={rosterForAvatars.map((a) => ({
+                    src: a.photo_url,
+                    name: formatName(a),
+                  }))}
+                />
+              </div>
+            ) : null;
+          })()}
           {isOrganizer && fund ? (
             <>
               <div style={{ marginBottom: spacing['10'] }}>
