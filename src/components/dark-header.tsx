@@ -104,17 +104,26 @@ export function DarkHeader({ title, role, subtitle, badge, left, right, paddingT
 
   return (
     <div style={wrapper}>
-      {(left || right) && (
-        <div style={topRow}>
-          <div>{left}</div>
-          <div>{right}</div>
+      {imageSrc ? (
+        <>
+          <div style={imageLayer} aria-hidden />
+          <div style={bottomScrim} aria-hidden />
+          <div style={topScrim} aria-hidden />
+        </>
+      ) : null}
+      <div style={content}>
+        {(left || right) && (
+          <div style={topRow}>
+            <div>{left}</div>
+            <div>{right}</div>
+          </div>
+        )}
+        <div style={titleGroupStyle}>
+          {badge ? <div style={{ marginBottom: spacing['8'] }}>{badge}</div> : null}
+          {role ? <div style={roleStyle}>{role}</div> : null}
+          <div style={titleStyle}>{title}</div>
+          {subtitle ? <div style={{ marginTop: spacing['4'] }}>{subtitle}</div> : null}
         </div>
-      )}
-      <div style={titleGroupStyle}>
-        {badge ? <div style={{ marginBottom: spacing['8'] }}>{badge}</div> : null}
-        {role ? <div style={roleStyle}>{role}</div> : null}
-        <div style={titleStyle}>{title}</div>
-        {subtitle ? <div style={{ marginTop: spacing['4'] }}>{subtitle}</div> : null}
       </div>
     </div>
   );
