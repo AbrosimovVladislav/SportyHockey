@@ -1,33 +1,28 @@
 'use client';
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DarkHeader } from '@/components/dark-header';
 import { GlassButton } from '@/components/glass-button';
 import { ListRow } from '@/components/list-row';
-import { Avatar } from '@/components/avatar';
-import { AvatarStack } from '@/components/avatar-stack';
-import { ProgressBar } from '@/components/progress-bar';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { MenuButton } from '@/components/menu-button';
 import { EventHeaderBadge } from '@/components/event-header-badge';
-import { PlayerVoteCompact } from '@/components/player-vote-compact';
-import { PlayerLineupBlock } from '@/components/player-lineup-block';
-import { PlayerCompletedBlock } from '@/components/player-completed-block';
+import { EventVsCard } from '@/components/event-vs-card';
+import { EventVoteSection } from '@/components/event-vote-section';
+import { EventAttendanceStats } from '@/components/event-attendance-stats';
+import { EventAttendeesCard } from '@/components/event-attendees-card';
 import {
   IconBack,
   IconSettings,
-  IconInfo,
   IconCheck,
   IconClose,
-  IconChevronRight,
   IconShirt,
   IconStats,
   IconLocation,
   IconExternal,
   IconImage,
-  IconRuble,
   IconClock,
 } from '@/components/icons';
 import { useEvent } from '@/hooks/use-event';
@@ -39,107 +34,11 @@ import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { formatEventDateRange } from '@/lib/event-format';
 import { formatName } from '@/lib/format-name';
+import { interp } from '@/lib/format';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
-import type { EventAttendee } from '@/types/api';
-
-function interp(template: string, vars: Record<string, string | number>): string {
-  return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
-}
-
-function formatRub(n: number): string {
-  return n.toLocaleString('ru-RU');
-}
-
-function StatusCircle({ kind, count }: { kind: 'going' | 'notGoing' | 'noAnswer'; count: number }) {
-  const meta = {
-    going: { bg: colors.success, fg: colors.textInverse, Icon: IconCheck },
-    notGoing: { bg: colors.error, fg: colors.textInverse, Icon: IconClose },
-    noAnswer: { bg: colors.textTertiary, fg: colors.textInverse, Icon: IconClose },
-  } as const;
-  const { bg, fg, Icon } = meta[kind];
-
-  const circle: CSSProperties = {
-    width: 22,
-    height: 22,
-    borderRadius: '50%',
-    background: bg,
-    color: fg,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: spacing['6'] }}>
-      <span style={circle}>
-        {kind === 'noAnswer' ? (
-          <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1 }}>−</span>
-        ) : (
-          <Icon size={13} color={fg} />
-        )}
-      </span>
-      <span style={{ fontSize: 20, fontWeight: 700, color: colors.text, fontVariantNumeric: 'tabular-nums' }}>
-        {count}
-      </span>
-    </div>
-  );
-}
-
-function SectionCard({ children, padding }: { children: ReactNode; padding?: number }) {
-  const card: CSSProperties = {
-    background: colors.bg,
-    borderRadius: radius.lg,
-    padding: padding ?? spacing['16'],
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
-  };
-  return <div style={card}>{children}</div>;
-}
-
-type VotePillProps = {
-  active: boolean;
-  kind: 'going' | 'notGoing';
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-};
-
-function VotePill({ active, kind, label, onClick, disabled }: VotePillProps) {
-  const isGoing = kind === 'going';
-  const activeBg = isGoing ? colors.success : colors.error;
-  const inactiveBg = colors.bg;
-  const inactiveColor = colors.text;
-  const Icon = isGoing ? IconCheck : IconClose;
-  const iconColor = active ? colors.textInverse : inactiveColor;
-
-  const style: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 3,
-    padding: '5px 8px',
-    borderRadius: radius.md,
-    background: active ? activeBg : inactiveBg,
-    color: active ? colors.textInverse : inactiveColor,
-    border: active ? 'none' : `1px solid ${colors.border}`,
-    fontSize: 12,
-    fontWeight: 600,
-    lineHeight: '16px',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
-    flexShrink: 0,
-    minHeight: 28,
-    whiteSpace: 'nowrap',
-  };
-
-  return (
-    <button type="button" className="pressable" onClick={onClick} disabled={disabled} style={style}>
-      <Icon size={12} color={iconColor} />
-      {label}
-    </button>
-  );
-}
 
 export default function EventDetailPage() {
   const t = useT();
@@ -215,10 +114,6 @@ export default function EventDetailPage() {
     flexDirection: 'column',
     gap: spacing['12'],
   };
-
-  const voteQuestion = isTraining
-    ? t('eventDetail.vote.question.training')
-    : t('eventDetail.vote.question.game');
 
   const handleVote = (next: 'going' | 'not_going') => {
     if (vote.isPending) return;
@@ -303,6 +198,8 @@ export default function EventDetailPage() {
   }
 
   const isCompleted = data.status === 'completed';
+  const rosterForAvatars = isCompleted ? showedAttendees : goingAttendees;
+  const avatarItems = rosterForAvatars.map((a) => ({ src: a.photo_url, name: formatName(a) }));
 
   return (
     <div style={wrap}>
@@ -311,418 +208,72 @@ export default function EventDetailPage() {
       {/* SHEET */}
       <div style={sheet}>
         {!isTraining && (ourTeamName || data.opponent_name) ? (
-          <SectionCard padding={spacing['12']}>
-            <button
-              type="button"
-              className="pressable"
-              onClick={() => router.push(`/events/${id}/result`)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing['8'],
-                width: '100%',
-                border: 'none',
-                background: 'transparent',
-                padding: 0,
-                cursor: 'pointer',
-                color: colors.text,
-                textAlign: 'left',
-              }}
-            >
-              <div
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: spacing['6'],
-                }}
-              >
-                <Avatar src={null} name={ourTeamName || '—'} size={44} />
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: colors.text,
-                    textAlign: 'center',
-                    lineHeight: 1.25,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    width: '100%',
-                  }}
-                >
-                  {ourTeamName || '—'}
-                </span>
-              </div>
-              {eventResult.data ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: spacing['8'],
-                    flexShrink: 0,
-                    padding: `0 ${spacing['8']}px`,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 800,
-                      color: colors.text,
-                      fontVariantNumeric: 'tabular-nums',
-                      lineHeight: 1,
-                      letterSpacing: '-0.5px',
-                    }}
-                  >
-                    {eventResult.data.score.score_a}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 700,
-                      color: colors.textTertiary,
-                      lineHeight: 1,
-                    }}
-                  >
-                    :
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 800,
-                      color: colors.text,
-                      fontVariantNumeric: 'tabular-nums',
-                      lineHeight: 1,
-                      letterSpacing: '-0.5px',
-                    }}
-                  >
-                    {eventResult.data.score.score_b}
-                  </span>
-                </div>
-              ) : (
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: colors.textTertiary,
-                    letterSpacing: '0.05em',
-                    flexShrink: 0,
-                  }}
-                >
-                  {t('eventDetail.vs')}
-                </span>
-              )}
-              <div
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: spacing['6'],
-                }}
-              >
-                <Avatar src={null} name={data.opponent_name || '—'} size={44} />
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: colors.text,
-                    textAlign: 'center',
-                    lineHeight: 1.25,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    width: '100%',
-                  }}
-                >
-                  {data.opponent_name || '—'}
-                </span>
-              </div>
-            </button>
-          </SectionCard>
+          <EventVsCard
+            ourTeamName={ourTeamName}
+            opponentName={data.opponent_name ?? ''}
+            score={
+              eventResult.data
+                ? { a: eventResult.data.score.score_a, b: eventResult.data.score.score_b }
+                : null
+            }
+            vsLabel={t('eventDetail.vs')}
+            onClick={() => router.push(`/events/${id}/result`)}
+          />
         ) : null}
 
-        {isCompleted && !isOrganizer ? (
-          /* Player — Состояние 3: Оплата + CTA */
-          <PlayerCompletedBlock
-            isGame={!!isGame}
-            costPerPlayer={data.cost_per_player}
-            paidAmount={myPaidAmount}
-            labels={{
-              paid: t('eventDetail.player.completed.payment.paid'),
-              partial: t('eventDetail.player.completed.payment.partial'),
-              due: t('eventDetail.player.completed.payment.due'),
-              partialOf: t('eventDetail.player.completed.payment.partialOf'),
-              statsTitle: t('eventDetail.player.completed.cta.stats.title'),
-              statsSubtitle: t('eventDetail.player.completed.cta.stats.subtitle'),
-              mediaTitle: t('eventDetail.player.completed.cta.media.title'),
-              mediaSubtitleTraining: t('eventDetail.player.completed.cta.media.subtitleTraining'),
-              mediaSubtitleGame: t('eventDetail.player.completed.cta.media.subtitleGame'),
-            }}
-            onOpenStats={() => router.push(`/events/${id}/result`)}
-            onOpenMedia={() => router.push(`/events/${id}/media`)}
-          />
-        ) : isCompleted ? (
-          /* Organizer — завершено: компактный статус */
-          <SectionCard padding={spacing['10']}>
-            <span
-              style={{
-                display: 'inline-block',
-                padding: '4px 8px',
-                borderRadius: radius.sm,
-                background: colors.bgMuted,
-                color: colors.textSecondary,
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              {t('eventDetail.status.completed')}
-            </span>
-          </SectionCard>
-        ) : isOrganizer ? (
-          /* VOTE (organizer — компактный) */
-          <SectionCard padding={spacing['10']}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: spacing['6'],
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: colors.text,
-                  flex: 1,
-                  minWidth: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {voteQuestion}
-              </span>
-              <div style={{ display: 'flex', gap: spacing['4'], flexShrink: 0 }}>
-                <VotePill
-                  active={myVote === 'going'}
-                  kind="going"
-                  label={t('eventDetail.vote.going')}
-                  onClick={() => handleVote('going')}
-                  disabled={vote.isPending}
-                />
-                <VotePill
-                  active={myVote === 'not_going'}
-                  kind="notGoing"
-                  label={t('eventDetail.vote.notGoing')}
-                  onClick={() => handleVote('not_going')}
-                  disabled={vote.isPending}
-                />
-              </div>
-            </div>
-          </SectionCard>
-        ) : myVote == null ? (
-          /* Player — Состояние 1: большой блок голосования */
-          <PlayerVoteBlock
-            question={
-              isTraining
-                ? t('eventDetail.vote.player.question.training')
-                : t('eventDetail.vote.player.question.game')
-            }
-            goingLabel={t('eventDetail.vote.player.going')}
-            notGoingLabel={t('eventDetail.vote.player.notGoing')}
-            myVote={null}
-            disabled={vote.isPending}
-            onVote={handleVote}
-          />
-        ) : (
-          /* Player — Состояние 2: компактный голос + Моё звено */
-          <>
-            <PlayerVoteCompact
-              question={
-                isTraining
-                  ? t('eventDetail.vote.player.question.training')
-                  : t('eventDetail.vote.player.question.game')
-              }
-              goingLabel={t('eventDetail.vote.player.going')}
-              notGoingLabel={t('eventDetail.vote.player.notGoing')}
-              myVote={myVote === 'going' || myVote === 'not_going' ? myVote : null}
-              disabled={vote.isPending}
-              onVote={handleVote}
-            />
-            <PlayerLineupBlock
-              myUserId={me.data?.user.id ?? ''}
-              myVote={myVote === 'going' || myVote === 'not_going' ? myVote : null}
-              mySide={mySide}
-              isGame={!!isGame}
-              attendees={data.attendees}
-              lines={data.lines}
-              labels={{
-                title: t('eventDetail.player.lineup.title'),
-                viewAll: t('eventDetail.player.lineup.viewAll'),
-                you: t('eventDetail.player.lineup.you'),
-                sideOnlyTitleTemplate: t('eventDetail.player.lineup.sideOnly.title'),
-                sideOnlyHint: t('eventDetail.player.lineup.sideOnly.hint'),
-                notInRosterTitle: t('eventDetail.player.lineup.notInRoster'),
-                notInRosterHint: t('eventDetail.player.lineup.notInRoster.hint'),
-                notGoingTitle: t('eventDetail.player.lineup.notGoing'),
-                notGoingHint: t('eventDetail.player.lineup.notGoing.hint'),
-                linePrefix: t('eventDetail.player.lineup.linePrefix'),
-                defensePrefix: t('eventDetail.player.lineup.defensePrefix'),
-                goalieLabel: t('eventDetail.player.lineup.goalie'),
-                sideLight: t('eventDetail.player.side.light'),
-                sideDark: t('eventDetail.player.side.dark'),
-                positions: {
-                  lw: t('eventDetail.player.position.lw'),
-                  c: t('eventDetail.player.position.c'),
-                  rw: t('eventDetail.player.position.rw'),
-                  ld: t('eventDetail.player.position.ld'),
-                  rd: t('eventDetail.player.position.rd'),
-                  g: t('eventDetail.player.position.g'),
-                  g1: t('eventDetail.player.position.g'),
-                  g2: t('eventDetail.player.position.g'),
-                },
-              }}
-              onOpenLineup={() => router.push(`/events/${id}/lineup`)}
-            />
-          </>
-        )}
+        {/* СЛОТ ГОЛОСОВАНИЯ — зависит от роли и статуса */}
+        <EventVoteSection
+          id={id}
+          isOrganizer={isOrganizer}
+          isCompleted={isCompleted}
+          isGame={isGame}
+          isTraining={isTraining}
+          myVote={myVote}
+          mySide={mySide}
+          myPaidAmount={myPaidAmount}
+          costPerPlayer={data.cost_per_player}
+          myUserId={me.data?.user.id ?? ''}
+          attendees={data.attendees}
+          lines={data.lines}
+          votePending={vote.isPending}
+          onVote={handleVote}
+        />
 
         {/* СОСТАВ И ЯВКА — только organizer */}
         {isOrganizer ? (
-          <SectionCard padding={spacing['12']}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: spacing['10'],
-              }}
-            >
-              <span style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>
-                {t('eventDetail.attendance.title')}
-              </span>
-              <IconInfo size={16} color={colors.textTertiary} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: spacing['12'] }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <StatusCircle kind="going" count={data.attendance.going} />
-                <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
-                  {t('eventDetail.attendance.going')}
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <StatusCircle kind="notGoing" count={data.attendance.not_going} />
-                <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
-                  {t('eventDetail.attendance.notGoing')}
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <StatusCircle kind="noAnswer" count={Math.max(0, noAnswer)} />
-                <span style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 28 }}>
-                  {t('eventDetail.attendance.noAnswer')}
-                </span>
-              </div>
-            </div>
-          </SectionCard>
+          <EventAttendanceStats
+            going={data.attendance.going}
+            notGoing={data.attendance.not_going}
+            noAnswer={noAnswer}
+            title={t('eventDetail.attendance.title')}
+            labels={{
+              going: t('eventDetail.attendance.going'),
+              notGoing: t('eventDetail.attendance.notGoing'),
+              noAnswer: t('eventDetail.attendance.noAnswer'),
+            }}
+          />
         ) : null}
 
         {/* УЧАСТНИКИ И ВЗНОСЫ */}
-        <button
-          type="button"
-          className="pressable"
-          onClick={() => router.push(`/events/${id}/attendees`)}
-          style={{
-            background: colors.bg,
-            borderRadius: radius.lg,
-            padding: spacing['16'],
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
-            border: 'none',
-            width: '100%',
-            textAlign: 'left',
-            color: colors.text,
-            cursor: 'pointer',
+        <EventAttendeesCard
+          isOrganizer={isOrganizer}
+          isCompleted={isCompleted}
+          going={data.attendance.going}
+          total={data.team_size}
+          noAnswer={noAnswer}
+          showedCount={showedAttendees.length}
+          avatarItems={avatarItems}
+          fund={fund}
+          labels={{
+            titleOrganizer: t('eventDetail.attendees.title'),
+            titlePlayer: t('eventDetail.attendees.titlePlayer'),
+            summary: t('eventDetail.attendees.summary'),
+            summaryCompleted: t('eventDetail.attendees.summaryCompleted'),
+            collected: t('eventDetail.attendees.collected'),
+            target: t('eventDetail.attendees.target'),
           }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: spacing['8'],
-            }}
-          >
-            <span style={{ fontSize: 17, fontWeight: 700, color: colors.text }}>
-              {isOrganizer
-                ? t('eventDetail.attendees.title')
-                : t('eventDetail.attendees.titlePlayer')}
-            </span>
-            <IconChevronRight />
-          </div>
-          <div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing['12'] }}>
-            {data.status === 'completed'
-              ? interp(t('eventDetail.attendees.summaryCompleted'), {
-                  showed: showedAttendees.length,
-                  total: data.team_size,
-                })
-              : interp(t('eventDetail.attendees.summary'), {
-                  going: data.attendance.going,
-                  total: data.team_size,
-                  noAnswer: Math.max(0, noAnswer),
-                })}
-          </div>
-          {(() => {
-            const rosterForAvatars =
-              data.status === 'completed' ? showedAttendees : goingAttendees;
-            return rosterForAvatars.length > 0 ? (
-              <div style={{ marginBottom: isOrganizer && fund ? spacing['12'] : 0 }}>
-                <AvatarStack
-                  items={rosterForAvatars.map((a) => ({
-                    src: a.photo_url,
-                    name: formatName(a),
-                  }))}
-                />
-              </div>
-            ) : null;
-          })()}
-          {isOrganizer && fund ? (
-            <>
-              <div style={{ marginBottom: spacing['10'] }}>
-                <ProgressBar value={fund.got} total={fund.target} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: spacing['8'] }}>
-                <span
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    background: colors.primaryLight,
-                    color: colors.primary,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <IconRuble size={16} color={colors.primary} />
-                </span>
-                <span style={{ fontSize: 14, color: colors.text }}>
-                  {interp(
-                    t(
-                      fund.mode === 'collected'
-                        ? 'eventDetail.attendees.collected'
-                        : 'eventDetail.attendees.target',
-                    ),
-                    {
-                      got: formatRub(fund.got),
-                      target: formatRub(fund.target),
-                    },
-                  )}
-                </span>
-              </div>
-            </>
-          ) : null}
-        </button>
+          onClick={() => router.push(`/events/${id}/attendees`)}
+        />
 
         {/* ССЫЛКИ */}
         <ListRow
@@ -815,123 +366,5 @@ export default function EventDetailPage() {
         </BottomSheet>
       ) : null}
     </div>
-  );
-}
-
-type PlayerVoteBlockProps = {
-  question: string;
-  goingLabel: string;
-  notGoingLabel: string;
-  myVote: 'going' | 'not_going' | null;
-  disabled: boolean;
-  onVote: (next: 'going' | 'not_going') => void;
-};
-
-function PlayerVoteBlock({
-  question,
-  goingLabel,
-  notGoingLabel,
-  myVote,
-  disabled,
-  onVote,
-}: PlayerVoteBlockProps) {
-  const card: CSSProperties = {
-    background: colors.bg,
-    borderRadius: radius.lg,
-    padding: `${spacing['20']}px ${spacing['16']}px`,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: spacing['16'],
-    alignItems: 'stretch',
-  };
-  const title: CSSProperties = {
-    fontSize: 20,
-    fontWeight: 700,
-    color: colors.text,
-    textAlign: 'center',
-    lineHeight: 1.3,
-  };
-  const stack: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: spacing['8'],
-  };
-  return (
-    <div style={card}>
-      <span style={title}>{question}</span>
-      <div style={stack}>
-        <PlayerVoteButton
-          kind="going"
-          active={myVote === 'going'}
-          label={goingLabel}
-          disabled={disabled}
-          onClick={() => onVote('going')}
-        />
-        <PlayerVoteButton
-          kind="notGoing"
-          active={myVote === 'not_going'}
-          label={notGoingLabel}
-          disabled={disabled}
-          onClick={() => onVote('not_going')}
-        />
-      </div>
-    </div>
-  );
-}
-
-type PlayerVoteButtonProps = {
-  kind: 'going' | 'notGoing';
-  active: boolean;
-  label: string;
-  disabled: boolean;
-  onClick: () => void;
-};
-
-function PlayerVoteButton({ kind, active, label, disabled, onClick }: PlayerVoteButtonProps) {
-  const isGoing = kind === 'going';
-  const activeBg = isGoing ? colors.primary : colors.bgMuted;
-  const activeColor = isGoing ? colors.textInverse : colors.text;
-  const inactiveBorder = isGoing ? colors.primary : colors.border;
-  const inactiveColor = isGoing ? colors.primary : colors.textSecondary;
-  const Icon = isGoing ? IconCheck : IconClose;
-  const iconColor = active ? activeColor : inactiveColor;
-
-  const style: CSSProperties = {
-    width: '100%',
-    minHeight: 56,
-    borderRadius: radius.md,
-    padding: `${spacing['12']}px ${spacing['20']}px`,
-    background: active ? activeBg : colors.bg,
-    color: active ? activeColor : inactiveColor,
-    border: active ? 'none' : `1.5px solid ${inactiveBorder}`,
-    fontSize: 16,
-    fontWeight: 600,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing['8'],
-  };
-
-  const iconWrap: CSSProperties = {
-    width: 22,
-    height: 22,
-    borderRadius: '50%',
-    border: `1.5px solid ${iconColor}`,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  };
-
-  return (
-    <button type="button" className="pressable" onClick={onClick} disabled={disabled} style={style}>
-      <span style={iconWrap}>
-        <Icon size={14} color={iconColor} />
-      </span>
-      {label}
-    </button>
   );
 }
