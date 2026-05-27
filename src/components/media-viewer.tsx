@@ -162,7 +162,7 @@ export function MediaViewer({
   };
   const closeBtn: CSSProperties = {
     position: 'absolute',
-    top: 16,
+    top: 'calc(16px + var(--app-safe-top))',
     right: 16,
     width: 44,
     height: 44,
@@ -177,7 +177,7 @@ export function MediaViewer({
   };
   const topToolbar: CSSProperties = {
     position: 'absolute',
-    top: 16,
+    top: 'calc(16px + var(--app-safe-top))',
     left: 16,
     display: 'inline-flex',
     alignItems: 'center',
@@ -197,7 +197,7 @@ export function MediaViewer({
   };
   const errorBanner: CSSProperties = {
     position: 'absolute',
-    top: 64,
+    top: 'calc(64px + var(--app-safe-top))',
     left: '50%',
     transform: 'translateX(-50%)',
     background: 'rgba(0,0,0,0.6)',
