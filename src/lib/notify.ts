@@ -20,12 +20,13 @@ export async function notifyEventCreated(eventId: string): Promise<void> {
     return;
   }
 
-  const { data: players } = await sb
+  // Уведомление о событии — всей команде (игроки + организаторы, включая автора),
+  // без фильтра по роли (roadmap 33.7).
+  const { data: members } = await sb
     .from('team_memberships')
     .select('user_id, users(telegram_id)')
-    .eq('team_id', event.team_id)
-    .eq('role', 'player');
-  if (!players || players.length === 0) return;
+    .eq('team_id', event.team_id);
+  if (!members || members.length === 0) return;
 
   let bot;
   try {
@@ -48,7 +49,7 @@ export async function notifyEventCreated(eventId: string): Promise<void> {
   };
 
   await Promise.all(
-    players.map(async (p) => {
+    members.map(async (p) => {
       const u = Array.isArray(p.users) ? p.users[0] : p.users;
       const telegramId = u?.telegram_id;
       if (!telegramId) return;

@@ -126,10 +126,10 @@ type FormState = {
   time: string;
   durationStr: string;
   venueId: string | null;
-  title: string;
+  details: string;
 };
 
-const TITLE_LIMIT = 100;
+const DETAILS_LIMIT = 1000;
 
 export default function EventReschedulePage() {
   const t = useT();
@@ -152,7 +152,7 @@ export default function EventReschedulePage() {
       time: toLocalTime(data.starts_at),
       durationStr: minutesToDurationStr(durationMinutes(data.starts_at, data.ends_at)),
       venueId: data.venue?.id ?? null,
-      title: data.title ?? '',
+      details: data.details ?? '',
     };
   }, [data]);
 
@@ -290,15 +290,15 @@ export default function EventReschedulePage() {
 
   const durationMins = durationStrToMinutes(form.durationStr);
   const initialMins = durationStrToMinutes(initialForm!.durationStr);
-  const titleTrimmed = form.title.trim();
-  const initialTitleTrimmed = initialForm!.title.trim();
+  const detailsTrimmed = form.details.trim();
+  const initialDetailsTrimmed = initialForm!.details.trim();
   const scheduleChanged =
     form.date !== initialForm!.date ||
     form.time !== initialForm!.time ||
     durationMins !== initialMins;
   const venueChanged = form.venueId !== initialForm!.venueId;
-  const titleChanged = titleTrimmed !== initialTitleTrimmed;
-  const changed = scheduleChanged || venueChanged || titleChanged;
+  const detailsChanged = detailsTrimmed !== initialDetailsTrimmed;
+  const changed = scheduleChanged || venueChanged || detailsChanged;
 
   const valid =
     Boolean(form.date) && Boolean(form.time) && durationMins > 0 && Boolean(form.venueId);
@@ -316,8 +316,8 @@ export default function EventReschedulePage() {
     if (venueChanged) {
       body.venue_id = form.venueId;
     }
-    if (titleChanged) {
-      body.title = titleTrimmed ? titleTrimmed : null;
+    if (detailsChanged) {
+      body.details = detailsTrimmed ? detailsTrimmed : null;
     }
     update.mutate(body, {
       onSuccess: () => router.replace(`/events/${id}`),
@@ -401,12 +401,12 @@ export default function EventReschedulePage() {
           <div style={fieldLabel}>{t('reschedule.fields.eventTitle')}</div>
           <Input
             type="text"
-            value={form.title}
+            value={form.details}
             onChange={(e) =>
-              setField('title', e.currentTarget.value.slice(0, TITLE_LIMIT))
+              setField('details', e.currentTarget.value.slice(0, DETAILS_LIMIT))
             }
             placeholder={t('reschedule.fields.eventTitle.placeholder')}
-            maxLength={TITLE_LIMIT}
+            maxLength={DETAILS_LIMIT}
             style={{
               background: colors.bg,
               border: `1px solid ${colors.divider}`,

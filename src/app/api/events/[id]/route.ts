@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AuthError, requireOrganizer, requireUser } from '@/lib/auth';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType, effectiveEventStatus } from '@/lib/event-enum';
+import { buildEventTitle } from '@/lib/event-title';
 import { loadAttendance } from '@/lib/event-attendance';
 import { asMemberRole } from '@/lib/role';
 import { notifyEventCancelled, notifyEventUpdated } from '@/lib/notify';
@@ -58,7 +59,7 @@ const UpdateBody = z.object({
   starts_at: z.string().datetime({ offset: true }).optional(),
   duration_minutes: z.number().int().positive().max(720).optional(),
   venue_id: z.string().uuid().optional(),
-  title: z.string().trim().min(1).max(100).nullable().optional(),
+  details: z.string().trim().max(1000).nullable().optional(),
   cost_per_player: z.number().nonnegative().nullable().optional(),
   arena_cost: z.number().nonnegative().nullable().optional(),
   opponent_name: z.string().trim().max(100).nullable().optional(),
@@ -77,7 +78,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: event, error } = await sb
       .from('events')
       .select(
-        'id, team_id, type, title, starts_at, ends_at, cost_per_player, arena_cost, opponent_name, status, created_by, cancelled_reason, venue:venues(id, name, address, photo_url)',
+        'id, team_id, type, title, details, starts_at, ends_at, cost_per_player, arena_cost, opponent_name, status, created_by, cancelled_reason, venue:venues(id, name, address, photo_url)',
       )
       .eq('id', id)
       .maybeSingle();
@@ -242,6 +243,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const dto: EventDetailDto = {
       id: event.id,
       team_id: event.team_id,
+      details: event.details ?? null,
       type: asEventType(event.type),
       title: event.title,
       starts_at: event.starts_at,
@@ -282,7 +284,7 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     const sb = supabaseServer();
     const { data: existing, error: existingErr } = await sb
       .from('events')
-      .select('id, team_id, status, starts_at')
+      .select('id, team_id, status, starts_at, type, opponent_name')
       .eq('id', id)
       .maybeSingle();
     if (existingErr) {
@@ -296,11 +298,28 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     const patch: TablesUpdate<'events'> = {};
 
     if (d.type !== undefined) patch.type = d.type;
-    if (d.title !== undefined) patch.title = d.title;
+    if (d.details !== undefined) patch.details = d.details;
     if (d.cost_per_player !== undefined) patch.cost_per_player = d.cost_per_player;
     if (d.arena_cost !== undefined) patch.arena_cost = d.arena_cost;
     if (d.opponent_name !== undefined) {
       patch.opponent_name = d.opponent_name && d.opponent_name.length > 0 ? d.opponent_name : null;
+    }
+
+    // Название генерируемое (roadmap 33.2) — пересчитываем при смене типа или соперника.
+    if (d.type !== undefined || d.opponent_name !== undefined) {
+      const finalType = d.type ?? asEventType(existing.type);
+      const finalOpponent =
+        d.opponent_name !== undefined ? patch.opponent_name ?? null : existing.opponent_name ?? null;
+      let teamName = '';
+      if (finalType === 'game') {
+        const { data: team } = await sb
+          .from('teams')
+          .select('name')
+          .eq('id', ctx.team_id)
+          .maybeSingle();
+        teamName = team?.name ?? '';
+      }
+      patch.title = buildEventTitle(finalType, teamName, finalOpponent);
     }
     if (d.status !== undefined) {
       patch.status = d.status;

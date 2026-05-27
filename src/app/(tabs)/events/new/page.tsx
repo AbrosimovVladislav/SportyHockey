@@ -326,7 +326,7 @@ export default function EventNewPage() {
       starts_at: combineDateTime(form.date, form.time),
       duration_minutes: duration,
       venue_id: form.venueId,
-      title: form.details.trim() || undefined,
+      details: form.details.trim() || undefined,
       cost_per_player: Number.isFinite(costNum) && costNum >= 0 ? costNum : undefined,
       arena_cost: Number.isFinite(arenaNum) && arenaNum >= 0 ? arenaNum : undefined,
       opponent_name:

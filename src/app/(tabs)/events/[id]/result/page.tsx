@@ -13,7 +13,6 @@ import { IconShare } from '@/components/icons';
 import { formatEventDateRange } from '@/lib/event-format';
 import { buildShareText, shareEventImage, shareText } from '@/lib/share-result';
 import { BottomSheet } from '@/components/bottom-sheet';
-import { ContentTabs } from '@/components/content-tabs';
 import { FAB } from '@/components/fab';
 import { EmptyState } from '@/components/empty-state';
 import { ScoreCard } from '@/components/score-card';
@@ -52,8 +51,6 @@ import type {
   PenaltyDto,
 } from '@/types/api';
 
-type TabId = 'overview' | 'events';
-
 export default function EventResultPage() {
   const t = useT();
   const router = useRouter();
@@ -71,7 +68,6 @@ export default function EventResultPage() {
   const updPenalty = useUpdatePenalty(id);
   const delPenalty = useDeletePenalty(id);
 
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [isSharing, setIsSharing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [infoEvent, setInfoEvent] = useState<TimelineEvent | null>(null);
@@ -167,6 +163,9 @@ export default function EventResultPage() {
     ...r.goals.map<TimelineEvent>((g) => ({ kind: 'goal', goal: g })),
     ...r.penalties.map<TimelineEvent>((p) => ({ kind: 'penalty', penalty: p })),
   ];
+
+  // Один экран без вкладок (roadmap 33.4): есть ли вообще что показывать.
+  const hasStats = r.stats.length > 0 || r.goals.length > 0 || r.penalties.length > 0;
 
   // Тап по таймлайну — просмотр события (не редактирование). Редактировать можно через табу «События».
   const onTimelineSelect = (e: TimelineEvent) => {
@@ -310,15 +309,6 @@ export default function EventResultPage() {
     <div style={root}>
       <LightHeader title={t('result.title')} onBack={onBack} />
 
-      <ContentTabs
-        tabs={[
-          { id: 'overview', label: t('result.tabs.overview') },
-          { id: 'events', label: t('result.tabs.events') },
-        ]}
-        activeId={activeTab}
-        onChange={(id) => setActiveTab(id as TabId)}
-      />
-
       <div style={content}>
         <ScoreCard
           sideALabel={sideALabel}
@@ -327,7 +317,7 @@ export default function EventResultPage() {
           scoreB={r.score.score_b}
         />
 
-        {activeTab === 'overview' ? (
+        {hasStats ? (
           <>
             {isGame ? (
               <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -341,8 +331,6 @@ export default function EventResultPage() {
                 />
               </div>
             ) : null}
-
-            {/* Сравнение Light vs Dark отключено: не несёт полезной информации в обзоре тренировки. */}
 
             {mvp ? (
               <MvpCard
@@ -402,28 +390,7 @@ export default function EventResultPage() {
               />
             ) : null}
 
-            {r.stats.length === 0 && r.goals.length === 0 && r.penalties.length === 0 ? (
-              <EmptyState
-                title={t('result.empty.overview.title')}
-                description={t('result.empty.overview.description')}
-              />
-            ) : null}
-
-            {r.goals.length > 0 || r.penalties.length > 0 ? (
-              <Button
-                variant="secondary"
-                size="lg"
-                fullWidth
-                onClick={onShare}
-                disabled={isSharing}
-              >
-                <IconShare size={18} color={colors.text} />
-                {isSharing ? t('result.share.sharing') : t('result.share.button')}
-              </Button>
-            ) : null}
-          </>
-        ) : (
-          <>
+            {/* Лента игровых событий (бывшая вкладка «События»). */}
             {log.length > 0 ? (
               <div>
                 <div style={sectionTitle}>{t('result.sections.log')}</div>
@@ -456,25 +423,51 @@ export default function EventResultPage() {
                   )}
                 </div>
               </div>
-            ) : (
-              <EmptyState
-                title={t('result.empty.events.title')}
-                description={
-                  isOrganizer
-                    ? t('result.empty.events.descriptionOrganizer')
-                    : t('result.empty.events.description')
-                }
-              />
-            )}
+            ) : null}
+
+            {r.goals.length > 0 || r.penalties.length > 0 ? (
+              <Button
+                variant="secondary"
+                size="lg"
+                fullWidth
+                onClick={onShare}
+                disabled={isSharing}
+              >
+                <IconShare size={18} color={colors.text} />
+                {isSharing ? t('result.share.sharing') : t('result.share.button')}
+              </Button>
+            ) : null}
           </>
+        ) : (
+          // Пусто: один общий empty-state с крупной кнопкой (roadmap 33.5).
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: spacing['16'],
+              paddingTop: spacing['24'],
+            }}
+          >
+            <EmptyState title={t('result.empty.overview.title')} />
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => {
+                setGoalError(null);
+                setGoalSheet({ open: true, initial: null });
+              }}
+            >
+              <IconPlus size={20} color={colors.textInverse} />
+              {t('result.empty.cta')}
+            </Button>
+          </div>
         )}
       </div>
 
-      {activeTab === 'events' ? (
-        <FAB ariaLabel={t('result.add')} variant="primary" onClick={() => setPickerOpen(true)}>
-          <IconPlus size={22} color={colors.textInverse} />
-        </FAB>
-      ) : null}
+      <FAB ariaLabel={t('result.add')} variant="primary" onClick={() => setPickerOpen(true)}>
+        <IconPlus size={22} color={colors.textInverse} />
+      </FAB>
 
       <BottomSheet
         open={pickerOpen}

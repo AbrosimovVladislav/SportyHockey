@@ -199,6 +199,7 @@ export type Database = {
           cost_per_player: number | null
           created_at: string | null
           created_by: string | null
+          details: string | null
           ends_at: string | null
           id: string
           opponent_name: string | null
@@ -215,6 +216,7 @@ export type Database = {
           cost_per_player?: number | null
           created_at?: string | null
           created_by?: string | null
+          details?: string | null
           ends_at?: string | null
           id?: string
           opponent_name?: string | null
@@ -231,6 +233,7 @@ export type Database = {
           cost_per_player?: number | null
           created_at?: string | null
           created_by?: string | null
+          details?: string | null
           ends_at?: string | null
           id?: string
           opponent_name?: string | null

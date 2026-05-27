@@ -6,6 +6,7 @@ import { asEventType, effectiveEventStatus } from '@/lib/event-enum';
 import { loadAttendance } from '@/lib/event-attendance';
 import { getUserTeamId } from '@/lib/user-team';
 import { notifyEventCreated } from '@/lib/notify';
+import { buildEventTitle } from '@/lib/event-title';
 import type {
   CreateEventResponse,
   EventDto,
@@ -21,7 +22,7 @@ const CreateBody = z.object({
   starts_at: z.string().datetime({ offset: true }),
   duration_minutes: z.number().int().positive().max(720),
   venue_id: z.string().uuid(),
-  title: z.string().trim().min(1).max(100).optional(),
+  details: z.string().trim().min(1).max(1000).optional(),
   cost_per_player: z.number().nonnegative().optional(),
   arena_cost: z.number().nonnegative().optional(),
   opponent_name: z.string().trim().min(1).max(100).optional(),
@@ -117,6 +118,22 @@ export async function POST(req: Request): Promise<Response> {
       return NextResponse.json({ error: 'Площадка не найдена' }, { status: 404 });
     }
 
+    // Название игры строится из имени команды + соперника; для тренировки имя не нужно.
+    let teamName = '';
+    if (parsed.data.type === 'game') {
+      const { data: team, error: teamErr } = await sb
+        .from('teams')
+        .select('name')
+        .eq('id', ctx.team_id)
+        .maybeSingle();
+      if (teamErr) {
+        return NextResponse.json({ error: teamErr.message }, { status: 500 });
+      }
+      teamName = team?.name ?? '';
+    }
+    const opponentName =
+      parsed.data.type === 'game' ? parsed.data.opponent_name ?? null : null;
+
     const startsAt = new Date(parsed.data.starts_at);
     const endsAt = new Date(startsAt.getTime() + parsed.data.duration_minutes * 60_000);
     const cost =
@@ -141,10 +158,11 @@ export async function POST(req: Request): Promise<Response> {
         starts_at: startsAt.toISOString(),
         ends_at: endsAt.toISOString(),
         venue_id: venue.id,
-        title: parsed.data.title ?? null,
+        title: buildEventTitle(parsed.data.type, teamName, opponentName),
+        details: parsed.data.details ?? null,
         cost_per_player: cost,
         arena_cost: arenaCost,
-        opponent_name: parsed.data.type === 'game' ? parsed.data.opponent_name ?? null : null,
+        opponent_name: opponentName,
       })
       .select('id')
       .single();

@@ -169,6 +169,11 @@ export default function EventDetailPage() {
 
   const goingAttendees = useMemo(() => (data?.attendees ?? []).filter((a) => a.vote === 'going'), [data]);
   const noAnswer = data ? data.team_size - data.attendance.going - data.attendance.not_going : 0;
+  // После завершения в плашке участников показываем явку по факту (roadmap 33.6).
+  const showedCount = useMemo(
+    () => (data?.attendees ?? []).filter((a) => a.showed_up === true).length,
+    [data],
+  );
 
   const fund = useMemo(() => {
     if (!data) return null;
@@ -654,11 +659,16 @@ export default function EventDetailPage() {
             <IconChevronRight />
           </div>
           <div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing['12'] }}>
-            {interp(t('eventDetail.attendees.summary'), {
-              going: data.attendance.going,
-              total: data.team_size,
-              noAnswer: Math.max(0, noAnswer),
-            })}
+            {data.status === 'completed'
+              ? interp(t('eventDetail.attendees.summaryCompleted'), {
+                  showed: showedCount,
+                  total: data.team_size,
+                })
+              : interp(t('eventDetail.attendees.summary'), {
+                  going: data.attendance.going,
+                  total: data.team_size,
+                  noAnswer: Math.max(0, noAnswer),
+                })}
           </div>
           {goingAttendees.length > 0 ? (
             <div style={{ marginBottom: isOrganizer && fund ? spacing['12'] : 0 }}>

@@ -258,6 +258,7 @@ export type EventPaymentSummary = {
 
 export type EventDetailDto = EventDto & {
   team_id: string;
+  details: string | null;
   created_by: string | null;
   team_size: number;
   attendees: EventAttendee[];
@@ -530,7 +531,7 @@ export type CreateEventRequest = {
   starts_at: string;
   duration_minutes: number;
   venue_id: string;
-  title?: string;
+  details?: string; // произвольное описание; название генерируется на сервере
   cost_per_player?: number;
   arena_cost?: number;
   opponent_name?: string;
@@ -541,8 +542,7 @@ export type UpdateEventRequest = {
   starts_at?: string;
   duration_minutes?: number;
   venue_id?: string;
-  title?: string | null;
-  description?: string | null;
+  details?: string | null; // название генерируется на сервере из type/opponent
   cost_per_player?: number | null;
   arena_cost?: number | null;
   opponent_name?: string | null;
