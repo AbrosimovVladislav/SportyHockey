@@ -14,9 +14,9 @@ type Props = {
 };
 
 export function DarkHeader({ title, role, subtitle, badge, left, right, paddingTop = spacing['12'], imageSrc }: Props) {
-  // Полноэкранный режим: хедер занимает экран от самой кромки. Тёмный фон-основа
-  // лежит под всем; контент опускаем ниже «опасной зоны» (статус-бар + телеграм-кнопки).
-  // Вне fullscreen --app-safe-top и safe-area-top = 0 → всё как было.
+  // Полноэкранный режим: картинка идёт с самой кромки экрана (top:0) — в т.ч. под
+  // статус-баром и телеграм-кнопками. Контент опускаем ниже «опасной зоны».
+  // Вне fullscreen --app-safe-top = 0 → всё как было.
   const wrapper: CSSProperties = {
     position: 'relative',
     overflow: 'hidden',
@@ -26,45 +26,43 @@ export function DarkHeader({ title, role, subtitle, badge, left, right, paddingT
     paddingBottom: imageSrc ? spacing['32'] : spacing['20'],
     paddingLeft: spacing['20'],
     paddingRight: spacing['20'],
-    // Картинку начинаем от зоны телеграм-кнопок (см. imageLayer), поэтому полную высоту
-    // считаем как исходные 234 + высота статус-бара — кадр картинки остаётся как раньше.
-    minHeight: imageSrc ? `calc(234px + var(--tg-viewport-safe-area-inset-top))` : undefined,
+    // Высота = «чистая» зона картинки (≈ +20% к прежним 234) + опасная зона сверху,
+    // которую перекрывает градиент. Базу 280 крутим, если хочется выше/ниже.
+    minHeight: imageSrc ? `calc(280px + var(--app-safe-top))` : undefined,
     display: 'flex',
     flexDirection: 'column',
   };
 
-  // Картинка стартует там, где начинаются телеграм-кнопки (ниже статус-бара) — выше неё
-  // всё равно затемнение, тянуть под самый верх незачем; так кадр не «приближается».
+  // Картинка заполняет весь хедер от самого верха.
   const imageLayer: CSSProperties = {
     position: 'absolute',
-    top: 'var(--tg-viewport-safe-area-inset-top)',
-    left: 0,
-    right: 0,
-    bottom: 0,
+    inset: 0,
     background: `url(${imageSrc}) center/cover no-repeat`,
     zIndex: 0,
   };
 
-  // Затемнение для читаемости заголовка внизу.
-  const bottomScrim: CSSProperties = {
-    position: 'absolute',
-    inset: 0,
-    background:
-      'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.55) 72%, rgba(0,0,0,0.82) 100%)',
-    zIndex: 1,
-  };
-
-  // Затемнение опасной зоны: плотное у самой кромки (часы/батарея), к концу зоны
-  // телеграм-кнопок сходит в прозрачность — кнопки телеги читаются на картинке.
+  // Градиент опасной зоны: плотно-тёмный у самой кромки (часы/батарея, кнопки телеги)
+  // → ПОЛНОСТЬЮ прозрачный ровно там, где зона кнопок заканчивается (--app-safe-top).
+  // Ниже — чистая картинка.
   const topScrim: CSSProperties = {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 'calc(var(--app-safe-top) + 14px)',
+    height: 'var(--app-safe-top)',
     background:
-      'linear-gradient(180deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0) 100%)',
-    zIndex: 2,
+      'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0) 100%)',
+    zIndex: 1,
+  };
+
+  // Лёгкое затемнение только у самого низа — под белый заголовок (на светлой картинке
+  // иначе не читается). Верхние ~55% картинки остаются чистыми.
+  const bottomScrim: CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    background:
+      'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.45) 80%, rgba(0,0,0,0.8) 100%)',
+    zIndex: 1,
   };
 
   const content: CSSProperties = {
