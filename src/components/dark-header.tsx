@@ -26,8 +26,8 @@ export function DarkHeader({ title, role, subtitle, badge, left, right, paddingT
     paddingBottom: imageSrc ? spacing['32'] : spacing['20'],
     paddingLeft: spacing['20'],
     paddingRight: spacing['20'],
-    // Высота = «чистая» зона картинки + опасная зона сверху (её перекрывает градиент).
-    minHeight: imageSrc ? `calc(280px + var(--app-safe-top))` : undefined,
+    // Высота = «чистая» зона картинки + опасная зона сверху (её перекрывает глобальный скрим).
+    minHeight: imageSrc ? `calc(252px + var(--app-safe-top))` : undefined,
     display: 'flex',
     flexDirection: 'column',
   };
@@ -40,19 +40,8 @@ export function DarkHeader({ title, role, subtitle, badge, left, right, paddingT
     zIndex: 0,
   };
 
-  // Градиент опасной зоны: плотно-тёмный держится ВСЮ зону (часы/батарея + кнопки телеги),
-  // и только у её конца сходит в прозрачность. +20px, чтобы кнопки гарантированно были на
-  // затемнении, а fade завершался чуть ниже них. Дальше — чистая картинка.
-  const topScrim: CSSProperties = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 'calc(var(--app-safe-top) + 20px)',
-    background:
-      'linear-gradient(180deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.82) 50%, rgba(0,0,0,0.45) 78%, rgba(0,0,0,0) 100%)',
-    zIndex: 1,
-  };
+  // Затемнение опасной зоны сверху теперь общее для всех страниц — глобальный
+  // <SafeAreaScrim/> в корневом layout. Здесь только нижнее затемнение под заголовок.
 
   // Лёгкое затемнение только у самого низа — под белый заголовок (на светлой картинке
   // иначе не читается). Верхние ~55% картинки остаются чистыми.
@@ -105,7 +94,6 @@ export function DarkHeader({ title, role, subtitle, badge, left, right, paddingT
         <>
           <div style={imageLayer} aria-hidden />
           <div style={bottomScrim} aria-hidden />
-          <div style={topScrim} aria-hidden />
         </>
       ) : null}
       <div style={content}>

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { Manrope } from 'next/font/google';
 import { Providers } from './providers';
+import { SafeAreaScrim } from '@/components/safe-area-scrim';
 import './globals.css';
 
 const manrope = Manrope({
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ru" className={manrope.variable}>
       <body>
         <Providers>{children}</Providers>
+        <SafeAreaScrim />
       </body>
     </html>
   );
