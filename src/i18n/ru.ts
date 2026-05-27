@@ -1,20 +1,17 @@
 export const ru = {
-  // Tabs (нижняя навигация: Главное / События / Деньги / Команда / Ещё)
-  'tabs.home': 'Главное',
+  // Tabs (нижняя навигация: Главная / События / Деньги / Команда / Ещё)
+  'tabs.home': 'Главная',
   'tabs.events': 'События',
   'tabs.squad': 'Команда',
   'tabs.money': 'Деньги',
   'tabs.profile': 'Ещё',
 
   // Pages — заголовки-заглушки
-  'home.title': 'Главное',
+  'home.title': 'Главная',
   'events.title': 'События',
 
   // Раздел «Команда» — главная (хаб)
   'team.title': 'Команда',
-  'team.players.one': 'игрок',
-  'team.players.few': 'игрока',
-  'team.players.many': 'игроков',
   'team.stat.players': 'игроков',
   'team.stat.forwards': 'напад.',
   'team.stat.defenders': 'защ.',

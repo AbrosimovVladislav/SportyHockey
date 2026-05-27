@@ -9,8 +9,8 @@ import { TeamStatCells } from '@/components/team-stat-cells';
 import { SoonSheet } from '@/components/soon-sheet';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import {
-  IconPeople,
-  IconStick,
+  IconPlayers,
+  IconHockeyStick,
   IconShield,
   IconGoalie,
   IconShirt,
@@ -19,7 +19,6 @@ import {
   IconImage,
   IconSettings,
 } from '@/components/icons';
-import { useMe } from '@/hooks/use-me';
 import { useTeamMembers } from '@/hooks/use-team-members';
 import { useEvents } from '@/hooks/use-events';
 import { useT } from '@/hooks/use-t';
@@ -35,7 +34,6 @@ export default function TeamHubPage() {
   const router = useRouter();
   useTgHeader('#233F30');
 
-  const me = useMe();
   const membersQ = useTeamMembers();
   const eventsQ = useEvents();
   const [soon, setSoon] = useState<string | null>(null);
@@ -51,7 +49,6 @@ export default function TeamHubPage() {
     [members],
   );
 
-  const teamName = me.data?.memberships[0]?.team_name ?? '';
   const teamSize = eventsQ.data?.team_size ?? 0;
 
   // Ближайшее предстоящее событие: запланированное, начиная с сегодняшнего дня.
@@ -121,25 +118,15 @@ export default function TeamHubPage() {
     gap: spacing['12'],
   };
 
-  const subtitle = membersQ.data ? (
-    <div style={{ fontSize: 14, color: colors.textInverse, opacity: 0.92, lineHeight: 1.4 }}>
-      {`${counts.total} ${playersWord(counts.total, t)}`}
-    </div>
-  ) : undefined;
-
   return (
     <div style={root}>
-      <DarkHeader
-        title={teamName || t('team.title')}
-        subtitle={subtitle}
-        imageSrc="/team.png"
-      />
+      <DarkHeader title={t('team.title')} imageSrc="/team.png" />
 
       <div style={sheet}>
         <TeamStatCells
           cells={[
-            { icon: <IconPeople size={24} />, value: counts.total, label: t('team.stat.players') },
-            { icon: <IconStick size={24} />, value: counts.forward, label: t('team.stat.forwards') },
+            { icon: <IconPlayers size={24} />, value: counts.total, label: t('team.stat.players') },
+            { icon: <IconHockeyStick size={24} />, value: counts.forward, label: t('team.stat.forwards') },
             { icon: <IconShield size={24} />, value: counts.defender, label: t('team.stat.defenders') },
             { icon: <IconGoalie size={24} />, value: counts.goalie, label: t('team.stat.goalies') },
           ]}
@@ -184,13 +171,4 @@ export default function TeamHubPage() {
 function titleFor(ev: EventDto, t: (k: TKey) => string): string {
   if (ev.title && ev.title.trim()) return ev.title;
   return ev.type === 'game' ? t('schedule.titles.game') : t('schedule.titles.training');
-}
-
-// Склонение «игрок / игрока / игроков».
-function playersWord(n: number, t: (k: TKey) => string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return t('team.players.one');
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return t('team.players.few');
-  return t('team.players.many');
 }

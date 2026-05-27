@@ -2,7 +2,7 @@ import type { SVGProps } from 'react';
 import { LuCalendarCheck, LuWallet, LuTrendingUp, LuDumbbell, LuSettings, LuRotateCcw } from 'react-icons/lu';
 import { SiTelegram, SiWhatsapp } from 'react-icons/si';
 import { MdSportsHockey, MdSports } from 'react-icons/md';
-import { GiGoalKeeper } from 'react-icons/gi';
+import { GiThreeFriends, GiHockey, GiShield, GiJasonMask } from 'react-icons/gi';
 import { colors } from '@/theme/colors';
 
 type IconProps = SVGProps<SVGSVGElement> & {
@@ -347,16 +347,21 @@ export const IconStick = (p: IconProps) => (
   </Svg>
 );
 
-// Щит — амплуа «защитник» в карточке-сводке команды.
-export const IconShield = (p: IconProps) => (
-  <Svg {...p} strokeWidth={1.7}>
-    <path d="M12 3l7 3v5.5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z" />
-  </Svg>
+// Хоккейные иконки для карточки-сводки команды (набор Game Icons, единый стиль).
+export const IconPlayers = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <GiThreeFriends size={size} color={color} />
 );
 
-// Вратарь — амплуа «вратарь» в карточке-сводке команды.
+export const IconHockeyStick = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <GiHockey size={size} color={color} />
+);
+
+export const IconShield = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <GiShield size={size} color={color} />
+);
+
 export const IconGoalie = ({ size = 24, color = 'currentColor' }: IconProps) => (
-  <GiGoalKeeper size={size} color={color} />
+  <GiJasonMask size={size} color={color} />
 );
 
 export const IconSticksCrossed = ({ size = 24, color = 'currentColor', ...p }: IconProps) => (
