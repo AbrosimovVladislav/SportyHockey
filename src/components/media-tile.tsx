@@ -33,7 +33,7 @@ export function MediaTile({ url, uploader, onClick }: Props) {
   };
   const uploaderWrap: CSSProperties = {
     position: 'absolute',
-    left: 6,
+    right: 6,
     bottom: 6,
     width: 22,
     height: 22,

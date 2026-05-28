@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -25,6 +25,10 @@ type Props = {
   deleteAriaLabel: string;
   shareAriaLabel: string;
   shareErrorLabel: string;
+  // Опциональная панель в шапке (под верхним рядом кнопок) — для информации о событии
+  // в общей галерее команды. Получает индекс текущего элемента, чтобы менять содержимое
+  // при перелистывании.
+  renderHeader?: (index: number) => ReactNode;
 };
 
 function extFromMime(mime: string | null): string {
@@ -88,6 +92,7 @@ export function MediaViewer({
   deleteAriaLabel,
   shareAriaLabel,
   shareErrorLabel,
+  renderHeader,
 }: Props) {
   const current = items[index];
   const [sharing, setSharing] = useState(false);
@@ -195,9 +200,22 @@ export function MediaViewer({
     color: colors.textInverse,
     cursor: 'pointer',
   };
+  const headerPanel: CSSProperties = {
+    position: 'absolute',
+    top: 'calc(72px + var(--app-safe-top))',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    maxWidth: 'calc(100% - 32px)',
+    color: colors.textInverse,
+    textAlign: 'center',
+    pointerEvents: 'auto',
+  };
+  // Если есть header — сдвигаем плашку ошибки шеринга ниже, чтобы не наезжала.
   const errorBanner: CSSProperties = {
     position: 'absolute',
-    top: 'calc(64px + var(--app-safe-top))',
+    top: renderHeader
+      ? 'calc(132px + var(--app-safe-top))'
+      : 'calc(64px + var(--app-safe-top))',
     left: '50%',
     transform: 'translateX(-50%)',
     background: 'rgba(0,0,0,0.6)',
@@ -277,6 +295,7 @@ export function MediaViewer({
           </button>
         ) : null}
       </div>
+      {renderHeader ? <div style={headerPanel}>{renderHeader(index)}</div> : null}
       {shareError ? <div style={errorBanner}>{shareError}</div> : null}
 
       <div style={imgWrap}>

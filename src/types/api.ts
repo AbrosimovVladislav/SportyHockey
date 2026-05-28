@@ -286,6 +286,25 @@ export type EventMediaResponse = {
   items: MediaItemDto[];
 };
 
+// Медиа в общей галерее команды — расширено информацией о событии,
+// чтобы шапка просмотрщика показывала, где это снято.
+export type TeamMediaEventInfo = {
+  id: string;
+  type: EventType;
+  title: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  venue: { name: string } | null;
+};
+
+export type TeamMediaItemDto = MediaItemDto & {
+  event: TeamMediaEventInfo;
+};
+
+export type TeamMediaResponse = {
+  items: TeamMediaItemDto[];
+};
+
 export type DeleteMediaResponse = { ok: true };
 
 export type SignMediaRequest = {

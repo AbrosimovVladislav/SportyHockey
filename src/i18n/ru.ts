@@ -439,6 +439,17 @@ export const ru = {
   'media.viewer.shareError': 'Не удалось поделиться',
   'media.errors.notFound': 'Событие не найдено',
 
+  // Team media (общая галерея команды, /squad/media)
+  'teamMedia.title': 'Медиа',
+  'teamMedia.filter.from': 'От',
+  'teamMedia.filter.to': 'До',
+  'teamMedia.filter.reset': 'Сбросить',
+  'teamMedia.list.title': 'Все фото',
+  'teamMedia.list.empty': 'Фото пока нет',
+  'teamMedia.list.emptyFiltered': 'В выбранном диапазоне фото нет',
+  'teamMedia.eventTitle.training': 'Тренировка',
+  'teamMedia.eventTitle.game': 'Игра',
+
   // Event menu (контекстное меню на /events/[id])
   'eventMenu.title': 'Действия',
   'eventMenu.reschedule': 'Изменить',

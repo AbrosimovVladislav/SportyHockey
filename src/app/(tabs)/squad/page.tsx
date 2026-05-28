@@ -91,7 +91,7 @@ export default function TeamHubPage() {
       icon: <IconImage size={20} color={colors.iconFg} />,
       title: t('team.section.media.title'),
       subtitle: t('team.section.media.subtitle'),
-      onClick: () => setSoon(t('team.section.media.title')),
+      onClick: () => router.push('/squad/media'),
     },
     {
       key: 'settings',
