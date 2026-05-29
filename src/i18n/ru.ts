@@ -644,6 +644,95 @@ export const ru = {
   'result.penalty.minutes': 'Минут',
   'result.penalty.minutesSuffix': 'мин',
   'result.penalty.time': 'Время в матче',
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Итерация 41 — Настройки команды (/squad/settings, видны только организатору).
+  // ───────────────────────────────────────────────────────────────────────
+  'teamSettings.title': 'Настройки команды',
+  'teamSettings.tabs.general': 'Общее',
+  'teamSettings.tabs.roles': 'Роли',
+  'teamSettings.tabs.events': 'События и финансы',
+  'teamSettings.tabs.danger': 'Опасная зона',
+
+  // Вкладка «Общее».
+  'teamSettings.general.section.team': 'Команда',
+  'teamSettings.general.section.appearance': 'Оформление',
+  'teamSettings.general.name': 'Название команды',
+  'teamSettings.general.logo': 'Логотип команды',
+  'teamSettings.general.photo': 'Командная фотография',
+  'teamSettings.general.photo.empty': 'Загрузите фотографию, которая станет шапкой раздела «Команда».',
+  'teamSettings.general.photo.change': 'Изменить',
+  'teamSettings.name.sheet.title': 'Название команды',
+  'teamSettings.name.sheet.placeholder': 'Например, SportyHockey',
+  'teamSettings.save': 'Сохранить',
+  'teamSettings.cancel': 'Отмена',
+  'teamSettings.uploadError': 'Не удалось загрузить изображение',
+
+  // Вкладка «Роли».
+  'teamSettings.roles.section.players': 'Игроки',
+  'teamSettings.roles.section.invite': 'Приглашение',
+  'teamSettings.roles.pill.organizer': 'Организатор',
+  'teamSettings.roles.pill.player': 'Игрок',
+  'teamSettings.invite.link': 'Ссылка приглашения',
+  'teamSettings.invite.copy': 'Копировать ссылку',
+  'teamSettings.invite.copied': 'Скопировано',
+  'teamSettings.invite.loading': 'Готовим ссылку…',
+
+  // Вкладка «События и финансы».
+  'teamSettings.events.section.events': 'События',
+  'teamSettings.events.section.notifications': 'Уведомления',
+  'teamSettings.events.defaultVenue': 'Стандартная арена',
+  'teamSettings.events.defaultVenue.empty': 'Не выбрана',
+  'teamSettings.events.defaultCost': 'Стандартная стоимость события',
+  'teamSettings.events.defaultFee': 'Стандартный взнос',
+  'teamSettings.events.amountEmpty': 'Не задано',
+  'teamSettings.events.amountSheet.title': 'Сумма',
+  'teamSettings.events.amountSheet.placeholder': '0',
+  'teamSettings.events.amountSheet.clear': 'Очистить',
+  'teamSettings.events.venueSheet.title': 'Выберите арену',
+  'teamSettings.events.venueSheet.none': 'Не выбрано',
+  'teamSettings.events.venueSheet.empty': 'Список арен пуст',
+  'teamSettings.notifications.stub.title': 'Управление уведомлениями появится позже',
+  'teamSettings.notifications.stub.subtitle':
+    'Сейчас команда получает уведомления по событиям и взносам по умолчанию — все триггеры включены.',
+
+  // Вкладка «Опасная зона».
+  'teamSettings.danger.section': 'Необратимые действия',
+  'teamSettings.danger.leave.title': 'Покинуть команду',
+  'teamSettings.danger.leave.subtitle': 'Вы выйдете из команды и потеряете доступ к её данным',
+  'teamSettings.danger.leave.confirm.title': 'Покинуть команду?',
+  'teamSettings.danger.leave.confirm.body':
+    'После выхода вы потеряете доступ к командным событиям, статистике и финансам.',
+  'teamSettings.danger.leave.lastOrganizer':
+    'Назначьте хотя бы одного другого игрока организатором, прежде чем покинуть команду.',
+  'teamSettings.danger.leave.cta': 'Покинуть',
+  'teamSettings.danger.archive.title': 'Архивировать команду',
+  'teamSettings.danger.archive.subtitle':
+    'Команда будет помечена как архивная. Доступ к данным сохраняется.',
+  'teamSettings.danger.archive.confirm.title': 'Архивировать команду?',
+  'teamSettings.danger.archive.confirm.body':
+    'Команда будет помечена как архивная. Доступ к данным сохраняется. Сейчас никакие функции дополнительно не отключаются — это произойдёт в одном из ближайших обновлений.',
+  'teamSettings.danger.archive.cta': 'Архивировать',
+  'teamSettings.danger.note': 'Некоторые действия нельзя отменить',
+
+  // Кнопка смены роли на странице публичного профиля игрока.
+  'player.role.makeOrganizer': 'Назначить организатором',
+  'player.role.removeOrganizer': 'Снять права организатора',
+  'player.role.confirm.makeTitle': 'Назначить организатором?',
+  'player.role.confirm.makeBody': 'Игрок получит полный доступ к настройкам команды.',
+  'player.role.confirm.removeTitle': 'Снять права организатора?',
+  'player.role.confirm.removeBody':
+    'Игрок останется в команде, но потеряет доступ к настройкам.',
+
+  // Страница принятия инвайта /join/[token].
+  'join.title': 'Приглашение в команду',
+  'join.subtitle': 'Вас приглашают присоединиться к команде',
+  'join.cta': 'Присоединиться',
+  'join.already.title': 'Вы уже в этой команде',
+  'join.already.cta': 'Открыть команду',
+  'join.notFound.title': 'Приглашение не найдено',
+  'join.notFound.body': 'Возможно, ссылка устарела — попросите организатора прислать новую.',
+  'join.error': 'Не удалось обработать приглашение',
 } as const;
 
 export type TKey = keyof typeof ru;

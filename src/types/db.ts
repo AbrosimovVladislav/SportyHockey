@@ -548,6 +548,45 @@ export type Database = {
           },
         ]
       }
+      team_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          team_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          team_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          team_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invites_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_join_requests: {
         Row: {
           created_at: string
@@ -678,24 +717,47 @@ export type Database = {
       }
       teams: {
         Row: {
+          archived_at: string | null
           created_at: string | null
+          default_event_cost: number | null
+          default_player_fee: number | null
+          default_venue_id: string | null
           id: string
           logo_url: string | null
           name: string
+          photo_url: string | null
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string | null
+          default_event_cost?: number | null
+          default_player_fee?: number | null
+          default_venue_id?: string | null
           id?: string
           logo_url?: string | null
           name: string
+          photo_url?: string | null
         }
         Update: {
+          archived_at?: string | null
           created_at?: string | null
+          default_event_cost?: number | null
+          default_player_fee?: number | null
+          default_venue_id?: string | null
           id?: string
           logo_url?: string | null
           name?: string
+          photo_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "teams_default_venue_id_fkey"
+            columns: ["default_venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {

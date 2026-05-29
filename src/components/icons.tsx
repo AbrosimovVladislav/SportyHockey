@@ -1,5 +1,20 @@
 import type { SVGProps } from 'react';
-import { LuCalendarCheck, LuWallet, LuTrendingUp, LuDumbbell, LuSettings, LuRotateCcw } from 'react-icons/lu';
+import {
+  LuCalendarCheck,
+  LuWallet,
+  LuTrendingUp,
+  LuDumbbell,
+  LuSettings,
+  LuRotateCcw,
+  LuTag,
+  LuCreditCard,
+  LuLogOut,
+  LuArchive,
+  LuTriangleAlert,
+  LuLink,
+  LuShieldCheck,
+  LuBadgeCheck,
+} from 'react-icons/lu';
 import { SiTelegram, SiWhatsapp } from 'react-icons/si';
 import { MdSportsHockey, MdSports } from 'react-icons/md';
 import { GiThreeFriends, GiHockey, GiShield, GiJasonMask } from 'react-icons/gi';
@@ -439,4 +454,30 @@ export const IconTelegram = ({ size = 24, color = 'currentColor' }: IconProps) =
 
 export const IconWhatsApp = ({ size = 24, color = 'currentColor' }: IconProps) => (
   <SiWhatsapp size={size} color={color} />
+);
+
+// Иконки для настроек команды (итерация 41).
+export const IconTag = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuTag size={size} color={color} />
+);
+export const IconCreditCard = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuCreditCard size={size} color={color} />
+);
+export const IconLogout = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuLogOut size={size} color={color} />
+);
+export const IconArchive = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuArchive size={size} color={color} />
+);
+export const IconAlertTriangle = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuTriangleAlert size={size} color={color} />
+);
+export const IconLink = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuLink size={size} color={color} />
+);
+export const IconShieldCheck = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuShieldCheck size={size} color={color} />
+);
+export const IconBadgeCheck = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuBadgeCheck size={size} color={color} />
 );

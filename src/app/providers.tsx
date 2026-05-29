@@ -16,6 +16,7 @@ import {
   setMiniAppBackgroundColor,
   backButton,
 } from '@telegram-apps/sdk-react';
+import { StartParamRedirect } from './start-param-redirect';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -31,7 +32,12 @@ export function Providers({ children }: { children: ReactNode }) {
     void bootstrapTelegram();
   }, []);
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <StartParamRedirect />
+      {children}
+    </QueryClientProvider>
+  );
 }
 
 async function bootstrapTelegram(): Promise<void> {

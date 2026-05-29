@@ -21,6 +21,7 @@ import {
 } from '@/hooks/use-team-member';
 import { useDeleteMember } from '@/hooks/use-delete-member';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
+import { useMe } from '@/hooks/use-me';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { colors } from '@/theme/colors';
@@ -36,6 +37,7 @@ export default function PlayerProfilePage() {
   const params = useParams<{ user_id: string }>();
   const userId = params?.user_id ?? '';
   const { isOrganizer } = useIsOrganizer();
+  const me = useMe();
   const memberQ = useTeamMember(userId);
   const [tab, setTab] = useState<TabId>('overview');
   const overviewQ = usePlayerOverview(userId);
@@ -131,6 +133,9 @@ export default function PlayerProfilePage() {
                 isOrganizer={isOrganizer}
                 onOpenTab={(id) => setTab(id)}
                 t={t}
+                userId={userId}
+                targetRole={member.role}
+                isSelf={me.data?.user.id === userId}
               />
             )}
           </QueryGate>

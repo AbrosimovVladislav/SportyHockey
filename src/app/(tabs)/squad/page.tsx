@@ -19,6 +19,8 @@ import {
   IconSettings,
 } from '@/components/icons';
 import { useTeamMembers } from '@/hooks/use-team-members';
+import { useTeam } from '@/hooks/use-team';
+import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { colors } from '@/theme/colors';
@@ -30,9 +32,12 @@ export default function TeamHubPage() {
   useTgHeader('#233F30');
 
   const membersQ = useTeamMembers();
+  const teamQ = useTeam();
+  const { isOrganizer } = useIsOrganizer();
   const [soon, setSoon] = useState<string | null>(null);
 
   const members = membersQ.data?.members ?? [];
+  const teamPhoto = teamQ.data?.photo_url ?? '/team.png';
   const counts = useMemo(
     () => ({
       total: members.length,
@@ -72,13 +77,19 @@ export default function TeamHubPage() {
       subtitle: t('team.section.media.subtitle'),
       onClick: () => router.push('/squad/media'),
     },
-    {
-      key: 'settings',
-      icon: <IconSettings size={20} color={colors.iconFg} />,
-      title: t('team.section.settings.title'),
-      subtitle: t('team.section.settings.subtitle'),
-      onClick: () => setSoon(t('team.section.settings.title')),
-    },
+    // Пункт настроек видим только организатору; игроку в этой итерации
+    // отдельных пунктов в хабе не добавляем (выход из команды не реализован).
+    ...(isOrganizer
+      ? [
+          {
+            key: 'settings',
+            icon: <IconSettings size={20} color={colors.iconFg} />,
+            title: t('team.section.settings.title'),
+            subtitle: t('team.section.settings.subtitle'),
+            onClick: () => router.push('/squad/settings'),
+          },
+        ]
+      : []),
   ];
 
   const root: CSSProperties = { minHeight: '100dvh', background: colors.bg };
@@ -98,7 +109,7 @@ export default function TeamHubPage() {
 
   return (
     <div style={root}>
-      <DarkHeader title={t('team.title')} imageSrc="/team.png" />
+      <DarkHeader title={t('team.title')} imageSrc={teamPhoto} />
 
       <div style={sheet}>
         <TeamStatCells

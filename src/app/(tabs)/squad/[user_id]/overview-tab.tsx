@@ -1,7 +1,8 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Card } from '@/components/card';
+import { BottomSheet } from '@/components/bottom-sheet';
 import {
   IconAttendance,
   IconFinance,
@@ -9,13 +10,17 @@ import {
   IconCheck,
   IconClose,
   IconChevronRight,
+  IconShieldCheck,
 } from '@/components/icons';
+import { useUpdateMember } from '@/hooks/use-update-member';
+import { ApiError } from '@/lib/api-client';
 import { CardHead, StatCells, bigValue, caption } from './profile-cards';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
+import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import type { TKey } from '@/i18n/ru';
-import type { AttendanceStatus, PlayerOverview } from '@/types/api';
+import type { AttendanceStatus, MemberRole, PlayerOverview } from '@/types/api';
 
 type TabId = 'finance' | 'stats';
 type Props = {
@@ -23,13 +28,26 @@ type Props = {
   isOrganizer: boolean;
   onOpenTab: (tab: TabId) => void;
   t: (k: TKey) => string;
+  // Параметры для кнопки смены роли (итерация 41). Если userId не передан —
+  // кнопка не рендерится (сохраняет старый контракт).
+  userId?: string;
+  targetRole?: MemberRole;
+  isSelf?: boolean;
 };
 
 function formatRub(n: number): string {
   return Math.abs(n).toLocaleString('ru-RU');
 }
 
-export function PlayerOverviewTab({ overview, isOrganizer, onOpenTab, t }: Props) {
+export function PlayerOverviewTab({
+  overview,
+  isOrganizer,
+  onOpenTab,
+  t,
+  userId,
+  targetRole,
+  isSelf,
+}: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
       {/* Финансы чужого игрока — только организатору. */}
@@ -38,9 +56,122 @@ export function PlayerOverviewTab({ overview, isOrganizer, onOpenTab, t }: Props
       ) : null}
       <AttendanceCard attendance={overview.attendance} t={t} />
       <StatsCard stats={overview.stats} onOpen={() => onOpenTab('stats')} t={t} />
+      {/* Смена роли организатор/игрок (итерация 41) — только организатору, не на своём профиле. */}
+      {isOrganizer && !isSelf && userId && targetRole ? (
+        <RoleSwitchCard userId={userId} role={targetRole} t={t} />
+      ) : null}
     </div>
   );
 }
+
+function RoleSwitchCard({
+  userId,
+  role,
+  t,
+}: {
+  userId: string;
+  role: MemberRole;
+  t: (k: TKey) => string;
+}) {
+  const update = useUpdateMember(userId);
+  const [confirm, setConfirm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isOrg = role === 'organizer';
+  const cta = isOrg
+    ? t('player.role.removeOrganizer')
+    : t('player.role.makeOrganizer');
+  const confirmTitle = isOrg
+    ? t('player.role.confirm.removeTitle')
+    : t('player.role.confirm.makeTitle');
+  const confirmBodyText = isOrg
+    ? t('player.role.confirm.removeBody')
+    : t('player.role.confirm.makeBody');
+
+  async function apply() {
+    setError(null);
+    try {
+      await update.mutateAsync({ body: { role: isOrg ? 'player' : 'organizer' } });
+      setConfirm(false);
+    } catch (e) {
+      if (e instanceof ApiError) setError(e.message);
+      else setError(String(e));
+    }
+  }
+
+  return (
+    <>
+      <Card variant="surface">
+        <CardHead
+          title={t('teamSettings.tabs.roles')}
+          icon={<IconShieldCheck size={22} color={colors.iconFg} />}
+        />
+        <button
+          type="button"
+          className="pressable"
+          onClick={() => setConfirm(true)}
+          style={isOrg ? destructiveButton : primaryButton}
+        >
+          {cta}
+        </button>
+      </Card>
+
+      <BottomSheet open={confirm} onClose={() => setConfirm(false)} title={confirmTitle}>
+        <p style={sheetBody}>{confirmBodyText}</p>
+        {error ? <div style={errorLine}>{error}</div> : null}
+        <button
+          type="button"
+          className="pressable"
+          onClick={() => void apply()}
+          disabled={update.isPending}
+          style={isOrg ? destructiveButton : primaryButton}
+        >
+          {cta}
+        </button>
+      </BottomSheet>
+    </>
+  );
+}
+
+const primaryButton: CSSProperties = {
+  marginTop: spacing['12'],
+  width: '100%',
+  padding: `${spacing['12']}px ${spacing['16']}px`,
+  borderRadius: radius.md,
+  border: 'none',
+  background: colors.primary,
+  color: colors.textInverse,
+  fontSize: 15,
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const destructiveButton: CSSProperties = {
+  marginTop: spacing['12'],
+  width: '100%',
+  padding: `${spacing['12']}px ${spacing['16']}px`,
+  borderRadius: radius.md,
+  border: 'none',
+  background: colors.error,
+  color: colors.textInverse,
+  fontSize: 15,
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const sheetBody: CSSProperties = {
+  margin: 0,
+  marginBottom: spacing['12'],
+  fontSize: 14,
+  color: colors.textSecondary,
+  lineHeight: 1.45,
+};
+
+const errorLine: CSSProperties = {
+  marginBottom: spacing['12'],
+  fontSize: 13,
+  color: colors.error,
+};
 
 const linkRow: CSSProperties = {
   display: 'flex',

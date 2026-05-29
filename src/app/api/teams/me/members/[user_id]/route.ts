@@ -120,6 +120,9 @@ const PatchBody = z.object({
   slot_role: z.enum(['lw', 'c', 'rw', 'ld', 'rd', 'g']).nullable().optional(),
   captaincy: z.enum(['none', 'assistant', 'captain']).optional(),
   tier: z.enum(['main', 'reserve']).optional(),
+  // Итерация 41: смена роли организатор/игрок прямо из публичного профиля и из
+  // вкладки «Роли» настроек. Запрещено снимать роль с единственного организатора.
+  role: z.enum(['organizer', 'player']).optional(),
 });
 
 export async function PATCH(
@@ -133,7 +136,7 @@ export async function PATCH(
 
     const { data: membership, error: memErr } = await sb
       .from('team_memberships')
-      .select('id')
+      .select('id, role')
       .eq('team_id', org.team_id)
       .eq('user_id', memberUserId)
       .maybeSingle();
@@ -150,6 +153,27 @@ export async function PATCH(
       return NextResponse.json({ error: 'Некорректные данные профиля' }, { status: 400 });
     }
     const d = parsed.data;
+
+    // Смена роли: нельзя снять права с единственного организатора в команде.
+    // Если игрок уже в нужной роли — апдейт пропускаем (идемпотентно).
+    if (d.role !== undefined && d.role !== membership.role) {
+      if (membership.role === 'organizer' && d.role === 'player') {
+        const { count, error: cntErr } = await sb
+          .from('team_memberships')
+          .select('id', { count: 'exact', head: true })
+          .eq('team_id', org.team_id)
+          .eq('role', 'organizer');
+        if (cntErr) {
+          return NextResponse.json({ error: cntErr.message }, { status: 500 });
+        }
+        if ((count ?? 0) <= 1) {
+          return NextResponse.json(
+            { error: 'Нельзя снять права с единственного организатора' },
+            { status: 409 },
+          );
+        }
+      }
+    }
 
     // Персональные поля → users.
     const userUpdate: TablesUpdate<'users'> = {};
@@ -170,6 +194,7 @@ export async function PATCH(
     if (d.slot_role !== undefined) memberUpdate.slot_role = d.slot_role;
     if (d.captaincy !== undefined) memberUpdate.captaincy = d.captaincy;
     if (d.tier !== undefined) memberUpdate.tier = d.tier;
+    if (d.role !== undefined) memberUpdate.role = d.role;
 
     if (Object.keys(userUpdate).length > 0) {
       const { error } = await sb.from('users').update(userUpdate).eq('id', memberUserId);

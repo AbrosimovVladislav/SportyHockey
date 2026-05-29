@@ -87,6 +87,8 @@ export type TeamMemberDetailResponse = {
 
 // Редактирование игрока организатором. Персональные поля → users, командные → team_memberships.
 // avatar_path — путь в бакете team-media (после signed-upload); сервер сохранит public URL в avatar_url.
+// role — смена роли организатор/игрок (итерация 41). Запрещено снимать роль с единственного
+// организатора — сервер вернёт 409.
 export type UpdateMemberRequest = {
   first_name?: string | null;
   last_name?: string | null;
@@ -101,6 +103,7 @@ export type UpdateMemberRequest = {
   slot_role?: PlayerSlotRole | null;
   captaincy?: PlayerCaptaincy;
   tier?: MemberTier;
+  role?: MemberRole;
 };
 export type UpdateMemberResponse = { ok: true };
 export type DeleteMemberResponse = { ok: true };
@@ -670,3 +673,78 @@ export type UpdateEventRequest = {
 export type UpdateEventResponse = { ok: true };
 
 export type CreateEventResponse = { id: string };
+
+// ───────────────────────────────────────────────────────────────────────────
+// Итерация 41 — Настройки команды (/squad/settings).
+// Доступ — только организатор. Поля photo_url/default_*/archived_at живут в
+// teams (миграция teams_add_settings_columns).
+// ───────────────────────────────────────────────────────────────────────────
+
+// Публичные поля команды для любого участника (хаб /squad, шапки).
+// Доступны и игроку, и организатору через GET /api/teams/me.
+export type TeamPublicDto = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  photo_url: string | null;
+  archived_at: string | null;
+};
+
+// Стандартная арена команды — встраиваем минимальное venue-представление,
+// чтобы UI мог сразу показать «Большая арена» в ListRow без отдельного запроса.
+export type TeamSettingsVenue = {
+  id: string;
+  name: string;
+  address: string | null;
+};
+
+export type TeamSettingsDto = {
+  team_id: string;
+  name: string;
+  logo_url: string | null;
+  photo_url: string | null;
+  default_venue: TeamSettingsVenue | null;
+  default_event_cost: number | null;
+  default_player_fee: number | null;
+  archived_at: string | null;
+};
+
+// PATCH /api/teams/me/settings — частичный апдейт, любые поля опциональны.
+// logo_path / photo_path — пути в bucket team-media после signed-upload;
+// сервер сохранит public URL в logo_url / photo_url.
+export type UpdateTeamSettingsRequest = {
+  name?: string;
+  logo_path?: string | null;
+  photo_path?: string | null;
+  default_venue_id?: string | null;
+  default_event_cost?: number | null;
+  default_player_fee?: number | null;
+};
+export type UpdateTeamSettingsResponse = { ok: true };
+
+// Sign-эндпоинты для загрузки логотипа и командной фотографии. Те же поля,
+// что и в SignMediaUpload (использует тот же storage-клиент Supabase).
+export type SignTeamMediaResponse = SignMediaUpload;
+
+// Инвайт-токен команды. Один постоянный токен на команду, лениво создаётся
+// при первом запросе. url — полный путь /join/<token>, готовый к копированию.
+export type TeamInviteDto = {
+  token: string;
+  url: string;
+};
+
+// Превью команды для страницы /join/[token] — показывается до решения «принять».
+export type JoinPreviewDto = {
+  team: { id: string; name: string; logo_url: string | null };
+  // already=true, если пользователь уже состоит в этой команде — кнопка
+  // меняется на «Открыть команду» (редирект на /squad).
+  already: boolean;
+};
+
+// Результат принятия инвайта. already=true возвращается, если игрок уже был
+// в команде — на стороне клиента это эквивалентно успеху, редирект тот же.
+export type JoinAcceptResponse = { ok: true; team_id: string; already: boolean };
+
+export type LeaveTeamResponse = { ok: true };
+export type ArchiveTeamResponse = { ok: true; archived_at: string };
+

@@ -10,6 +10,13 @@ export function buildMemberInviteLink(userId: string): string {
   return `https://t.me/${botUsername()}?start=invite_${userId}`;
 }
 
+// Инвайт-ссылка с постоянным токеном команды (итерация 41). Открывается через
+// startapp-deeplink Mini App — параметр прилетает в initData как start_param,
+// клиент перенаправляет на /join/<token>. Один токен на команду, см. team_invites.
+export function buildTeamJoinLink(token: string): string {
+  return `https://t.me/${botUsername()}?startapp=join_${token}`;
+}
+
 function botUsername(): string {
   const raw = process.env.BOT_USERNAME;
   if (!raw) {
