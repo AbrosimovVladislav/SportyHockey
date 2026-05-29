@@ -3,7 +3,6 @@ import { requireUser } from '@/lib/auth';
 import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getUserTeamId } from '@/lib/user-team';
-import { finalizeRows } from '@/lib/event-finalize';
 import { asPosition } from '@/lib/team-member';
 import type {
   PlayerPosition,
@@ -37,18 +36,19 @@ export async function GET(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const type: TeamStatsType = url.searchParams.get('type') === 'training' ? 'training' : 'game';
 
-    // 1. События нужного типа: берём всё кроме отменённых, прогоняем через
-    // finalizeRows (scheduled→completed по истечении ends_at, UPDATE точечный),
-    // в агрегаты включаем только реально завершённые.
+    // 1. События нужного типа: только завершённые. Статистика и аналитика
+    // принципиально работают на закрытых событиях, поэтому finalize-«дозревание»
+    // тут не нужно — оно отрабатывает на расписании и в детальной карточке.
+    // Не закрытые события сюда не попадают, а значит лишнего UPDATE при заходе
+    // в /squad/stats нет.
     const { data: eventRows, error: evErr } = await sb
       .from('events')
-      .select('id, status, ends_at, outcome')
+      .select('id, outcome')
       .eq('team_id', teamId)
       .eq('type', type)
-      .neq('status', 'cancelled');
+      .eq('status', 'completed');
     if (evErr) return NextResponse.json({ error: evErr.message }, { status: 500 });
-    const finalizedEvents = await finalizeRows(sb, eventRows ?? []);
-    const events = finalizedEvents.filter((e) => e.status === 'completed');
+    const events = eventRows ?? [];
     const eventIds = events.map((e) => e.id);
 
     // 2. Состав команды + профили.

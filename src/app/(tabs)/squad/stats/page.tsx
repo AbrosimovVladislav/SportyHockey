@@ -74,15 +74,15 @@ export default function TeamStatsPage() {
     minHeight: '100dvh',
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
   };
-  // Табы вплотную к шапке (paddingTop: 0), между табами и чипами тоже
-  // минимальный воздух (gap: 4) — chips здесь ещё дополнительно идут в compact-
-  // режиме, без своего верхнего паддинга. Без этого набора расстояние шапка→
-  // чипы получалось около 60px и визуально разрывало секцию.
+  // Табы вплотную к шапке (paddingTop: 0). Между табами и сегмент-чипами —
+  // gap 12 + чипы в compact-режиме (внутренний padding-top 4) = ~16px воздуха.
+  // Этого хватает, чтобы чипы визуально не «прилипали» к подчёркиванию вкладки,
+  // но и не образовывали большой разрыв.
   const content: CSSProperties = {
     padding: `0 ${spacing['16']}px 0`,
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['4'],
+    gap: spacing['12'],
   };
 
   return (
@@ -199,12 +199,17 @@ function StatsTab({
           </>
         ) : (
           <>
-            <StatSummaryCard
-              icon={<IconWhistle size={18} color={colors.primary} />}
-              title={t('teamStats.summary.trainings')}
-              value={summary.events_played}
-              caption={t('teamStats.summary.trainings.caption')}
-            />
+            {/* В тренировках только три плитки, поэтому верхнюю «Тренировки»
+                растягиваем на обе колонки — иначе третья «Передачи» висит
+                одиноко в нижнем ряду слева, а справа — пустое место. */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <StatSummaryCard
+                icon={<IconWhistle size={18} color={colors.primary} />}
+                title={t('teamStats.summary.trainings')}
+                value={summary.events_played}
+                caption={t('teamStats.summary.trainings.caption')}
+              />
+            </div>
             <StatSummaryCard
               icon={<IconHockeyStick size={18} color={colors.primary} />}
               title={t('teamStats.summary.goals')}

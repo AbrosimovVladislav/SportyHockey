@@ -135,10 +135,15 @@ function LeaderRow({
   if (player.jersey_number != null) subParts.push(`#${player.jersey_number}`);
   if (position && player.position) subParts.push(labels.position[player.position]);
 
+  // avatar_url (загруженная организатором фотка) приоритетнее photo_url
+  // (телеграмная) — иначе у игроков, которым команда выставила «нормальный»
+  // аватар, в аналитике всё равно вылезала бы исходная телеграмная.
+  const avatarSrc = player.avatar_url ?? player.photo_url ?? null;
+
   return (
     <div style={wrap}>
       {rank != null ? <span style={medal}>{rank}</span> : null}
-      <Avatar src={player.photo_url ?? null} name={name} size={32} />
+      <Avatar src={avatarSrc} name={name} size={32} />
       <div style={body}>
         <span style={nm}>{name}</span>
         {subParts.length > 0 ? <span style={sub}>{subParts.join(' · ')}</span> : null}
@@ -612,7 +617,7 @@ export function TopCombinationsCard({
               style={{ display: 'flex', alignItems: 'center', gap: spacing['8'] }}
             >
               <Avatar
-                src={c.assist_user.photo_url ?? null}
+                src={c.assist_user.avatar_url ?? c.assist_user.photo_url ?? null}
                 name={fullName(c.assist_user)}
                 size={28}
               />
@@ -631,7 +636,7 @@ export function TopCombinationsCard({
               </span>
               <span style={{ ...typography.sm, color: colors.textSecondary }}>→</span>
               <Avatar
-                src={c.goal_user.photo_url ?? null}
+                src={c.goal_user.avatar_url ?? c.goal_user.photo_url ?? null}
                 name={fullName(c.goal_user)}
                 size={28}
               />

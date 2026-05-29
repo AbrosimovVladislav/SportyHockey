@@ -4,18 +4,16 @@ import type { CSSProperties } from 'react';
 import { Avatar } from './avatar';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
-import { formatName } from '@/lib/format-name';
 import type { TeamStatsPlayerRow, TeamStatsType } from '@/types/api';
 
-// Сетка ячеек таблицы /squad/stats: слева — игрок (аватар + имя/номер), справа —
-// числовые показатели в равных по ширине колонках. Пропорции 45% / 55% (на
-// числа), чтобы имена не уезжали в эллипсис на узких экранах.
-//  • Игры       → И, Г, П, О, Ш (5 чисел, по 11% ширины каждое).
-//  • Тренировки → И, Г, П, О    (4 числа, по 13.75% ширины).
-// Заголовок и строка используют одну и ту же сетку, поэтому числа стоят строго
-// под подписями.
-const GRID_COLUMNS_GAME = '45% repeat(5, 11%)';
-const GRID_COLUMNS_TRAINING = '45% repeat(4, 13.75%)';
+// Сетка ячеек таблицы /squad/stats: ровно 50% слева на игрока (аватар + имя
+// в две строки + номер) и 50% справа на числа — равными по ширине колонками.
+//  • Игры       → И, Г, П, О, Ш (5 чисел, по 10% ширины каждое).
+//  • Тренировки → И, Г, П, О    (4 числа, по 12.5%).
+// Заголовок таблицы (TeamStatsTableHeader) использует эту же сетку, чтобы числа
+// стояли строго под однобуквенными подписями.
+const GRID_COLUMNS_GAME = '50% repeat(5, 10%)';
+const GRID_COLUMNS_TRAINING = '50% repeat(4, 12.5%)';
 
 function gridFor(type: TeamStatsType): string {
   return type === 'game' ? GRID_COLUMNS_GAME : GRID_COLUMNS_TRAINING;
@@ -55,12 +53,16 @@ export function TeamStatsTableRow({ player, type, onClick }: Props) {
     minWidth: 0,
     display: 'flex',
     flexDirection: 'column',
-    gap: 2,
+    gap: 0,
   };
-  const nameStyle: CSSProperties = {
+  // Имя и фамилия — на отдельных строках. На узких экранах фамилии целиком
+  // не влезают в одну строку, поэтому ellipsis оставляем как страховку,
+  // но за счёт переноса видно гораздо больше реального содержимого.
+  const lineStyle: CSSProperties = {
     fontSize: 14,
     fontWeight: 700,
     color: colors.text,
+    lineHeight: '17px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -69,6 +71,8 @@ export function TeamStatsTableRow({ player, type, onClick }: Props) {
     fontSize: 12,
     fontWeight: 500,
     color: colors.textSecondary,
+    lineHeight: '14px',
+    marginTop: 2,
   };
   const numCell = (color: string): CSSProperties => ({
     fontSize: 17,
@@ -78,18 +82,20 @@ export function TeamStatsTableRow({ player, type, onClick }: Props) {
     textAlign: 'center',
   });
 
-  const playerName = formatName({
-    first_name: player.first_name,
-    last_name: player.last_name,
-    username: null,
-  });
+  const firstName = player.first_name?.trim() ?? '';
+  const lastName = player.last_name?.trim() ?? '';
+  // Аватар: avatar_url (своя загрузка) приоритетнее photo_url (телеграмная).
+  const avatarSrc = player.avatar_url ?? player.photo_url ?? null;
+  const fallbackName = [firstName, lastName].filter(Boolean).join(' ');
 
   const content = (
     <>
       <div style={playerCell}>
-        <Avatar src={player.avatar_url ?? player.photo_url} name={playerName} size={36} />
+        <Avatar src={avatarSrc} name={fallbackName} size={36} />
         <div style={nameWrap}>
-          <span style={nameStyle}>{playerName}</span>
+          {firstName ? <span style={lineStyle}>{firstName}</span> : null}
+          {lastName ? <span style={lineStyle}>{lastName}</span> : null}
+          {!firstName && !lastName ? <span style={lineStyle}>—</span> : null}
           {player.jersey_number != null ? (
             <span style={jersey}>#{player.jersey_number}</span>
           ) : null}
@@ -123,8 +129,7 @@ export function TeamStatsTableRow({ player, type, onClick }: Props) {
 
 // Заголовок таблицы — та же сетка, что и строка, чтобы числа стояли строго под
 // подписями. Подписи однобуквенные: И (игры), Г (голы), П (передачи), О (очки),
-// Ш (штраф). Это позволяет ужать колонки чисел до 55% ширины — игроку остаётся
-// 45% и имена больше не схлопываются в эллипсис на типичной телеграм-ширине.
+// Ш (штраф). Колонка штрафов рендерится только на вкладке «Игры».
 export function TeamStatsTableHeader({
   type,
   labels,
