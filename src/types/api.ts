@@ -357,9 +357,15 @@ export type TeamStatsPointsShare = {
   points: number;
 };
 
+// Топ связок — это партнёрства, а не упорядоченные пары «ассистент→бомбардир».
+// (Абросимов→Жан) и (Жан→Абросимов) считаются одной и той же связкой и суммируются.
+// player_a/player_b — два игрока пары; порядок внутри пары не несёт смысла
+// (фактически — стабильная сортировка по user_id для дедупликации ключа).
+// goals — суммарное число голов, в забивании которых участвовала эта пара
+// в любом направлении.
 export type TeamStatsTopCombination = {
-  assist_user: TeamStatsLeader;
-  goal_user: TeamStatsLeader;
+  player_a: TeamStatsLeader;
+  player_b: TeamStatsLeader;
   goals: number;
 };
 

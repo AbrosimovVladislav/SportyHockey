@@ -613,12 +613,12 @@ export function TopCombinationsCard({
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
           {combinations.map((c, i) => (
             <div
-              key={`${c.assist_user.user_id}>${c.goal_user.user_id}-${i}`}
+              key={`${c.player_a.user_id}|${c.player_b.user_id}-${i}`}
               style={{ display: 'flex', alignItems: 'center', gap: spacing['8'] }}
             >
               <Avatar
-                src={c.assist_user.avatar_url ?? c.assist_user.photo_url ?? null}
-                name={fullName(c.assist_user)}
+                src={c.player_a.avatar_url ?? c.player_a.photo_url ?? null}
+                name={fullName(c.player_a)}
                 size={28}
               />
               <span
@@ -632,12 +632,14 @@ export function TopCombinationsCard({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {c.assist_user.last_name ?? fullName(c.assist_user)}
+                {c.player_a.last_name ?? fullName(c.player_a)}
               </span>
-              <span style={{ ...typography.sm, color: colors.textSecondary }}>→</span>
+              {/* Двусторонняя стрелка: связка — это партнёрство, а не
+                  направление «ассистент→бомбардир». */}
+              <span style={{ ...typography.sm, color: colors.textSecondary }}>↔</span>
               <Avatar
-                src={c.goal_user.avatar_url ?? c.goal_user.photo_url ?? null}
-                name={fullName(c.goal_user)}
+                src={c.player_b.avatar_url ?? c.player_b.photo_url ?? null}
+                name={fullName(c.player_b)}
                 size={28}
               />
               <span
@@ -651,7 +653,7 @@ export function TopCombinationsCard({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {c.goal_user.last_name ?? fullName(c.goal_user)}
+                {c.player_b.last_name ?? fullName(c.player_b)}
               </span>
               <span
                 style={{

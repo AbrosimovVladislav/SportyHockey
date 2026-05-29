@@ -249,28 +249,34 @@ export async function GET(req: Request): Promise<Response> {
       return { position: pos, goals: g, assists: a };
     });
 
-    // Топ связок: пара (assist_user → goal_user) с количеством голов в паре.
+    // Топ связок — партнёрства, не упорядоченные пары: (A→B) и (B→A) — одно
+    // и то же. Ключ строится из двух user_id, отсортированных алфавитно, что
+    // даёт стабильный канонический идентификатор пары независимо от того, кто
+    // ассистент, а кто бомбардир в конкретной шайбе. Ситуацию assist == goal
+    // отсекаем — это структурная аномалия (сам себе пас).
     const comboCount = new Map<string, number>();
     for (const link of links) {
       const goalPt = pointById.get(link.goal_point_id);
       const assistPt = pointById.get(link.assist_point_id);
       if (!goalPt || !assistPt) continue;
       if (!goalPt.user_id || !assistPt.user_id) continue;
+      if (goalPt.user_id === assistPt.user_id) continue;
       if (!memberMap.has(goalPt.user_id) || !memberMap.has(assistPt.user_id)) continue;
-      const key = `${assistPt.user_id}>${goalPt.user_id}`;
+      const [a, b] = [assistPt.user_id, goalPt.user_id].sort();
+      const key = `${a}|${b}`;
       comboCount.set(key, (comboCount.get(key) ?? 0) + 1);
     }
     const playerById = new Map(players.map((p) => [p.user_id, p]));
     const top_combinations: TeamStatsTopCombination[] = [...comboCount.entries()]
-      .sort((a, b) => b[1] - a[1])
+      .sort((x, y) => y[1] - x[1])
       .slice(0, 5)
       .map(([key, count]) => {
-        const [assistId, goalId] = key.split('>');
-        const a = playerById.get(assistId)!;
-        const g = playerById.get(goalId)!;
+        const [aId, bId] = key.split('|');
+        const pa = playerById.get(aId)!;
+        const pb = playerById.get(bId)!;
         return {
-          assist_user: leaderFromPlayer(a, count),
-          goal_user: leaderFromPlayer(g, count),
+          player_a: leaderFromPlayer(pa, count),
+          player_b: leaderFromPlayer(pb, count),
           goals: count,
         };
       });
