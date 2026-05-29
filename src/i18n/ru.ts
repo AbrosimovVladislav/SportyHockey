@@ -462,10 +462,10 @@ export const ru = {
   'teamStats.filter.goalies': 'Вратари',
 
   'teamStats.table.player': 'Игрок',
-  'teamStats.table.goals': 'Г',
-  'teamStats.table.assists': 'П',
-  'teamStats.table.points': 'О',
-  'teamStats.table.penalty': 'Ш',
+  'teamStats.table.goals': 'Голы',
+  'teamStats.table.assists': 'Передачи',
+  'teamStats.table.points': 'Очки',
+  'teamStats.table.penalty': 'Штраф',
   'teamStats.table.empty': 'Пока нет данных',
   'teamStats.table.goaliesSoon': 'Вратарская статистика пока не ведётся',
 
@@ -492,7 +492,7 @@ export const ru = {
   'teamStats.analytics.byPosition.value': '{goals} голов / {assists} передач',
   'teamStats.analytics.combinationsTitle': 'Топ связок',
   'teamStats.analytics.combinationsValue': '{count} голов',
-  'teamStats.analytics.topPenaltyTitle': 'Самые удаляющиеся',
+  'teamStats.analytics.topPenaltyTitle': 'Топ штрафников',
   'teamStats.analytics.empty': 'Пока нет данных',
 
   // Team media (общая галерея команды, /squad/media)

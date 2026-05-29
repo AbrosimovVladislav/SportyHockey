@@ -7,7 +7,10 @@ import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ContentTabs } from '@/components/content-tabs';
 import { FilterChips } from '@/components/filter-chips';
 import { StatSummaryCard } from '@/components/stat-summary-card';
-import { PlayerStatsRow } from '@/components/player-stats-row';
+import {
+  TeamStatsTableRow,
+  TeamStatsTableHeader,
+} from '@/components/team-stats-table-row';
 import {
   PointsDistributionCard,
   BarPairCard,
@@ -39,7 +42,8 @@ import type {
 } from '@/types/api';
 
 type TopTab = 'stats' | 'analytics';
-type PositionFilter = PlayerPosition;
+// На вратарей данных пока нет — фильтр амплуа в таблице ограничен двумя группами.
+type PositionFilter = 'forward' | 'defender';
 
 export default function TeamStatsPage() {
   const t = useT();
@@ -68,11 +72,12 @@ export default function TeamStatsPage() {
     minHeight: '100dvh',
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
   };
+  // Чуть меньше верхний отступ — табы стоят ближе к шапке.
   const content: CSSProperties = {
-    padding: `${spacing['12']}px ${spacing['16']}px 0`,
+    padding: `${spacing['4']}px ${spacing['16']}px 0`,
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['16'],
+    gap: spacing['12'],
   };
 
   return (
@@ -89,8 +94,8 @@ export default function TeamStatsPage() {
           onChange={(id) => setTopTab(id as TopTab)}
         />
 
-        <ContentTabs
-          tabs={[
+        <FilterChips
+          options={[
             { id: 'game', label: t('teamStats.segment.games') },
             { id: 'training', label: t('teamStats.segment.trainings') },
           ]}
@@ -110,7 +115,6 @@ export default function TeamStatsPage() {
             response={q.data}
             posFilter={posFilter}
             onPosFilterChange={setPosFilter}
-            positionLabels={positionLabels}
             onRowClick={(id) => router.push(`/squad/${id}`)}
             t={t}
           />
@@ -129,7 +133,6 @@ function StatsTab({
   response,
   posFilter,
   onPosFilterChange,
-  positionLabels,
   onRowClick,
   t,
 }: {
@@ -137,7 +140,6 @@ function StatsTab({
   response: ReturnType<typeof useTeamStats>['data'] & {};
   posFilter: PositionFilter;
   onPosFilterChange: (p: PositionFilter) => void;
-  positionLabels: Record<PlayerPosition, string>;
   onRowClick: (userId: string) => void;
   t: T;
 }) {
@@ -156,17 +158,6 @@ function StatsTab({
     const list = players.filter((p) => p.position === posFilter);
     return [...list].sort((a, b) => b.points - a.points || b.goals - a.goals);
   }, [players, posFilter]);
-
-  const tableHeader: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    padding: `${spacing['8']}px ${spacing['12']}px`,
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-  };
 
   return (
     <>
@@ -226,24 +217,12 @@ function StatsTab({
         options={[
           { id: 'forward', label: t('teamStats.filter.forwards') },
           { id: 'defender', label: t('teamStats.filter.defenders') },
-          { id: 'goalie', label: t('teamStats.filter.goalies') },
         ]}
         activeId={posFilter}
         onChange={(id) => onPosFilterChange(id as PositionFilter)}
       />
 
-      {posFilter === 'goalie' ? (
-        <div
-          style={{
-            padding: `${spacing['24']}px 0`,
-            textAlign: 'center',
-            color: colors.textTertiary,
-            fontSize: 13,
-          }}
-        >
-          {t('teamStats.table.goaliesSoon')}
-        </div>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <div
           style={{
             padding: `${spacing['24']}px 0`,
@@ -256,40 +235,19 @@ function StatsTab({
         </div>
       ) : (
         <div>
-          <div style={tableHeader}>
-            <span style={{ width: 24 }}>{' '}</span>
-            <span style={{ flex: 1 }}>{t('teamStats.table.player')}</span>
-            <span style={{ width: 32, textAlign: 'center' }}>{t('teamStats.table.goals')}</span>
-            <span style={{ width: 32, textAlign: 'center' }}>{t('teamStats.table.assists')}</span>
-            <span style={{ width: 32, textAlign: 'center' }}>{t('teamStats.table.points')}</span>
-            <span style={{ width: 32, textAlign: 'center' }}>{t('teamStats.table.penalty')}</span>
-          </div>
-          {filtered.map((p, i) => (
-            <PlayerStatsRow
+          <TeamStatsTableHeader
+            labels={{
+              player: t('teamStats.table.player'),
+              goals: t('teamStats.table.goals'),
+              assists: t('teamStats.table.assists'),
+              points: t('teamStats.table.points'),
+              penalty: t('teamStats.table.penalty'),
+            }}
+          />
+          {filtered.map((p) => (
+            <TeamStatsTableRow
               key={p.user_id}
-              rank={i + 1}
-              stat={{
-                user: {
-                  user_id: p.user_id,
-                  first_name: p.first_name,
-                  last_name: p.last_name,
-                  username: null,
-                  photo_url: p.avatar_url ?? p.photo_url,
-                  jersey_number: p.jersey_number,
-                  position: p.position,
-                },
-                goals: p.goals,
-                assists: p.assists,
-                points: p.points,
-                penalty_minutes: p.penalty_minutes,
-              }}
-              labels={{
-                goals: t('teamStats.table.goals'),
-                assists: t('teamStats.table.assists'),
-                points: t('teamStats.table.points'),
-                pim: t('teamStats.table.penalty'),
-                position: positionLabels,
-              }}
+              player={p}
               onClick={() => onRowClick(p.user_id)}
             />
           ))}
@@ -311,6 +269,12 @@ function AnalyticsTab({
   t: T;
 }) {
   const { analytics } = response;
+  const isGame = type === 'game';
+  // На тренировках штрафы не считаем — карточки «Топ штрафников» нет,
+  // в «Лучшие по категориям» строку «Штрафы» тоже скрываем. Во «Вкладе по амплуа»
+  // вратарей всегда исключаем (вратарские голы/передачи на PoC не ведём).
+  const byPosition = analytics.by_position.filter((r) => r.position !== 'goalie');
+
   return (
     <>
       <PointsDistributionCard
@@ -330,7 +294,7 @@ function AnalyticsTab({
       <EfficiencyTop3Card
         title={t('teamStats.analytics.efficiencyTitle')}
         caption={t(
-          type === 'game'
+          isGame
             ? 'teamStats.analytics.efficiencyCaption.games'
             : 'teamStats.analytics.efficiencyCaption.trainings',
         )}
@@ -349,10 +313,11 @@ function AnalyticsTab({
         }}
         emptyLabel={t('teamStats.analytics.empty')}
         formatPenalty={(n) => interp(t('teamStats.analytics.penaltyMinutes'), { count: n })}
+        showPenalty={isGame}
       />
       <PositionContributionCard
         title={t('teamStats.analytics.byPositionTitle')}
-        rows={analytics.by_position}
+        rows={byPosition}
         positionLabels={positionLabels}
         valueTemplate={t('teamStats.analytics.byPosition.value')}
       />
@@ -362,13 +327,15 @@ function AnalyticsTab({
         emptyLabel={t('teamStats.analytics.empty')}
         valueTemplate={t('teamStats.analytics.combinationsValue')}
       />
-      <PenaltyLeadersCard
-        title={t('teamStats.analytics.topPenaltyTitle')}
-        players={analytics.top_penalties}
-        positionLabels={positionLabels}
-        emptyLabel={t('teamStats.analytics.empty')}
-        valueTemplate={t('teamStats.analytics.penaltyMinutes')}
-      />
+      {isGame ? (
+        <PenaltyLeadersCard
+          title={t('teamStats.analytics.topPenaltyTitle')}
+          players={analytics.top_penalties}
+          positionLabels={positionLabels}
+          emptyLabel={t('teamStats.analytics.empty')}
+          valueTemplate={t('teamStats.analytics.penaltyMinutes')}
+        />
+      ) : null}
     </>
   );
 }

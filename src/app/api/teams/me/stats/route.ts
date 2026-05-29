@@ -36,13 +36,17 @@ export async function GET(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const type: TeamStatsType = url.searchParams.get('type') === 'training' ? 'training' : 'game';
 
-    // 1. События нужного типа, завершённые.
+    // 1. События нужного типа, которые уже состоялись. Поле status у событий
+    // в коде явно на 'completed' не переключается — поэтому считаем прошедшим
+    // всё, у чего `starts_at <= NOW()` и статус не 'cancelled'.
+    const nowIso = new Date().toISOString();
     const { data: eventRows, error: evErr } = await sb
       .from('events')
       .select('id, outcome')
       .eq('team_id', teamId)
       .eq('type', type)
-      .eq('status', 'completed');
+      .lte('starts_at', nowIso)
+      .neq('status', 'cancelled');
     if (evErr) return NextResponse.json({ error: evErr.message }, { status: 500 });
     const events = eventRows ?? [];
     const eventIds = events.map((e) => e.id);

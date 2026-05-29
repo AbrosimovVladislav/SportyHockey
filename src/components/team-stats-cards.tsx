@@ -409,6 +409,7 @@ export function CategoryLeadersCard({
   labels,
   emptyLabel,
   formatPenalty,
+  showPenalty = true,
 }: {
   title: string;
   leaders: TeamStatsAnalytics['leaders'];
@@ -420,6 +421,8 @@ export function CategoryLeadersCard({
   };
   emptyLabel: string;
   formatPenalty: (n: number) => string;
+  // На тренировках штрафов не бывает — строку скрываем.
+  showPenalty?: boolean;
 }) {
   const rows: { key: string; icon: ReactNode; label: string; leader: TeamStatsLeader | null; value: string | null }[] = [
     {
@@ -443,13 +446,15 @@ export function CategoryLeadersCard({
       leader: leaders.assists,
       value: leaders.assists ? String(leaders.assists.value) : null,
     },
-    {
-      key: 'penalty',
-      icon: <IconWhistle size={20} color={colors.primary} />,
-      label: labels.penalty,
-      leader: leaders.penalties,
-      value: leaders.penalties ? formatPenalty(leaders.penalties.value) : null,
-    },
+    ...(showPenalty
+      ? [{
+          key: 'penalty',
+          icon: <IconWhistle size={20} color={colors.primary} />,
+          label: labels.penalty,
+          leader: leaders.penalties,
+          value: leaders.penalties ? formatPenalty(leaders.penalties.value) : null,
+        }]
+      : []),
   ];
 
   return (
