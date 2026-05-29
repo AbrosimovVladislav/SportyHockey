@@ -62,6 +62,11 @@ export const colors = {
   gold: '#C09A38',
   goldBg: '#EDE3C5',
   goldText: '#8B6914',
+
+  // Подиум статистики: 1-е / 2-е / 3-е место в карточках топ-N
+  // (эффективность, топ-штрафников и пр.). gold уже есть выше.
+  silver: '#A8A8A8',
+  bronze: '#A0673A',
 } as const;
 
 export type ColorToken = keyof typeof colors;

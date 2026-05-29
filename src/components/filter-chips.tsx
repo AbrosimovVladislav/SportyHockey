@@ -14,9 +14,13 @@ type Props = {
   // Слот справа в той же строке (напр. кнопка сортировки). Когда задан — чипы
   // выстраиваются в один ряд с горизонтальным скроллом, trailing закреплён справа.
   trailing?: ReactNode;
+  // Компактный режим: меньший внешний паддинг сверху. Нужен, когда чипы стоят
+  // сразу под другим управляющим элементом (вкладки, тулбар) и большой воздух
+  // ломает визуальную связку.
+  compact?: boolean;
 };
 
-export function FilterChips({ options, activeId, onChange, trailing }: Props) {
+export function FilterChips({ options, activeId, onChange, trailing, compact }: Props) {
   const wrap: CSSProperties = trailing
     ? {
         display: 'flex',
@@ -27,7 +31,7 @@ export function FilterChips({ options, activeId, onChange, trailing }: Props) {
     : {
         display: 'flex',
         gap: spacing['8'],
-        padding: `${spacing['20']}px ${spacing['16']}px ${spacing['2']}px`,
+        padding: `${compact ? spacing['4'] : spacing['20']}px ${spacing['16']}px ${spacing['2']}px`,
         justifyContent: 'center',
         flexWrap: 'wrap',
       };

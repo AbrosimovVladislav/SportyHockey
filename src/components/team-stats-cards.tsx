@@ -84,12 +84,17 @@ function LeaderRow({
     alignItems: 'center',
     gap: spacing['10'],
   };
+  // Подиум: 1 — золото, 2 — серебро, 3 — бронза. Цифра внутри — белая, чтобы
+  // читалась поверх насыщенного фона на любой из трёх медалей. Цвета вынесены
+  // в colors (gold/silver/bronze) — единая палитра подиума для аналитики.
+  const medalBg =
+    rank === 1 ? colors.gold : rank === 2 ? colors.silver : rank === 3 ? colors.bronze : colors.divider;
   const medal: CSSProperties = {
     width: 24,
     height: 24,
     borderRadius: '50%',
-    background: rank === 1 ? colors.success : rank === 2 ? '#A6E5B7' : colors.divider,
-    color: rank === 1 ? colors.textInverse : colors.text,
+    background: medalBg,
+    color: colors.textInverse,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',

@@ -461,11 +461,16 @@ export const ru = {
   'teamStats.filter.defenders': 'Защитники',
   'teamStats.filter.goalies': 'Вратари',
 
+  // Заголовки таблицы /squad/stats. Игрок — слева; числовые колонки —
+  // однобуквенные, чтобы шапка занимала меньше места и числа влезали под
+  // подписи на узкой ширине: И (игры/тренировки), Г (голы), П (передачи),
+  // О (очки), Ш (штраф, только во вкладке «Игры»).
   'teamStats.table.player': 'Игрок',
-  'teamStats.table.goals': 'Голы',
-  'teamStats.table.assists': 'Передачи',
-  'teamStats.table.points': 'Очки',
-  'teamStats.table.penalty': 'Штраф',
+  'teamStats.table.short.games': 'И',
+  'teamStats.table.short.goals': 'Г',
+  'teamStats.table.short.assists': 'П',
+  'teamStats.table.short.points': 'О',
+  'teamStats.table.short.penalty': 'Ш',
   'teamStats.table.empty': 'Пока нет данных',
   'teamStats.table.goaliesSoon': 'Вратарская статистика пока не ведётся',
 

@@ -2,29 +2,39 @@
 
 import type { CSSProperties } from 'react';
 import { Avatar } from './avatar';
-import { IconChevronRight } from './icons';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { formatName } from '@/lib/format-name';
-import type { TeamStatsPlayerRow } from '@/types/api';
+import type { TeamStatsPlayerRow, TeamStatsType } from '@/types/api';
 
-// Сетка ячеек таблицы /squad/stats: первая ячейка — игрок (аватар + имя/номер),
-// далее равные по ширине числа Г / П / О / Ш. Эти же значения колонок
-// использует заголовок таблицы (TeamStatsTableHeader) — поэтому числа всегда
-// стоят строго под своими заголовками.
-const GRID_COLUMNS = '1fr 40px 64px 40px 48px';
+// Сетка ячеек таблицы /squad/stats: слева — игрок (аватар + имя/номер), справа —
+// числовые показатели в равных по ширине колонках. Пропорции 45% / 55% (на
+// числа), чтобы имена не уезжали в эллипсис на узких экранах.
+//  • Игры       → И, Г, П, О, Ш (5 чисел, по 11% ширины каждое).
+//  • Тренировки → И, Г, П, О    (4 числа, по 13.75% ширины).
+// Заголовок и строка используют одну и ту же сетку, поэтому числа стоят строго
+// под подписями.
+const GRID_COLUMNS_GAME = '45% repeat(5, 11%)';
+const GRID_COLUMNS_TRAINING = '45% repeat(4, 13.75%)';
+
+function gridFor(type: TeamStatsType): string {
+  return type === 'game' ? GRID_COLUMNS_GAME : GRID_COLUMNS_TRAINING;
+}
 
 type Props = {
   player: TeamStatsPlayerRow;
+  type: TeamStatsType;
   onClick?: () => void;
 };
 
-export function TeamStatsTableRow({ player, onClick }: Props) {
+export function TeamStatsTableRow({ player, type, onClick }: Props) {
+  const isGame = type === 'game';
+
   const wrap: CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: GRID_COLUMNS,
+    gridTemplateColumns: gridFor(type),
     alignItems: 'center',
-    gap: spacing['8'],
+    gap: spacing['4'],
     width: '100%',
     padding: `${spacing['10']}px ${spacing['12']}px`,
     background: 'transparent',
@@ -85,16 +95,19 @@ export function TeamStatsTableRow({ player, onClick }: Props) {
           ) : null}
         </div>
       </div>
+      <span style={numCell(colors.textSecondary)}>{player.games_played}</span>
       <span style={numCell(colors.text)}>{player.goals}</span>
       <span style={numCell(colors.text)}>{player.assists}</span>
       <span style={numCell(colors.primary)}>{player.points}</span>
-      <span
-        style={numCell(
-          player.penalty_minutes > 0 ? colors.warning : colors.textTertiary,
-        )}
-      >
-        {player.penalty_minutes}
-      </span>
+      {isGame ? (
+        <span
+          style={numCell(
+            player.penalty_minutes > 0 ? colors.warning : colors.textTertiary,
+          )}
+        >
+          {player.penalty_minutes}
+        </span>
+      ) : null}
     </>
   );
 
@@ -108,17 +121,30 @@ export function TeamStatsTableRow({ player, onClick }: Props) {
   return <div style={wrap}>{content}</div>;
 }
 
-// Заголовок таблицы — те же колонки, чтобы числа стояли строго под подписями.
+// Заголовок таблицы — та же сетка, что и строка, чтобы числа стояли строго под
+// подписями. Подписи однобуквенные: И (игры), Г (голы), П (передачи), О (очки),
+// Ш (штраф). Это позволяет ужать колонки чисел до 55% ширины — игроку остаётся
+// 45% и имена больше не схлопываются в эллипсис на типичной телеграм-ширине.
 export function TeamStatsTableHeader({
+  type,
   labels,
 }: {
-  labels: { player: string; goals: string; assists: string; points: string; penalty: string };
+  type: TeamStatsType;
+  labels: {
+    player: string;
+    games: string;
+    goals: string;
+    assists: string;
+    points: string;
+    penalty: string;
+  };
 }) {
+  const isGame = type === 'game';
   const wrap: CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: GRID_COLUMNS,
+    gridTemplateColumns: gridFor(type),
     alignItems: 'center',
-    gap: spacing['8'],
+    gap: spacing['4'],
     padding: `${spacing['8']}px ${spacing['12']}px`,
     color: colors.textSecondary,
     fontSize: 12,
@@ -128,10 +154,11 @@ export function TeamStatsTableHeader({
   return (
     <div style={wrap}>
       <span style={{ paddingLeft: 46 }}>{labels.player}</span>
+      <span style={headCell}>{labels.games}</span>
       <span style={headCell}>{labels.goals}</span>
       <span style={headCell}>{labels.assists}</span>
       <span style={headCell}>{labels.points}</span>
-      <span style={headCell}>{labels.penalty}</span>
+      {isGame ? <span style={headCell}>{labels.penalty}</span> : null}
     </div>
   );
 }

@@ -42,8 +42,10 @@ import type {
 } from '@/types/api';
 
 type TopTab = 'stats' | 'analytics';
-// На вратарей данных пока нет — фильтр амплуа в таблице ограничен двумя группами.
-type PositionFilter = 'forward' | 'defender';
+// На вратарей данных пока нет — фильтр амплуа в таблице ограничен двумя
+// группами. null = «фильтр снят», показываем всех игроков; повторный клик по
+// активному чипу возвращает в null (toggle-поведение).
+type PositionFilter = 'forward' | 'defender' | null;
 
 export default function TeamStatsPage() {
   const t = useT();
@@ -52,7 +54,7 @@ export default function TeamStatsPage() {
 
   const [topTab, setTopTab] = useState<TopTab>('stats');
   const [type, setType] = useState<TeamStatsType>('game');
-  const [posFilter, setPosFilter] = useState<PositionFilter>('forward');
+  const [posFilter, setPosFilter] = useState<PositionFilter>(null);
 
   const q = useTeamStats(type);
 
@@ -72,12 +74,15 @@ export default function TeamStatsPage() {
     minHeight: '100dvh',
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
   };
-  // Чуть меньше верхний отступ — табы стоят ближе к шапке.
+  // Табы вплотную к шапке (paddingTop: 0), между табами и чипами тоже
+  // минимальный воздух (gap: 4) — chips здесь ещё дополнительно идут в compact-
+  // режиме, без своего верхнего паддинга. Без этого набора расстояние шапка→
+  // чипы получалось около 60px и визуально разрывало секцию.
   const content: CSSProperties = {
-    padding: `${spacing['4']}px ${spacing['16']}px 0`,
+    padding: `0 ${spacing['16']}px 0`,
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['12'],
+    gap: spacing['4'],
   };
 
   return (
@@ -95,6 +100,7 @@ export default function TeamStatsPage() {
         />
 
         <FilterChips
+          compact
           options={[
             { id: 'game', label: t('teamStats.segment.games') },
             { id: 'training', label: t('teamStats.segment.trainings') },
@@ -154,8 +160,10 @@ function StatsTab({
     [],
   );
 
+  // posFilter === null → показываем всех игроков; иначе фильтруем по амплуа.
+  // Сортировка одинаковая в обоих режимах: по очкам, при равных — по голам.
   const filtered = useMemo<TeamStatsPlayerRow[]>(() => {
-    const list = players.filter((p) => p.position === posFilter);
+    const list = posFilter ? players.filter((p) => p.position === posFilter) : players;
     return [...list].sort((a, b) => b.points - a.points || b.goals - a.goals);
   }, [players, posFilter]);
 
@@ -218,8 +226,13 @@ function StatsTab({
           { id: 'forward', label: t('teamStats.filter.forwards') },
           { id: 'defender', label: t('teamStats.filter.defenders') },
         ]}
-        activeId={posFilter}
-        onChange={(id) => onPosFilterChange(id as PositionFilter)}
+        // Когда фильтр снят, передаём пустую строку — ни один чип не подсветится.
+        activeId={posFilter ?? ''}
+        // Toggle: клик по уже активному → null; иначе — выбор нового амплуа.
+        onChange={(id) => {
+          const next = id as 'forward' | 'defender';
+          onPosFilterChange(posFilter === next ? null : next);
+        }}
       />
 
       {filtered.length === 0 ? (
@@ -236,18 +249,21 @@ function StatsTab({
       ) : (
         <div>
           <TeamStatsTableHeader
+            type={type}
             labels={{
               player: t('teamStats.table.player'),
-              goals: t('teamStats.table.goals'),
-              assists: t('teamStats.table.assists'),
-              points: t('teamStats.table.points'),
-              penalty: t('teamStats.table.penalty'),
+              games: t('teamStats.table.short.games'),
+              goals: t('teamStats.table.short.goals'),
+              assists: t('teamStats.table.short.assists'),
+              points: t('teamStats.table.short.points'),
+              penalty: t('teamStats.table.short.penalty'),
             }}
           />
           {filtered.map((p) => (
             <TeamStatsTableRow
               key={p.user_id}
               player={p}
+              type={type}
               onClick={() => onRowClick(p.user_id)}
             />
           ))}
@@ -313,7 +329,9 @@ function AnalyticsTab({
         }}
         emptyLabel={t('teamStats.analytics.empty')}
         formatPenalty={(n) => interp(t('teamStats.analytics.penaltyMinutes'), { count: n })}
-        showPenalty={isGame}
+        // «Лучшие по категориям» — про результативность; штрафы вынесены
+        // в отдельную карточку «Топ штрафников» (только на вкладке «Игры»).
+        showPenalty={false}
       />
       <PositionContributionCard
         title={t('teamStats.analytics.byPositionTitle')}
