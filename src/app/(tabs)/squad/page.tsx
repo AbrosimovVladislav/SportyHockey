@@ -56,7 +56,7 @@ export default function TeamHubPage() {
       icon: <IconStats size={20} color={colors.iconFg} />,
       title: t('team.section.stats.title'),
       subtitle: t('team.section.stats.subtitle'),
-      onClick: () => setSoon(t('team.section.stats.title')),
+      onClick: () => router.push('/squad/stats'),
     },
     {
       key: 'tactics',

@@ -5,6 +5,7 @@ import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType } from '@/lib/event-enum';
 import { isValidSideForEvent } from '@/lib/event-result';
+import { recomputeEventOutcome } from '@/lib/event-outcome';
 import type { CreateGoalResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
@@ -140,6 +141,8 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
         return NextResponse.json({ error: linkErr.message }, { status: 500 });
       }
     }
+
+    await recomputeEventOutcome(sb, ev.id);
 
     return NextResponse.json({ id: created.id } satisfies CreateGoalResponse);
   } catch (e) {

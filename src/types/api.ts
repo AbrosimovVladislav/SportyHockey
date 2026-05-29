@@ -307,6 +307,97 @@ export type TeamMediaResponse = {
   items: TeamMediaItemDto[];
 };
 
+// Командная статистика и аналитика (/squad/stats).
+// Один endpoint /api/teams/me/stats?type=game|training — переключатель сегмента
+// «Игры / Тренировки» на экране.
+
+export type TeamStatsType = 'game' | 'training';
+
+export type TeamStatsSummary = {
+  events_played: number;
+  // Победы считаются только для игр (по сохранённому events.outcome).
+  // Для тренировок — null, карточка скрывается на фронте.
+  wins: number | null;
+  goals: number;
+  assists: number;
+};
+
+export type TeamStatsPlayerRow = {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  photo_url: string | null;
+  avatar_url: string | null;
+  jersey_number: number | null;
+  position: PlayerPosition | null;
+  goals: number;
+  assists: number;
+  points: number;
+  penalty_minutes: number;
+  // Число событий выбранного типа, на которых игрок отмечен showed_up=true.
+  games_played: number;
+};
+
+// Универсальная мини-карточка игрока в аналитике (лидеры, эффективность, связки).
+export type TeamStatsLeader = {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  photo_url: string | null;
+  avatar_url: string | null;
+  jersey_number: number | null;
+  position: PlayerPosition | null;
+  value: number;
+};
+
+export type TeamStatsPointsShare = {
+  user_id: string | null; // null = группа «Остальные» в распределении
+  first_name: string | null;
+  last_name: string | null;
+  points: number;
+};
+
+export type TeamStatsTopCombination = {
+  assist_user: TeamStatsLeader;
+  goal_user: TeamStatsLeader;
+  goals: number;
+};
+
+export type TeamStatsPositionContribution = {
+  position: PlayerPosition;
+  goals: number;
+  assists: number;
+};
+
+export type TeamStatsAnalytics = {
+  total_points: number;
+  // Топ-3 игроков по очкам + строка «Остальные» (для донат-чарта).
+  points_distribution: TeamStatsPointsShare[];
+  total_goals: number;
+  total_assists: number;
+  // Топ-3 по очкам за событие выбранного типа (среди игроков с games_played > 0).
+  top_efficiency: TeamStatsLeader[];
+  leaders: {
+    points: TeamStatsLeader | null;
+    goals: TeamStatsLeader | null;
+    assists: TeamStatsLeader | null;
+    penalties: TeamStatsLeader | null; // value = минуты штрафа
+  };
+  // Голы/передачи по группам нападающие/защитники/вратари.
+  by_position: TeamStatsPositionContribution[];
+  // Пары «ассистент → бомбардир» с числом голов в паре, отсортированы убыванием.
+  top_combinations: TeamStatsTopCombination[];
+  // Топ-3 по сумме минут штрафа.
+  top_penalties: TeamStatsLeader[];
+};
+
+export type TeamStatsResponse = {
+  type: TeamStatsType;
+  summary: TeamStatsSummary;
+  players: TeamStatsPlayerRow[];
+  analytics: TeamStatsAnalytics;
+};
+
 export type DeleteMediaResponse = { ok: true };
 
 export type SignMediaRequest = {

@@ -5,6 +5,7 @@ import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { asEventType } from '@/lib/event-enum';
 import { isValidSideForEvent } from '@/lib/event-result';
+import { recomputeEventOutcome } from '@/lib/event-outcome';
 import type { DeleteGoalResponse, UpdateGoalResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
@@ -152,6 +153,8 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       }
     }
 
+    await recomputeEventOutcome(sb, ev.id);
+
     return NextResponse.json({ ok: true } satisfies UpdateGoalResponse);
   } catch (e) {
     return handleRouteError(e);
@@ -188,6 +191,9 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    await recomputeEventOutcome(sb, ev.id);
+
     return NextResponse.json({ ok: true } satisfies DeleteGoalResponse);
   } catch (e) {
     return handleRouteError(e);

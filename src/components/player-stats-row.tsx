@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { Avatar } from './avatar';
+import { IconChevronRight } from './icons';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { formatName } from '@/lib/format-name';
@@ -16,14 +17,36 @@ type Props = {
     pim: string;
     position: Record<PlayerPosition, string>;
   };
+  // Опциональный порядковый номер (1, 2, …). Используется в командной таблице
+  // /squad/stats: «# Игрок Г П О Ш».
+  rank?: number;
+  // Опциональный обработчик тапа: оборачивает строку в кнопку с шевроном справа.
+  onClick?: () => void;
 };
 
-export function PlayerStatsRow({ stat, labels }: Props) {
+export function PlayerStatsRow({ stat, labels, rank, onClick }: Props) {
   const wrap: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing['12'],
     padding: `${spacing['10']}px ${spacing['12']}px`,
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    textAlign: 'left',
+    cursor: onClick ? 'pointer' : 'default',
+    color: 'inherit',
+    font: 'inherit',
+  };
+
+  const rankStyle: CSSProperties = {
+    fontSize: 13,
+    fontWeight: 600,
+    color: colors.textSecondary,
+    fontVariantNumeric: 'tabular-nums',
+    minWidth: 16,
+    textAlign: 'left',
+    flexShrink: 0,
   };
 
   const body: CSSProperties = {
@@ -85,8 +108,9 @@ export function PlayerStatsRow({ stat, labels }: Props) {
   if (stat.user.position) subParts.push(labels.position[stat.user.position]);
   const jerseySub = subParts.join(' · ');
 
-  return (
-    <div style={wrap}>
+  const content = (
+    <>
+      {rank != null ? <span style={rankStyle}>{rank}</span> : null}
       <Avatar src={stat.user.photo_url} name={playerName} size={36} />
       <div style={body}>
         <span style={name}>{playerName}</span>
@@ -112,6 +136,16 @@ export function PlayerStatsRow({ stat, labels }: Props) {
           <span style={lbl}>{labels.pim}</span>
         </div>
       </div>
-    </div>
+      {onClick ? <IconChevronRight /> : null}
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" className="pressable" style={wrap} onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
+  return <div style={wrap}>{content}</div>;
 }
