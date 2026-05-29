@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth';
 import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getUserTeamId } from '@/lib/user-team';
+import { finalizeRows } from '@/lib/event-finalize';
 import { asPosition } from '@/lib/team-member';
 import type {
   PlayerPosition,
@@ -36,19 +37,18 @@ export async function GET(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const type: TeamStatsType = url.searchParams.get('type') === 'training' ? 'training' : 'game';
 
-    // 1. События нужного типа, которые уже состоялись. Поле status у событий
-    // в коде явно на 'completed' не переключается — поэтому считаем прошедшим
-    // всё, у чего `starts_at <= NOW()` и статус не 'cancelled'.
-    const nowIso = new Date().toISOString();
+    // 1. События нужного типа: берём всё кроме отменённых, прогоняем через
+    // finalizeRows (scheduled→completed по истечении ends_at, UPDATE точечный),
+    // в агрегаты включаем только реально завершённые.
     const { data: eventRows, error: evErr } = await sb
       .from('events')
-      .select('id, outcome')
+      .select('id, status, ends_at, outcome')
       .eq('team_id', teamId)
       .eq('type', type)
-      .lte('starts_at', nowIso)
       .neq('status', 'cancelled');
     if (evErr) return NextResponse.json({ error: evErr.message }, { status: 500 });
-    const events = eventRows ?? [];
+    const finalizedEvents = await finalizeRows(sb, eventRows ?? []);
+    const events = finalizedEvents.filter((e) => e.status === 'completed');
     const eventIds = events.map((e) => e.id);
 
     // 2. Состав команды + профили.

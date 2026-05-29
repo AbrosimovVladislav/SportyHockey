@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { requireOrganizer, requireUser } from '@/lib/auth';
 import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
-import { asEventType, effectiveEventStatus } from '@/lib/event-enum';
+import { asEventStatus, asEventType } from '@/lib/event-enum';
+import { finalizeRows } from '@/lib/event-finalize';
 import { loadAttendance } from '@/lib/event-attendance';
 import { getUserTeamId } from '@/lib/user-team';
 import { notifyEventCreated } from '@/lib/notify';
@@ -70,10 +71,15 @@ export async function GET(req: Request): Promise<Response> {
       return NextResponse.json({ error: countError.message }, { status: 500 });
     }
 
-    const ids = (rows ?? []).map((r) => r.id);
+    // Доводим хранимый status до реального состояния: scheduled→completed,
+    // если время окончания прошло (и обратно при reschedule в будущее). UPDATE
+    // отправляется только при наличии расхождений, холостых запросов нет.
+    const finalized = await finalizeRows(sb, rows ?? []);
+
+    const ids = finalized.map((r) => r.id);
     const attendanceMap = await loadAttendance(sb, ids);
 
-    const events: EventDto[] = (rows ?? []).map((r) => ({
+    const events: EventDto[] = finalized.map((r) => ({
       id: r.id,
       type: asEventType(r.type),
       title: r.title,
@@ -83,7 +89,7 @@ export async function GET(req: Request): Promise<Response> {
       cost_per_player: r.cost_per_player != null ? Number(r.cost_per_player) : null,
       arena_cost: r.arena_cost != null ? Number(r.arena_cost) : null,
       opponent_name: r.opponent_name ?? null,
-      status: effectiveEventStatus(r.status, r.ends_at),
+      status: asEventStatus(r.status),
       attendance: attendanceMap.get(r.id) ?? { going: 0, not_going: 0 },
     }));
 

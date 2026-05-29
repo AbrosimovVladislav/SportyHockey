@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { requireOrganizer, requireUser } from '@/lib/auth';
 import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
-import { asEventType, effectiveEventStatus } from '@/lib/event-enum';
+import { asEventStatus, asEventType } from '@/lib/event-enum';
+import { finalizeRows } from '@/lib/event-finalize';
 import { buildEventTitle } from '@/lib/event-title';
 import { loadAttendance } from '@/lib/event-attendance';
 import { asMemberRole } from '@/lib/role';
@@ -75,7 +76,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { id } = await params;
     const sb = supabaseServer();
 
-    const { data: event, error } = await sb
+    const { data: rawEvent, error } = await sb
       .from('events')
       .select(
         'id, team_id, type, title, details, starts_at, ends_at, cost_per_player, arena_cost, opponent_name, status, created_by, cancelled_reason, venue:venues(id, name, address, photo_url)',
@@ -85,9 +86,14 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    if (!event) {
+    if (!rawEvent) {
       return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
     }
+
+    // Доводим хранимый status до реального состояния (scheduled→completed
+    // по истечении ends_at и обратно при reschedule в будущее). При расхождении
+    // отправляется один точечный UPDATE по этому id, иначе — ничего.
+    const [event] = await finalizeRows(sb, [rawEvent]);
 
     const { data: mem } = await sb
       .from('team_memberships')
@@ -252,7 +258,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
       arena_cost: event.arena_cost != null ? Number(event.arena_cost) : null,
       opponent_name: event.opponent_name ?? null,
-      status: effectiveEventStatus(event.status, event.ends_at),
+      status: asEventStatus(event.status),
       created_by: event.created_by,
       attendance: attendanceMap.get(event.id) ?? { going: 0, not_going: 0 },
       team_size: attendees.length,
