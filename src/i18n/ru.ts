@@ -441,6 +441,8 @@ export const ru = {
 
   // Team media (общая галерея команды, /squad/media)
   'teamMedia.title': 'Медиа',
+  'teamMedia.filter.chip': 'Фильтр',
+  'teamMedia.filter.sheetTitle': 'Фильтр по дате',
   'teamMedia.filter.from': 'От',
   'teamMedia.filter.to': 'До',
   'teamMedia.filter.reset': 'Сбросить',

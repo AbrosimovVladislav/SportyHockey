@@ -2,8 +2,7 @@
 
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { DarkHeader } from '@/components/dark-header';
-import { GlassButton } from '@/components/glass-button';
+import { LightHeader } from '@/components/light-header';
 import { FAB } from '@/components/fab';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ContentTabs } from '@/components/content-tabs';
@@ -13,7 +12,7 @@ import { PlayerRow } from '@/components/player-row';
 import { AttendanceRing } from '@/components/attendance-ring';
 import { EmptyState } from '@/components/empty-state';
 import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
-import { IconChevronDown, IconBack } from '@/components/icons';
+import { IconChevronDown } from '@/components/icons';
 import { SquadLinesTab } from './lines-tab';
 import { SquadSidesTab } from './sides-tab';
 import { useT } from '@/hooks/use-t';
@@ -35,7 +34,7 @@ type SortId = 'attendance' | 'name' | 'number';
 export default function SquadPage() {
   const t = useT();
   const router = useRouter();
-  useTgHeader('#233F30');
+  useTgHeader('#FFFFFF');
   const q = useTeamMembers();
   const { isOrganizer } = useIsOrganizer();
   const [tab, setTab] = useState<TabId>('list');
@@ -78,24 +77,18 @@ export default function SquadPage() {
 
   const sheet: CSSProperties = {
     background: colors.bg,
-    borderRadius: '24px 24px 0 0',
-    marginTop: -12,
     position: 'relative',
     zIndex: 2,
-    minHeight: `calc(100dvh - ${BOTTOM_NAV_HEIGHT}px - 140px)`,
+    minHeight: `calc(100dvh - ${BOTTOM_NAV_HEIGHT}px - 56px)`,
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
   };
 
   return (
     <div style={root}>
-      <DarkHeader
+      <LightHeader
         title={t('squad.title')}
-        imageSrc="/team.png"
-        left={
-          <GlassButton ariaLabel={t('schedule.backLabel')} onClick={() => router.back()} size={44}>
-            <IconBack size={20} color={colors.textInverse} />
-          </GlassButton>
-        }
+        onBack={() => router.back()}
+        ariaLabelBack={t('schedule.backLabel')}
       />
 
       <div style={sheet}>

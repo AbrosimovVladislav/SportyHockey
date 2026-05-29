@@ -35,7 +35,19 @@ export function TeamStatCells({ cells }: { cells: TeamStatCell[] }) {
             borderLeft: i > 0 ? `1px solid ${colors.divider}` : 'none',
           }}
         >
-          <span style={{ color: colors.iconFg, display: 'inline-flex' }}>{c.icon}</span>
+          <span
+            style={{
+              color: colors.iconFg,
+              width: 32,
+              height: 32,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {c.icon}
+          </span>
           <span style={{ ...typography.stat, color: colors.text }}>{c.value}</span>
           <span style={{ ...typography.sm, color: colors.textSecondary }}>{c.label}</span>
         </div>

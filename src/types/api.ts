@@ -298,7 +298,9 @@ export type TeamMediaEventInfo = {
 };
 
 export type TeamMediaItemDto = MediaItemDto & {
-  event: TeamMediaEventInfo;
+  // Медиа из общей галереи может быть как привязано к событию (загружено со
+  // страницы события), так и без привязки (загружено прямо в галерею команды).
+  event: TeamMediaEventInfo | null;
 };
 
 export type TeamMediaResponse = {
