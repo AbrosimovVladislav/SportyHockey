@@ -17,7 +17,7 @@ import {
   IconHeadphones,
   IconFileText,
   IconPhone,
-  IconAtSign,
+  IconTelegram,
   IconWhatsApp,
   IconSettings,
   IconCheck,
@@ -161,22 +161,22 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Карточка контактов: три типа — Telegram, телефон, WhatsApp.
+        {/* Карточка контактов: три типа — Телефон, Telegram, WhatsApp.
             Источник один — users; в публичном профиле и здесь видна одна
             и та же запись. */}
         <div style={cardStyle}>
-          <ContactRow
-            icon={<IconAtSign size={20} color={colors.iconFg} />}
-            value={user.username ? `@${user.username}` : null}
-            placeholder={t('myProfile.contacts.usernamePlaceholder')}
-            onTap={() => setEditing('username')}
-          />
-          <Divider />
           <ContactRow
             icon={<IconPhone size={20} color={colors.iconFg} />}
             value={user.contact_phone}
             placeholder={t('myProfile.contacts.phonePlaceholder')}
             onTap={() => setEditing('phone')}
+          />
+          <Divider />
+          <ContactRow
+            icon={<IconTelegram size={20} color={colors.iconFg} />}
+            value={user.username ? `@${user.username}` : null}
+            placeholder={t('myProfile.contacts.usernamePlaceholder')}
+            onTap={() => setEditing('username')}
           />
           <Divider />
           <ContactRow

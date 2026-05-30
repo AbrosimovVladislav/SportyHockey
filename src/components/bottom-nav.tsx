@@ -12,7 +12,7 @@ import {
   IconCalendar,
   IconRuble,
   IconPeople,
-  IconMore,
+  IconPerson,
 } from './icons';
 
 type IconCmp = ComponentType<{ size?: number; color?: string }>;
@@ -24,7 +24,7 @@ const TABS: Tab[] = [
   { href: '/events', labelKey: 'tabs.events', Icon: IconCalendar },
   { href: '/money', labelKey: 'tabs.money', Icon: IconRuble },
   { href: '/squad', labelKey: 'tabs.squad', Icon: IconPeople },
-  { href: '/profile', labelKey: 'tabs.profile', Icon: IconMore },
+  { href: '/profile', labelKey: 'tabs.profile', Icon: IconPerson },
 ];
 
 function isActive(pathname: string, href: string): boolean {

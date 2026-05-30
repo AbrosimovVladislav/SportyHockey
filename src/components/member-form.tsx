@@ -172,6 +172,7 @@ export function MemberForm({
             label={t('editMember.changePhoto')}
             onPick={(file) => setCropFile(file)}
           />
+          {/* Базовая информация: имя и дата рождения. */}
           <Field label={t('editMember.name')}>
             <Input
               value={value.name}
@@ -179,16 +180,10 @@ export function MemberForm({
               onChange={(e) => set('name', e.target.value)}
             />
           </Field>
-          <Field label={t('editMember.telegram')}>
-            <Input
-              value={value.telegram}
-              placeholder={t('editMember.telegramPlaceholder')}
-              onChange={(e) => set('telegram', e.target.value)}
-            />
-          </Field>
           <Field label={t('editMember.birthDate')}>
             <Input type="date" value={value.birthDate} onChange={(e) => set('birthDate', e.target.value)} />
           </Field>
+          {/* Три контакта подряд: телефон, Telegram, WhatsApp. */}
           <Field label={t('editMember.phone')}>
             <Input
               type="tel"
@@ -196,6 +191,13 @@ export function MemberForm({
               value={value.phone}
               placeholder={t('editMember.phonePlaceholder')}
               onChange={(e) => set('phone', e.target.value)}
+            />
+          </Field>
+          <Field label={t('editMember.telegram')}>
+            <Input
+              value={value.telegram}
+              placeholder={t('editMember.telegramPlaceholder')}
+              onChange={(e) => set('telegram', e.target.value)}
             />
           </Field>
           <Field label={t('editMember.whatsapp')}>
@@ -207,6 +209,7 @@ export function MemberForm({
               onChange={(e) => set('whatsapp', e.target.value)}
             />
           </Field>
+          {/* Игровой номер — между контактами и игровым профилем. */}
           <Field label={t('editMember.number')}>
             <Input
               inputMode="numeric"
