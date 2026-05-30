@@ -10,29 +10,25 @@ import { formatMoney, formatSignedMoney } from '@/lib/format-money';
 import type { TeamBalanceBreakdown } from '@/types/api';
 
 // Главная карточка хаба «Деньги»: итог + четыре подплитки разбивки.
-// Подплитки рендерятся внутри той же карточки на сером сабстрейте — образ
-// баланса со всеми оговорками сразу, без дополнительных карточек.
-//
-// Цвет подзнака для каждой подплитки задаётся типом её вклада в total:
-//  • on_hand — нейтральный текст (вклад положительный, но в продукте всегда «есть деньги в копилке»);
-//  • future_arenas — красный (вычитается из total);
-//  • overpayments — красный (вычитается);
-//  • debts — зелёный (добавляется к total).
+// Подплитки — независимые срезы (не сумма к total):
+//  • on_hand — нейтральный текст (всегда показываем как есть, без знака);
+//  • arenas_this_month — красный (показатель «во сколько обошлась аренда в этом месяце»);
+//  • overpayments — красный (команда должна игрокам);
+//  • debts — зелёный (игроки должны команде).
 
 type BalanceCardProps = {
   total: number;
   breakdown: TeamBalanceBreakdown;
   title: string;
-  hint: string;
   labels: {
     on_hand: string;
-    future_arenas: string;
+    arenas_this_month: string;
     overpayments: string;
     debts: string;
   };
 };
 
-export function BalanceCard({ total, breakdown, title, hint, labels }: BalanceCardProps) {
+export function BalanceCard({ total, breakdown, title, labels }: BalanceCardProps) {
   const totalColor =
     total > 0 ? colors.successDark : total < 0 ? colors.errorDark : colors.text;
 
@@ -59,12 +55,6 @@ export function BalanceCard({ total, breakdown, title, hint, labels }: BalanceCa
     letterSpacing: '-0.025em',
   };
 
-  const hintStyle: CSSProperties = {
-    ...typography.sm,
-    color: colors.textSecondary,
-    lineHeight: 1.4,
-  };
-
   const grid: CSSProperties = {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
@@ -76,13 +66,12 @@ export function BalanceCard({ total, breakdown, title, hint, labels }: BalanceCa
       <div>
         <div style={titleStyle}>{title}</div>
         <div style={{ ...totalStyle, marginTop: spacing['8'] }}>{formatSignedMoney(total)}</div>
-        <div style={{ ...hintStyle, marginTop: spacing['8'] }}>{hint}</div>
       </div>
       <div style={grid}>
         <Subtile label={labels.on_hand} value={formatMoney(breakdown.on_hand)} tone="neutral" />
         <Subtile
-          label={labels.future_arenas}
-          value={formatSignedMoney(-breakdown.future_arenas)}
+          label={labels.arenas_this_month}
+          value={formatSignedMoney(-breakdown.arenas_this_month)}
           tone="negative"
         />
         <Subtile
@@ -140,8 +129,7 @@ function Subtile({ label, value, tone }: { label: string; value: string; tone: T
   );
 }
 
-// Скелетон балансовой карточки — для первого рендера, пока крутится запрос
-// `/api/finance/balance`. Геометрия совпадает с реальной — нет «прыжка».
+// Скелетон карточки — геометрически совпадает с реальной (нет «прыжка»).
 export function BalanceCardSkeleton() {
   const card: CSSProperties = {
     background: colors.bg,
@@ -161,8 +149,7 @@ export function BalanceCardSkeleton() {
     <div style={card} aria-hidden>
       <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
         <Skeleton width={110} height={13} />
-        <Skeleton width={180} height={36} borderRadius={8} />
-        <Skeleton width="80%" height={13} />
+        <Skeleton width={200} height={40} borderRadius={8} />
       </div>
       <div style={grid}>
         {[0, 1, 2, 3].map((i) => (

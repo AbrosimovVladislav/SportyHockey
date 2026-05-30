@@ -874,8 +874,9 @@ export type PlayerBalance = {
 export type TeamBalanceBreakdown = {
   // Деньги команды на сегодня: ∑ player_payment − ∑ expense (occurred_on ≤ today).
   on_hand: number;
-  // ∑ expense (category=arena) с occurred_on > today.
-  future_arenas: number;
+  // ∑ expense (category=arena) c occurred_on в текущем календарном месяце.
+  // Включает и уже оплаченные, и запланированные на этот месяц аренды.
+  arenas_this_month: number;
   // ∑ положительных переплат игроков (где команда должна игроку).
   overpayments: number;
   // ∑ долгов игроков (где игрок должен команде).
@@ -883,7 +884,9 @@ export type TeamBalanceBreakdown = {
 };
 
 export type TeamBalance = {
-  // total = on_hand − future_arenas − overpayments + debts.
+  // total = on_hand − overpayments + debts. Аренды текущего месяца в total
+  // не вычитаем — они уже учтены в on_hand для уже оплаченных, остальные
+  // показываются справочно в подплитке.
   total: number;
   breakdown: TeamBalanceBreakdown;
   players: PlayerBalance[];

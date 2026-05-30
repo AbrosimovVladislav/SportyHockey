@@ -836,9 +836,8 @@ export const ru = {
 
   // Баланс-карточка
   'money.balance.title': 'Баланс команды',
-  'money.balance.hint': 'актуальный баланс после аренды, долгов и переплат',
   'money.balance.onHand': 'На руках',
-  'money.balance.futureArenas': 'Будущие аренды',
+  'money.balance.arenasThisMonth': 'Аренды этого месяца',
   'money.balance.overpayments': 'Переплаты игрокам',
   'money.balance.debts': 'Долги игроков',
 
@@ -847,7 +846,6 @@ export const ru = {
   'money.actions.payment': 'Оплата игрока',
   'money.actions.deposit': 'Депозит',
   'money.actions.expense': 'Расход',
-  'money.actions.soon': 'Бoттомшит появится в следующей итерации.',
 
   // Список разделов
   'money.sections.title': 'Разделы',
@@ -860,10 +858,29 @@ export const ru = {
   'money.sections.analytics.title': 'Аналитика финансов',
   'money.sections.analytics.subtitle': 'Графики, динамика и прогноз',
 
-  // Лента «Последние операции»
-  'money.recent.title': 'Последние операции',
-  'money.recent.empty': 'Операций пока нет — нажмите «Оплата игрока», «Депозит» или «Расход».',
-  'money.recent.viewAll': 'Все операции',
+  // Состояние «активной команды нет»
+  'money.empty.noTeam.title': 'Раздел доступен после выбора команды',
+  'money.empty.noTeam.body': 'Войдите в команду или создайте свою — раздел заработает.',
+
+  // Экран «Операции» — `/money/transactions`.
+  'money.transactions.title': 'Операции',
+  'money.transactions.empty': 'Операций пока нет — добавьте оплату, депозит или расход на хабе «Деньги».',
+  'money.transactions.emptyFiltered': 'По выбранным фильтрам ничего не нашлось.',
+  'money.transactions.kind.all': 'Все',
+  'money.transactions.kind.income': 'Доходы',
+  'money.transactions.kind.expense': 'Расходы',
+  'money.transactions.type.label': 'Тип',
+  'money.transactions.type.all': 'Все типы',
+  'money.transactions.type.player_payment': 'Оплата игрока',
+  'money.transactions.type.deposit': 'Депозит',
+  'money.transactions.type.adjustment': 'Корректировка',
+  'money.transactions.type.arena': 'Аренда',
+  'money.transactions.type.inventory': 'Инвентарь',
+  'money.transactions.type.uniform': 'Форма',
+  'money.transactions.type.refund': 'Возврат игроку',
+  'money.transactions.type.other': 'Прочий расход',
+  'money.transactions.kindLabel.income': 'Доход',
+  'money.transactions.kindLabel.expense': 'Расход',
 
   // Тексты для строк операций
   'money.row.playerPayment': 'Оплата игрока',
@@ -874,10 +891,6 @@ export const ru = {
   'money.row.category.inventory': 'Инвентарь',
   'money.row.category.uniform': 'Форма',
   'money.row.category.other': 'Прочее',
-
-  // Состояние «активной команды нет»
-  'money.empty.noTeam.title': 'Раздел доступен после выбора команды',
-  'money.empty.noTeam.body': 'Войдите в команду или создайте свою — раздел заработает.',
 
   // Заглушка-soon для подэкранов, которые ещё не реализованы.
   'money.soon.title': 'Раздел в разработке',
