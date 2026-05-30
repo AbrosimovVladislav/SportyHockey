@@ -829,6 +829,60 @@ export const ru = {
   'myProfile.invites.new.alreadyPending': 'Заявка уже отправлена',
   'myProfile.invites.new.empty': 'Команды не найдены',
   'myProfile.invites.member_count': '{count} участников',
+
+  // ───────────────────────────────────────────────────────────────────────
+  // v0.5, итерация 48 — раздел «Деньги», главный экран (`/money`).
+  // ───────────────────────────────────────────────────────────────────────
+
+  // Баланс-карточка
+  'money.balance.title': 'Баланс команды',
+  'money.balance.hint': 'актуальный баланс после аренды, долгов и переплат',
+  'money.balance.onHand': 'На руках',
+  'money.balance.futureArenas': 'Будущие аренды',
+  'money.balance.overpayments': 'Переплаты игрокам',
+  'money.balance.debts': 'Долги игроков',
+
+  // Быстрые действия
+  'money.actions.title': 'Быстрые действия',
+  'money.actions.payment': 'Оплата игрока',
+  'money.actions.deposit': 'Депозит',
+  'money.actions.expense': 'Расход',
+  'money.actions.soon': 'Бoттомшит появится в следующей итерации.',
+
+  // Список разделов
+  'money.sections.title': 'Разделы',
+  'money.sections.report.title': 'Финансовый срез',
+  'money.sections.report.subtitle': 'Показатели за месяц или период',
+  'money.sections.players.title': 'Балансы игроков',
+  'money.sections.players.subtitle': 'Долги, переплаты и нулевые балансы',
+  'money.sections.transactions.title': 'Операции',
+  'money.sections.transactions.subtitle': 'Все доходы, расходы и корректировки',
+  'money.sections.analytics.title': 'Аналитика финансов',
+  'money.sections.analytics.subtitle': 'Графики, динамика и прогноз',
+
+  // Лента «Последние операции»
+  'money.recent.title': 'Последние операции',
+  'money.recent.empty': 'Операций пока нет — нажмите «Оплата игрока», «Депозит» или «Расход».',
+  'money.recent.viewAll': 'Все операции',
+
+  // Тексты для строк операций
+  'money.row.playerPayment': 'Оплата игрока',
+  'money.row.deposit': 'Депозит',
+  'money.row.refund': 'Возврат игроку',
+  'money.row.adjustment': 'Корректировка',
+  'money.row.category.arena': 'Аренда',
+  'money.row.category.inventory': 'Инвентарь',
+  'money.row.category.uniform': 'Форма',
+  'money.row.category.other': 'Прочее',
+
+  // Состояние «активной команды нет»
+  'money.empty.noTeam.title': 'Раздел доступен после выбора команды',
+  'money.empty.noTeam.body': 'Войдите в команду или создайте свою — раздел заработает.',
+
+  // Заглушка-soon для подэкранов, которые ещё не реализованы.
+  'money.soon.title': 'Раздел в разработке',
+  'money.soon.heading': 'Скоро в разработке',
+  'money.soon.body': 'Раздел появится в одной из ближайших итераций v0.5.',
 } as const;
 
 export type TKey = keyof typeof ru;

@@ -812,3 +812,95 @@ export type JoinAcceptResponse = { ok: true; team_id: string; already: boolean }
 export type LeaveTeamResponse = { ok: true };
 export type ArchiveTeamResponse = { ok: true; archived_at: string };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Раздел «Деньги» (v0.5, итерация 48). Один источник правды — finance_transactions,
+// долги/переплаты/депозиты — вычисляемые разрезы. См. docs/roadmap/v0.5.md.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Типы транзакции. На сервере под этим стоит CHECK constraint —
+// добавление нового значения требует миграции.
+export type FinanceTxType = 'player_payment' | 'expense' | 'refund' | 'adjustment';
+
+// Категории расхода. Применимы только к type='expense'; у остальных типов NULL.
+export type FinanceExpenseCategory = 'arena' | 'inventory' | 'uniform' | 'other';
+
+// Лёгкие ссылки на игрока и событие — чтобы фронт мог отрендерить ленту
+// без дополнительных запросов.
+export type FinancePartyUser = {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  photo_url: string | null;
+};
+export type FinancePartyEvent = {
+  id: string;
+  title: string | null;
+  type: string;
+  opponent_name: string | null;
+  starts_at: string;
+};
+
+export type FinanceTransaction = {
+  id: string;
+  type: FinanceTxType;
+  category: FinanceExpenseCategory | null;
+  // Положительное число; знак на агрегатах определяется по type/category.
+  amount: number;
+  description: string | null;
+  // Дата операции (YYYY-MM-DD). Может быть в будущем — это запланированный расход (аренда).
+  occurred_on: string;
+  // ISO с миллисекундами — для тонкой сортировки внутри одного дня.
+  created_at: string;
+  user: FinancePartyUser | null;
+  event: FinancePartyEvent | null;
+};
+
+export type FinanceListResponse = {
+  items: FinanceTransaction[];
+  // Курсор для пагинации (created_at ISO предыдущей страницы). null — больше нет.
+  next_cursor: string | null;
+};
+
+// Баланс игрока без полной росписи операций — нужен для агрегатов на хабе
+// и для будущего экрана «Балансы игроков».
+export type PlayerBalance = {
+  user_id: string;
+  total_charged: number;
+  total_paid: number;
+  balance: number;
+};
+
+export type TeamBalanceBreakdown = {
+  // Деньги команды на сегодня: ∑ player_payment − ∑ expense (occurred_on ≤ today).
+  on_hand: number;
+  // ∑ expense (category=arena) с occurred_on > today.
+  future_arenas: number;
+  // ∑ положительных переплат игроков (где команда должна игроку).
+  overpayments: number;
+  // ∑ долгов игроков (где игрок должен команде).
+  debts: number;
+};
+
+export type TeamBalance = {
+  // total = on_hand − future_arenas − overpayments + debts.
+  total: number;
+  breakdown: TeamBalanceBreakdown;
+  players: PlayerBalance[];
+};
+// На хабе нужен только агрегат — players[] на этом эндпоинте не отдаём.
+export type TeamBalanceResponse = Omit<TeamBalance, 'players'>;
+
+// Создание транзакции (POST /api/finance). Валидируется zod-схемой на сервере:
+// у каждого type — свой обязательный набор полей.
+export type CreateFinanceRequest = {
+  type: FinanceTxType;
+  amount: number;
+  occurred_on?: string | null; // дефолт — сегодня (UTC).
+  category?: FinanceExpenseCategory | null;
+  user_id?: string | null;
+  event_id?: string | null;
+  description?: string | null;
+};
+export type CreateFinanceResponse = { transaction: FinanceTransaction };
+

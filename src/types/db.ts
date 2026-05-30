@@ -271,33 +271,39 @@ export type Database = {
       finance_transactions: {
         Row: {
           amount: number
+          category: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
           event_id: string | null
           id: string
+          occurred_on: string
           team_id: string
           type: string
           user_id: string | null
         }
         Insert: {
           amount: number
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           event_id?: string | null
           id?: string
+          occurred_on?: string
           team_id: string
           type: string
           user_id?: string | null
         }
         Update: {
           amount?: number
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           event_id?: string | null
           id?: string
+          occurred_on?: string
           team_id?: string
           type?: string
           user_id?: string | null
