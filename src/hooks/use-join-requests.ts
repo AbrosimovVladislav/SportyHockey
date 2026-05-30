@@ -14,11 +14,19 @@ import type {
   JoinRequestsResponse,
 } from '@/types/api';
 
-// Входящие заявки на вступление (для организатора).
-export function useJoinRequests(enabled: boolean): UseQueryResult<JoinRequestsResponse> {
+type Scope = 'pending' | 'all';
+
+// Заявки на вступление для организатора. scope='pending' (default) — только
+// ожидающие (используется в pop-up в профиле и для бейджа в хабе /squad).
+// scope='all' — вся история (для экрана /squad/requests).
+export function useJoinRequests(
+  enabled: boolean,
+  scope: Scope = 'pending',
+): UseQueryResult<JoinRequestsResponse> {
+  const url = scope === 'all' ? '/api/teams/me/join-requests?status=all' : '/api/teams/me/join-requests?status=pending';
   return useQuery<JoinRequestsResponse>({
-    queryKey: ['join-requests'],
-    queryFn: () => apiFetch<JoinRequestsResponse>('/api/teams/me/join-requests'),
+    queryKey: ['join-requests', scope],
+    queryFn: () => apiFetch<JoinRequestsResponse>(url),
     enabled,
   });
 }
@@ -38,6 +46,8 @@ export function useDecideJoinRequest(): UseMutationResult<
         body: JSON.stringify({ action } satisfies JoinRequestDecisionRequest),
       }),
     onSuccess: () => {
+      // Инвалидируем оба ключа — и pop-up в профиле, и экран /squad/requests
+      // отрисуют свежие данные сразу после решения.
       qc.invalidateQueries({ queryKey: ['join-requests'] });
       // Принятый игрок должен появиться в /squad даже если список не смонтирован.
       qc.invalidateQueries({ queryKey: ['team-members'], refetchType: 'all' });

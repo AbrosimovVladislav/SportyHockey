@@ -153,7 +153,10 @@ export type TeamSearchItem = {
 };
 export type TeamSearchResponse = { teams: TeamSearchItem[] };
 
-// Входящая заявка на вступление (для приёма организатором в профиле).
+// Заявки на вступление: pending — ожидание решения организатора (для pop-up в
+// профиле и активной части экрана /squad/requests). approved/rejected —
+// история, видна на экране /squad/requests в режиме ?status=all.
+export type JoinRequestStatus = 'pending' | 'approved' | 'rejected';
 export type JoinRequestItem = {
   id: string;
   user_id: string;
@@ -162,6 +165,8 @@ export type JoinRequestItem = {
   username: string | null;
   photo_url: string | null;
   avatar_url: string | null;
+  status: JoinRequestStatus;
+  decided_at: string | null;
   created_at: string;
 };
 export type JoinRequestsResponse = { requests: JoinRequestItem[] };

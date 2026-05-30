@@ -14,6 +14,7 @@ import {
   LuLink,
   LuShieldCheck,
   LuBadgeCheck,
+  LuUserCheck,
 } from 'react-icons/lu';
 import { SiTelegram, SiWhatsapp } from 'react-icons/si';
 import { MdSportsHockey, MdSports } from 'react-icons/md';
@@ -480,4 +481,7 @@ export const IconShieldCheck = ({ size = 24, color = 'currentColor' }: IconProps
 );
 export const IconBadgeCheck = ({ size = 24, color = 'currentColor' }: IconProps) => (
   <LuBadgeCheck size={size} color={color} />
+);
+export const IconUserCheck = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuUserCheck size={size} color={color} />
 );

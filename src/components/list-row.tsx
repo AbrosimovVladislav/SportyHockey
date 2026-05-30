@@ -14,6 +14,10 @@ type Props = {
   right?: ReactNode;
   onClick?: () => void;
   showChevron?: boolean;
+  // muted=true рендерит строку как неинтерактивную заглушку: приглушённые
+  // цвета, без шеврона, без курсора. Используется, например, для пункта
+  // «Тактика» в хабе раздела «Команда» до реализации.
+  muted?: boolean;
 };
 
 export function ListRow({
@@ -24,7 +28,10 @@ export function ListRow({
   right,
   onClick,
   showChevron = true,
+  muted = false,
 }: Props) {
+  const interactive = !!onClick && !muted;
+
   const wrap: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
@@ -34,17 +41,20 @@ export function ListRow({
     borderRadius: radius.lg,
     border: 'none',
     width: '100%',
-    cursor: onClick ? 'pointer' : 'default',
+    cursor: interactive ? 'pointer' : 'default',
     textAlign: 'left',
     color: colors.text,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
+    boxShadow: muted
+      ? '0 1px 3px rgba(0,0,0,0.02), 0 2px 8px rgba(0,0,0,0.015)'
+      : '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
+    opacity: muted ? 0.6 : 1,
   };
 
   const iconBox: CSSProperties = {
     width: 44,
     height: 44,
     borderRadius: radius.md,
-    background: iconBg,
+    background: muted ? colors.bgMuted : iconBg,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -54,7 +64,7 @@ export function ListRow({
   const titleStyle: CSSProperties = {
     fontSize: 15,
     fontWeight: 700,
-    color: colors.text,
+    color: muted ? colors.textSecondary : colors.text,
     lineHeight: 1.25,
   };
 
@@ -72,11 +82,11 @@ export function ListRow({
         <div style={titleStyle}>{title}</div>
         {subtitle ? <div style={subtitleStyle}>{subtitle}</div> : null}
       </div>
-      {right ? right : showChevron && onClick ? <IconChevronRight /> : null}
+      {right ? right : showChevron && interactive ? <IconChevronRight /> : null}
     </>
   );
 
-  if (onClick) {
+  if (interactive) {
     return (
       <button type="button" onClick={onClick} className="pressable" style={wrap}>
         {content}

@@ -1,11 +1,10 @@
 'use client';
 
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { DarkHeader } from '@/components/dark-header';
 import { ListRow } from '@/components/list-row';
 import { TeamStatCells } from '@/components/team-stat-cells';
-import { SoonSheet } from '@/components/soon-sheet';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import {
   IconPlayers,
@@ -17,14 +16,17 @@ import {
   IconSticksCrossed,
   IconImage,
   IconSettings,
+  IconUserCheck,
 } from '@/components/icons';
 import { useTeamMembers } from '@/hooks/use-team-members';
 import { useTeam } from '@/hooks/use-team';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
+import { useJoinRequests } from '@/hooks/use-join-requests';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
+import { radius } from '@/theme/radius';
 
 export default function TeamHubPage() {
   const t = useT();
@@ -34,7 +36,11 @@ export default function TeamHubPage() {
   const membersQ = useTeamMembers();
   const teamQ = useTeam();
   const { isOrganizer } = useIsOrganizer();
-  const [soon, setSoon] = useState<string | null>(null);
+  // Бейдж с количеством pending-заявок для пункта «Заявки и приглашения».
+  // Запрос идёт по тому же ключу, что pop-up в профиле — TanStack делит кеш,
+  // повторного сетевого вызова не будет.
+  const pendingQ = useJoinRequests(isOrganizer, 'pending');
+  const pendingCount = pendingQ.data?.requests.length ?? 0;
 
   const members = membersQ.data?.members ?? [];
   const teamPhoto = teamQ.data?.photo_url ?? '/team.png';
@@ -47,50 +53,6 @@ export default function TeamHubPage() {
     }),
     [members],
   );
-
-  const sections = [
-    {
-      key: 'roster',
-      icon: <IconShirt size={20} color={colors.iconFg} />,
-      title: t('team.section.roster.title'),
-      subtitle: t('team.section.roster.subtitle'),
-      onClick: () => router.push('/squad/roster'),
-    },
-    {
-      key: 'stats',
-      icon: <IconStats size={20} color={colors.iconFg} />,
-      title: t('team.section.stats.title'),
-      subtitle: t('team.section.stats.subtitle'),
-      onClick: () => router.push('/squad/stats'),
-    },
-    {
-      key: 'tactics',
-      icon: <IconSticksCrossed size={20} color={colors.iconFg} />,
-      title: t('team.section.tactics.title'),
-      subtitle: t('team.section.tactics.subtitle'),
-      onClick: () => setSoon(t('team.section.tactics.title')),
-    },
-    {
-      key: 'media',
-      icon: <IconImage size={20} color={colors.iconFg} />,
-      title: t('team.section.media.title'),
-      subtitle: t('team.section.media.subtitle'),
-      onClick: () => router.push('/squad/media'),
-    },
-    // Пункт настроек видим только организатору; игроку в этой итерации
-    // отдельных пунктов в хабе не добавляем (выход из команды не реализован).
-    ...(isOrganizer
-      ? [
-          {
-            key: 'settings',
-            icon: <IconSettings size={20} color={colors.iconFg} />,
-            title: t('team.section.settings.title'),
-            subtitle: t('team.section.settings.subtitle'),
-            onClick: () => router.push('/squad/settings'),
-          },
-        ]
-      : []),
-  ];
 
   const root: CSSProperties = { minHeight: '100dvh', background: colors.bg };
 
@@ -121,23 +83,73 @@ export default function TeamHubPage() {
           ]}
         />
 
-        {sections.map((s) => (
+        <ListRow
+          icon={<IconShirt size={20} color={colors.iconFg} />}
+          title={t('team.section.roster.title')}
+          subtitle={t('team.section.roster.subtitle')}
+          onClick={() => router.push('/squad/roster')}
+        />
+        <ListRow
+          icon={<IconStats size={20} color={colors.iconFg} />}
+          title={t('team.section.stats.title')}
+          subtitle={t('team.section.stats.subtitle')}
+          onClick={() => router.push('/squad/stats')}
+        />
+        {/* «Тактика» — замьючена до итерации 43: неинтерактивная заглушка
+            без шеврона, с подписью «Раздел в разработке». */}
+        <ListRow
+          icon={<IconSticksCrossed size={20} color={colors.iconFg} />}
+          title={t('team.section.tactics.title')}
+          subtitle={t('team.section.tactics.subtitle')}
+          muted
+        />
+        <ListRow
+          icon={<IconImage size={20} color={colors.iconFg} />}
+          title={t('team.section.media.title')}
+          subtitle={t('team.section.media.subtitle')}
+          onClick={() => router.push('/squad/media')}
+        />
+        {isOrganizer ? (
           <ListRow
-            key={s.key}
-            icon={s.icon}
-            title={s.title}
-            subtitle={s.subtitle}
-            onClick={s.onClick}
+            icon={<IconUserCheck size={20} color={colors.iconFg} />}
+            title={t('team.section.requests.title')}
+            subtitle={t('team.section.requests.subtitle')}
+            onClick={() => router.push('/squad/requests')}
+            right={pendingCount > 0 ? <PendingBadge count={pendingCount} /> : undefined}
           />
-        ))}
+        ) : null}
+        {isOrganizer ? (
+          <ListRow
+            icon={<IconSettings size={20} color={colors.iconFg} />}
+            title={t('team.section.settings.title')}
+            subtitle={t('team.section.settings.subtitle')}
+            onClick={() => router.push('/squad/settings')}
+          />
+        ) : null}
       </div>
-
-      <SoonSheet
-        open={soon !== null}
-        onClose={() => setSoon(null)}
-        title={soon ?? ''}
-        description={t('team.soon')}
-      />
     </div>
+  );
+}
+
+// Числовой бейдж в правой части ListRow — количество ожидающих заявок.
+function PendingBadge({ count }: { count: number }) {
+  return (
+    <span
+      style={{
+        minWidth: 22,
+        height: 22,
+        padding: `0 ${spacing['8']}px`,
+        borderRadius: radius.pill,
+        background: colors.primary,
+        color: colors.textInverse,
+        fontSize: 12,
+        fontWeight: 800,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {count}
+    </span>
   );
 }

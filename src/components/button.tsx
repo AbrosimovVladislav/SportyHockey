@@ -6,7 +6,7 @@ import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerOutline';
 type Size = 'md' | 'lg';
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -24,6 +24,11 @@ const variantStyles: Record<Variant, CSSProperties> = {
   },
   ghost: { background: 'transparent', color: colors.primary },
   danger: { background: colors.error, color: colors.textInverse },
+  dangerOutline: {
+    background: colors.bg,
+    color: colors.error,
+    border: `1.5px solid ${colors.error}`,
+  },
 };
 
 const sizeStyles: Record<Size, CSSProperties> = {

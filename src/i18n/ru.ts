@@ -21,9 +21,11 @@ export const ru = {
   'team.section.stats.title': 'Статистика и аналитика',
   'team.section.stats.subtitle': 'Посещаемость, активность, показатели',
   'team.section.tactics.title': 'Тактика',
-  'team.section.tactics.subtitle': 'Звенья, сочетания, игровые схемы',
+  'team.section.tactics.subtitle': 'Раздел в разработке',
   'team.section.media.title': 'Медиа',
   'team.section.media.subtitle': 'Фото и видео команды',
+  'team.section.requests.title': 'Заявки и приглашения',
+  'team.section.requests.subtitle': 'Новые игроки в очереди на вступление',
   'team.section.settings.title': 'Настройки команды',
   'team.section.settings.subtitle': 'Название, логотип, роли, параметры',
   'team.soon': 'Раздел в разработке — появится в одном из ближайших обновлений.',
@@ -733,6 +735,24 @@ export const ru = {
   'join.notFound.title': 'Приглашение не найдено',
   'join.notFound.body': 'Возможно, ссылка устарела — попросите организатора прислать новую.',
   'join.error': 'Не удалось обработать приглашение',
+
+  // Экран /squad/requests — заявки на вступление и история решений.
+  'requests.title': 'Заявки и приглашения',
+  'requests.tabs.all': 'Все',
+  'requests.tabs.in': 'Входящие',
+  'requests.tabs.out': 'Исходящие',
+  'requests.type.incoming': 'Входящая заявка',
+  'requests.status.pending': 'На рассмотрении',
+  'requests.status.approved': 'Принята',
+  'requests.status.rejected': 'Отклонена',
+  'requests.want.join': 'Игрок хочет присоединиться к команде',
+  'requests.accept': 'Принять',
+  'requests.reject': 'Отклонить',
+  'requests.subtitle.approved': 'Игрок присоединился к команде',
+  'requests.subtitle.rejected': 'Заявка отклонена',
+  'requests.empty.all': 'Пока заявок нет — новые появятся здесь, когда игроки нажмут «Отправить заявку».',
+  'requests.empty.in': 'Входящих заявок нет.',
+  'requests.empty.out': 'Исходящие приглашения появятся в одном из ближайших обновлений.',
 } as const;
 
 export type TKey = keyof typeof ru;
