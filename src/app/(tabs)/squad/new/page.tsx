@@ -56,6 +56,7 @@ export default function NewPlayerPage() {
           shoots: form.shoots,
           username: form.telegram,
           contact_phone: form.phone,
+          contact_whatsapp: form.whatsapp,
           jersey_number: n != null && !Number.isNaN(n) ? n : null,
           position: form.position,
           slot_role: form.position === 'goalie' ? 'g' : form.slotRole,

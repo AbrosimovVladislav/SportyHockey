@@ -11,10 +11,11 @@ export type MeUser = {
   birth_date: string | null;
   bio: string | null;
   shoots: PlayerShoots | null;
-  // Личные контакты пользователя (общие, не по команде). Добавлены в v0.4
-  // миграцией users_add_contacts — поля contact_phone, contact_email в users.
+  // Личные контакты пользователя (общие, не по команде). Живут в users.
+  // Три типа: Telegram (поле username выше), телефон (contact_phone),
+  // WhatsApp (contact_whatsapp). E-mail в продукте не используется.
   contact_phone: string | null;
-  contact_email: string | null;
+  contact_whatsapp: string | null;
   // Прошёл ли пользователь онбординг (заполнил/подтвердил свой профиль).
   onboarded: boolean;
 };
@@ -48,7 +49,7 @@ export type UpdateMeRequest = {
   bio?: string | null;
   username?: string | null;
   contact_phone?: string | null;
-  contact_email?: string | null;
+  contact_whatsapp?: string | null;
   avatar_path?: string | null;
 };
 // Возвращаем полный MeResponse, чтобы фронт мог сразу применить изменения
@@ -120,8 +121,10 @@ export type TeamMember = {
   slot_role: PlayerSlotRole | null;
   tier: MemberTier;
   note: string | null;
+  // Контакты живут в users (общие, не по команде); здесь продублированы для
+  // удобства фронта (показываются в карточках состава, в публичном профиле).
   contact_phone: string | null;
-  contact_email: string | null;
+  contact_whatsapp: string | null;
   is_placeholder: boolean;
   // Посещаемость: showed_up / число прошедших не-отменённых событий команды (0–100).
   // null — у команды ещё нет прошедших событий.
@@ -151,6 +154,7 @@ export type UpdateMemberRequest = {
   // Telegram-ник (users.username) — редактируется руками, в т.ч. для игрока без аккаунта.
   username?: string | null;
   contact_phone?: string | null;
+  contact_whatsapp?: string | null;
   jersey_number?: number | null;
   position?: PlayerPosition | null;
   slot_role?: PlayerSlotRole | null;
@@ -171,6 +175,7 @@ export type CreateMemberRequest = {
   avatar_path?: string | null;
   username?: string | null;
   contact_phone?: string | null;
+  contact_whatsapp?: string | null;
   jersey_number?: number | null;
   position?: PlayerPosition | null;
   slot_role?: PlayerSlotRole | null;

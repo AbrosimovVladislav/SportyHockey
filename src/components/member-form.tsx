@@ -31,6 +31,7 @@ export type MemberFormValue = {
   name: string;
   birthDate: string;
   phone: string;
+  whatsapp: string;
   telegram: string;
   number: string;
   position: PlayerPosition | null;
@@ -54,6 +55,7 @@ export function emptyMemberForm(): MemberFormValue {
     name: '',
     birthDate: '',
     phone: '',
+    whatsapp: '',
     telegram: '',
     number: '',
     position: null,
@@ -103,6 +105,9 @@ type Props = {
   onPhotoChange: (f: File | null) => void;
   currentAvatarUrl?: string | null;
   variant?: Variant;
+  // Скрыть командные блоки (Роль/Капитанство, Tier). Использует личный режим
+  // редактирования (/profile/edit): эти поля задаёт организатор, не сам игрок.
+  hideTeamFields?: boolean;
   t: T;
 };
 
@@ -113,6 +118,7 @@ export function MemberForm({
   onPhotoChange,
   currentAvatarUrl,
   variant = 'full',
+  hideTeamFields = false,
   t,
 }: Props) {
   const full = variant === 'full';
@@ -192,6 +198,15 @@ export function MemberForm({
               onChange={(e) => set('phone', e.target.value)}
             />
           </Field>
+          <Field label={t('editMember.whatsapp')}>
+            <Input
+              type="tel"
+              inputMode="tel"
+              value={value.whatsapp}
+              placeholder={t('editMember.whatsappPlaceholder')}
+              onChange={(e) => set('whatsapp', e.target.value)}
+            />
+          </Field>
           <Field label={t('editMember.number')}>
             <Input
               inputMode="numeric"
@@ -236,18 +251,22 @@ export function MemberForm({
             </div>
           </div>
 
-          <Select
-            icon={<IconTrophy size={22} color={colors.iconFg} />}
-            label={t('editMember.role')}
-            value={t(CAPTAINCY_LABEL[value.captaincy])}
-            onClick={() => setSheet('captaincy')}
-          />
-          <Select
-            icon={<IconPeople size={22} color={colors.iconFg} />}
-            label={t('editMember.tier')}
-            value={t(TIER_LABEL[value.tier])}
-            onClick={() => setSheet('tier')}
-          />
+          {hideTeamFields ? null : (
+            <>
+              <Select
+                icon={<IconTrophy size={22} color={colors.iconFg} />}
+                label={t('editMember.role')}
+                value={t(CAPTAINCY_LABEL[value.captaincy])}
+                onClick={() => setSheet('captaincy')}
+              />
+              <Select
+                icon={<IconPeople size={22} color={colors.iconFg} />}
+                label={t('editMember.tier')}
+                value={t(TIER_LABEL[value.tier])}
+                onClick={() => setSheet('tier')}
+              />
+            </>
+          )}
         </>
       ) : (
         <>

@@ -28,7 +28,10 @@ export function HeaderCard({
 
   const phone = member.contact_phone;
   const username = member.username;
-  const waDigits = phone ? phone.replace(/[^\d]/g, '') : '';
+  // WhatsApp: явное поле приоритетнее; если игрок WhatsApp отдельно не указал,
+  // фоллбэчим на телефон (у большинства WhatsApp на том же номере).
+  const waSource = member.contact_whatsapp ?? phone;
+  const waDigits = waSource ? waSource.replace(/[^\d]/g, '') : '';
 
   return (
     <Card variant="surface">
@@ -94,11 +97,11 @@ export function HeaderCard({
 
         <ContactDivider />
         <ContactCircle
-          available={Boolean(phone)}
-          href={phone ? `https://wa.me/${waDigits}` : undefined}
+          available={Boolean(waSource)}
+          href={waSource ? `https://wa.me/${waDigits}` : undefined}
           ariaLabel="WhatsApp"
         >
-          <IconWhatsApp size={18} color={phone ? colors.success : colors.error} />
+          <IconWhatsApp size={18} color={waSource ? colors.success : colors.error} />
         </ContactCircle>
       </div>
     </Card>

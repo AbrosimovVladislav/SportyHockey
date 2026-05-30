@@ -50,7 +50,7 @@ export async function GET(
     const { data: membership, error: memErr } = await sb
       .from('team_memberships')
       .select(
-        'user_id, role, captaincy, jersey_number, position, slot_role, tier, note, contact_phone, contact_email',
+        'user_id, role, captaincy, jersey_number, position, slot_role, tier, note',
       )
       .eq('team_id', team.id)
       .eq('user_id', memberUserId)
@@ -64,7 +64,9 @@ export async function GET(
 
     const { data: u, error: usersErr } = await sb
       .from('users')
-      .select('telegram_id, first_name, last_name, username, photo_url, avatar_url, birth_date, bio, shoots')
+      .select(
+        'telegram_id, first_name, last_name, username, photo_url, avatar_url, birth_date, bio, shoots, contact_phone, contact_whatsapp',
+      )
       .eq('id', memberUserId)
       .maybeSingle();
     if (usersErr) {
@@ -91,8 +93,8 @@ export async function GET(
       slot_role: asSlotRole(membership.slot_role),
       tier: asTier(membership.tier),
       note: membership.note ?? null,
-      contact_phone: membership.contact_phone ?? null,
-      contact_email: membership.contact_email ?? null,
+      contact_phone: u?.contact_phone ?? null,
+      contact_whatsapp: u?.contact_whatsapp ?? null,
       is_placeholder: u?.telegram_id == null,
       attendance_rate: rates.get(memberUserId) ?? null,
     };
@@ -115,6 +117,7 @@ const PatchBody = z.object({
   avatar_path: z.string().max(300).nullable().optional(),
   username: z.string().max(100).nullable().optional(),
   contact_phone: z.string().max(50).nullable().optional(),
+  contact_whatsapp: z.string().max(50).nullable().optional(),
   jersey_number: z.number().int().min(0).max(999).nullable().optional(),
   position: z.enum(['forward', 'defender', 'goalie']).nullable().optional(),
   slot_role: z.enum(['lw', 'c', 'rw', 'ld', 'rd', 'g']).nullable().optional(),
@@ -175,20 +178,22 @@ export async function PATCH(
       }
     }
 
-    // Персональные поля → users.
+    // Персональные поля → users. Контакты (телефон/WhatsApp/Telegram-ник) живут
+    // здесь же — они принадлежат человеку, а не его членству в конкретной команде.
     const userUpdate: TablesUpdate<'users'> = {};
     if (d.first_name !== undefined) userUpdate.first_name = normStr(d.first_name);
     if (d.last_name !== undefined) userUpdate.last_name = normStr(d.last_name);
     if (d.birth_date !== undefined) userUpdate.birth_date = normStr(d.birth_date);
     if (d.shoots !== undefined) userUpdate.shoots = d.shoots;
     if (d.username !== undefined) userUpdate.username = normTelegramUsername(d.username);
+    if (d.contact_phone !== undefined) userUpdate.contact_phone = normStr(d.contact_phone);
+    if (d.contact_whatsapp !== undefined) userUpdate.contact_whatsapp = normStr(d.contact_whatsapp);
     if (d.avatar_path) {
       userUpdate.avatar_url = sb.storage.from(MEDIA_BUCKET).getPublicUrl(d.avatar_path).data.publicUrl;
     }
 
     // Командные поля → team_memberships.
     const memberUpdate: TablesUpdate<'team_memberships'> = {};
-    if (d.contact_phone !== undefined) memberUpdate.contact_phone = normStr(d.contact_phone);
     if (d.jersey_number !== undefined) memberUpdate.jersey_number = d.jersey_number;
     if (d.position !== undefined) memberUpdate.position = d.position;
     if (d.slot_role !== undefined) memberUpdate.slot_role = d.slot_role;

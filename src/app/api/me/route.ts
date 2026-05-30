@@ -43,7 +43,7 @@ const PatchBody = z.object({
   bio: z.string().nullable().optional(),
   username: z.string().nullable().optional(),
   contact_phone: z.string().nullable().optional(),
-  contact_email: z.string().nullable().optional(),
+  contact_whatsapp: z.string().nullable().optional(),
   avatar_path: z.string().nullable().optional(),
 });
 
@@ -67,7 +67,7 @@ export async function PATCH(req: Request): Promise<Response> {
     if (d.bio !== undefined) update.bio = normStr(d.bio);
     if (d.username !== undefined) update.username = normTelegramUsername(d.username);
     if (d.contact_phone !== undefined) update.contact_phone = normStr(d.contact_phone);
-    if (d.contact_email !== undefined) update.contact_email = normStr(d.contact_email);
+    if (d.contact_whatsapp !== undefined) update.contact_whatsapp = normStr(d.contact_whatsapp);
     if (d.avatar_path) {
       update.avatar_url = sb.storage
         .from(MEDIA_BUCKET)
@@ -119,7 +119,7 @@ async function buildMeResponse(userId: string): Promise<MeResponse> {
   const { data: profile, error: profileErr } = await sb
     .from('users')
     .select(
-      'telegram_id, first_name, last_name, username, photo_url, avatar_url, birth_date, bio, shoots, contact_phone, contact_email, onboarded',
+      'telegram_id, first_name, last_name, username, photo_url, avatar_url, birth_date, bio, shoots, contact_phone, contact_whatsapp, onboarded',
     )
     .eq('id', userId)
     .maybeSingle();
@@ -163,7 +163,7 @@ async function buildMeResponse(userId: string): Promise<MeResponse> {
       bio: profile?.bio ?? null,
       shoots: asShoots(profile?.shoots),
       contact_phone: profile?.contact_phone ?? null,
-      contact_email: profile?.contact_email ?? null,
+      contact_whatsapp: profile?.contact_whatsapp ?? null,
       onboarded: profile?.onboarded ?? false,
     },
     memberships,

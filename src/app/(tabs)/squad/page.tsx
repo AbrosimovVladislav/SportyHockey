@@ -95,14 +95,6 @@ export default function TeamHubPage() {
           subtitle={t('team.section.stats.subtitle')}
           onClick={() => router.push('/squad/stats')}
         />
-        {/* «Тактика» — замьючена до итерации 43: неинтерактивная заглушка
-            без шеврона, с подписью «Раздел в разработке». */}
-        <ListRow
-          icon={<IconSticksCrossed size={20} color={colors.iconFg} />}
-          title={t('team.section.tactics.title')}
-          subtitle={t('team.section.tactics.subtitle')}
-          muted
-        />
         <ListRow
           icon={<IconImage size={20} color={colors.iconFg} />}
           title={t('team.section.media.title')}
@@ -126,6 +118,14 @@ export default function TeamHubPage() {
             onClick={() => router.push('/squad/settings')}
           />
         ) : null}
+        {/* «Тактика» — замьючена (раздел вынесен в post-MVP). Стоит
+            последней в списке, чтобы не разрывать рабочие пункты. */}
+        <ListRow
+          icon={<IconSticksCrossed size={20} color={colors.iconFg} />}
+          title={t('team.section.tactics.title')}
+          subtitle={t('team.section.tactics.subtitle')}
+          muted
+        />
       </div>
     </div>
   );

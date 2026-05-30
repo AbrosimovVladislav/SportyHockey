@@ -11,15 +11,15 @@ import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import {
-  IconPerson,
   IconStats,
   IconWallet,
   IconUserCheck,
   IconHeadphones,
   IconFileText,
   IconPhone,
-  IconMail,
   IconAtSign,
+  IconWhatsApp,
+  IconSettings,
   IconCheck,
 } from '@/components/icons';
 import { useMe } from '@/hooks/use-me';
@@ -35,7 +35,7 @@ import { typography } from '@/theme/typography';
 import { formatName } from '@/lib/format-name';
 import type { MeMembership } from '@/types/api';
 
-type ContactField = 'phone' | 'email' | 'username';
+type ContactField = 'phone' | 'whatsapp' | 'username';
 
 export default function ProfilePage() {
   const t = useT();
@@ -46,13 +46,13 @@ export default function ProfilePage() {
   const setActiveTeamId = useActiveTeamStore((s) => s.setActiveTeamId);
   useTgHeader(colors.bg);
 
-  const [teamSheet, setTeamSheet] = useState(false);
-  const [editing, setEditing] = useState<ContactField | null>(null);
-
   const invitesQ = useMyInvites(!!me.data);
   const pendingInvitesCount = (invitesQ.data?.items ?? []).filter(
     (i) => i.kind === 'invite' && i.status === 'pending',
   ).length;
+
+  const [teamSheet, setTeamSheet] = useState(false);
+  const [editing, setEditing] = useState<ContactField | null>(null);
 
   const memberships = me.data?.memberships ?? [];
   const activeMembership = useMemo<MeMembership | undefined>(() => {
@@ -72,6 +72,28 @@ export default function ProfilePage() {
     padding: spacing['16'],
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
   };
+
+  const editButton = (
+    <button
+      type="button"
+      className="pressable"
+      aria-label={t('myProfile.editAria')}
+      onClick={() => router.push('/profile/edit')}
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: '50%',
+        background: colors.bgMuted,
+        border: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+      }}
+    >
+      <IconSettings size={20} color={colors.text} />
+    </button>
+  );
 
   if (me.isLoading) {
     return (
@@ -115,10 +137,10 @@ export default function ProfilePage() {
 
   return (
     <div style={root}>
-      <LightHeader title={t('myProfile.title')} />
+      <LightHeader title={t('myProfile.title')} right={editButton} />
 
       <div style={content}>
-        {/* Шапка с аватаром, ФИО и pill роли/номера. */}
+        {/* Шапка с аватаром, ФИО и pill роли. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing['12'] }}>
           <Avatar src={user.avatar_url ?? user.photo_url} name={fullName} size={64} />
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -139,8 +161,17 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Карточка контактов: три строки + статичная подпись «видны команде». */}
+        {/* Карточка контактов: три типа — Telegram, телефон, WhatsApp.
+            Источник один — users; в публичном профиле и здесь видна одна
+            и та же запись. */}
         <div style={cardStyle}>
+          <ContactRow
+            icon={<IconAtSign size={20} color={colors.iconFg} />}
+            value={user.username ? `@${user.username}` : null}
+            placeholder={t('myProfile.contacts.usernamePlaceholder')}
+            onTap={() => setEditing('username')}
+          />
+          <Divider />
           <ContactRow
             icon={<IconPhone size={20} color={colors.iconFg} />}
             value={user.contact_phone}
@@ -149,17 +180,10 @@ export default function ProfilePage() {
           />
           <Divider />
           <ContactRow
-            icon={<IconMail size={20} color={colors.iconFg} />}
-            value={user.contact_email}
-            placeholder={t('myProfile.contacts.emailPlaceholder')}
-            onTap={() => setEditing('email')}
-          />
-          <Divider />
-          <ContactRow
-            icon={<IconAtSign size={20} color={colors.iconFg} />}
-            value={user.username ? `@${user.username}` : null}
-            placeholder={t('myProfile.contacts.usernamePlaceholder')}
-            onTap={() => setEditing('username')}
+            icon={<IconWhatsApp size={20} color={colors.iconFg} />}
+            value={user.contact_whatsapp}
+            placeholder={t('myProfile.contacts.whatsappPlaceholder')}
+            onTap={() => setEditing('whatsapp')}
           />
           <div
             style={{
@@ -172,7 +196,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Селектор активной команды. Если команд нет — единый плейсхолдер. */}
+        {/* Селектор активной команды. */}
         {memberships.length === 0 ? (
           <div style={emptyTeamCard}>
             <span style={{ ...typography.body, color: colors.textSecondary }}>
@@ -226,15 +250,8 @@ export default function ProfilePage() {
           </button>
         )}
 
-        {/* Список разделов. В итерации 43 все ведут на /profile/soon;
-            в 44–46 подменяются на реальные экраны. */}
+        {/* Разделы. Поддержка и политика — замьючены (как тактика в /squad). */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
-          <ListRow
-            icon={<IconPerson size={20} color={colors.iconFg} />}
-            title={t('myProfile.section.card.title')}
-            subtitle={t('myProfile.section.card.subtitle')}
-            onClick={() => router.push('/profile/edit')}
-          />
           <ListRow
             icon={<IconStats size={20} color={colors.iconFg} />}
             title={t('myProfile.section.stats.title')}
@@ -262,13 +279,13 @@ export default function ProfilePage() {
             icon={<IconHeadphones size={20} color={colors.iconFg} />}
             title={t('myProfile.section.support.title')}
             subtitle={t('myProfile.section.support.subtitle')}
-            onClick={() => router.push(soonHref('myProfile.section.support.title'))}
+            muted
           />
           <ListRow
             icon={<IconFileText size={20} color={colors.iconFg} />}
             title={t('myProfile.section.privacy.title')}
             subtitle={t('myProfile.section.privacy.subtitle')}
-            onClick={() => router.push(soonHref('myProfile.section.privacy.title'))}
+            muted
           />
         </div>
       </div>
@@ -287,7 +304,12 @@ export default function ProfilePage() {
       {editing ? (
         <ContactEditor
           field={editing}
-          initialValue={initialContactValue(editing, user.contact_phone, user.contact_email, user.username)}
+          initialValue={initialContactValue(
+            editing,
+            user.contact_phone,
+            user.contact_whatsapp,
+            user.username,
+          )}
           onClose={() => setEditing(null)}
         />
       ) : null}
@@ -295,18 +317,14 @@ export default function ProfilePage() {
   );
 }
 
-function soonHref(titleKey: string): string {
-  return `/profile/soon?title=${encodeURIComponent(titleKey)}`;
-}
-
 function initialContactValue(
   field: ContactField,
   phone: string | null,
-  email: string | null,
+  whatsapp: string | null,
   username: string | null,
 ): string {
   if (field === 'phone') return phone ?? '';
-  if (field === 'email') return email ?? '';
+  if (field === 'whatsapp') return whatsapp ?? '';
   return username ?? '';
 }
 
@@ -397,7 +415,7 @@ function ContactRow({
         style={{
           flex: 1,
           minWidth: 0,
-          ...(value ? typography.body : typography.body),
+          ...typography.body,
           color: value ? colors.text : colors.textSecondary,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -426,15 +444,15 @@ function ContactEditor({
   const fieldLabel =
     field === 'phone'
       ? t('myProfile.contacts.phoneTitle')
-      : field === 'email'
-        ? t('myProfile.contacts.emailTitle')
+      : field === 'whatsapp'
+        ? t('myProfile.contacts.whatsappTitle')
         : t('myProfile.contacts.usernameTitle');
 
   const placeholder =
     field === 'phone'
       ? t('myProfile.contacts.phonePlaceholder')
-      : field === 'email'
-        ? t('myProfile.contacts.emailPlaceholder')
+      : field === 'whatsapp'
+        ? t('myProfile.contacts.whatsappPlaceholder')
         : t('myProfile.contacts.usernamePlaceholder');
 
   const onSave = () => {
@@ -442,8 +460,8 @@ function ContactEditor({
     const payload =
       field === 'phone'
         ? { contact_phone: trimmed || null }
-        : field === 'email'
-          ? { contact_email: trimmed || null }
+        : field === 'whatsapp'
+          ? { contact_whatsapp: trimmed || null }
           : { username: trimmed || null };
     update.mutate(
       { body: payload },
@@ -460,7 +478,7 @@ function ContactEditor({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
-          inputMode={field === 'phone' ? 'tel' : field === 'email' ? 'email' : 'text'}
+          inputMode={field === 'phone' || field === 'whatsapp' ? 'tel' : 'text'}
           autoFocus
         />
         {update.error ? (

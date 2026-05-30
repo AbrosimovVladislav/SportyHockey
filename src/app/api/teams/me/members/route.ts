@@ -25,6 +25,8 @@ type UserRow = {
   birth_date: string | null;
   bio: string | null;
   shoots: string | null;
+  contact_phone: string | null;
+  contact_whatsapp: string | null;
 };
 
 export async function GET(req: Request): Promise<Response> {
@@ -52,7 +54,7 @@ export async function GET(req: Request): Promise<Response> {
     const { data: memberships, error: memErr } = await sb
       .from('team_memberships')
       .select(
-        'user_id, role, captaincy, jersey_number, position, slot_role, tier, note, contact_phone, contact_email',
+        'user_id, role, captaincy, jersey_number, position, slot_role, tier, note',
       )
       .eq('team_id', team.id);
     if (memErr) {
@@ -64,7 +66,9 @@ export async function GET(req: Request): Promise<Response> {
     if (userIds.length > 0) {
       const { data: users, error: usersErr } = await sb
         .from('users')
-        .select('id, telegram_id, first_name, last_name, username, photo_url, avatar_url, birth_date, bio, shoots')
+        .select(
+          'id, telegram_id, first_name, last_name, username, photo_url, avatar_url, birth_date, bio, shoots, contact_phone, contact_whatsapp',
+        )
         .in('id', userIds);
       if (usersErr) {
         return NextResponse.json({ error: usersErr.message }, { status: 500 });
@@ -82,6 +86,8 @@ export async function GET(req: Request): Promise<Response> {
             birth_date: u.birth_date,
             bio: u.bio,
             shoots: u.shoots,
+            contact_phone: u.contact_phone,
+            contact_whatsapp: u.contact_whatsapp,
           },
         ]),
       );
@@ -109,8 +115,8 @@ export async function GET(req: Request): Promise<Response> {
         slot_role: asSlotRole(m.slot_role),
         tier: asTier(m.tier),
         note: m.note ?? null,
-        contact_phone: m.contact_phone ?? null,
-        contact_email: m.contact_email ?? null,
+        contact_phone: u?.contact_phone ?? null,
+        contact_whatsapp: u?.contact_whatsapp ?? null,
         is_placeholder: u?.telegram_id == null,
         attendance_rate: rates.get(m.user_id) ?? null,
       };
@@ -133,6 +139,7 @@ const CreateBody = z.object({
   shoots: z.enum(['left', 'right']).nullable().optional(),
   username: z.string().max(100).nullable().optional(),
   contact_phone: z.string().max(50).nullable().optional(),
+  contact_whatsapp: z.string().max(50).nullable().optional(),
   jersey_number: z.number().int().min(0).max(999).nullable().optional(),
   position: z.enum(['forward', 'defender', 'goalie']).nullable().optional(),
   slot_role: z.enum(['lw', 'c', 'rw', 'ld', 'rd', 'g']).nullable().optional(),
@@ -195,6 +202,9 @@ export async function POST(req: Request): Promise<Response> {
         username,
         birth_date: normStr(d.birth_date),
         shoots: d.shoots ?? null,
+        // Контакты — на пользователе, общие для всех команд.
+        contact_phone: normStr(d.contact_phone),
+        contact_whatsapp: normStr(d.contact_whatsapp),
         onboarded: false,
       };
       const { data: createdUser, error: userErr } = await sb
@@ -212,11 +222,25 @@ export async function POST(req: Request): Promise<Response> {
       createdNew = true;
     }
 
+    // Если игрок уже существовал в users (привязка по нику), а организатор
+    // в форме указал контакты — переносим их в users (общая точка истины).
+    if (!createdNew && (d.contact_phone !== undefined || d.contact_whatsapp !== undefined)) {
+      const contactUpdate: TablesInsert<'users'> = { id: resolved.id };
+      if (d.contact_phone !== undefined) contactUpdate.contact_phone = normStr(d.contact_phone);
+      if (d.contact_whatsapp !== undefined) contactUpdate.contact_whatsapp = normStr(d.contact_whatsapp);
+      const { error: cuErr } = await sb
+        .from('users')
+        .update(contactUpdate)
+        .eq('id', resolved.id);
+      if (cuErr) {
+        return NextResponse.json({ error: cuErr.message }, { status: 500 });
+      }
+    }
+
     const memberInsert: TablesInsert<'team_memberships'> = {
       team_id: org.team_id,
       user_id: resolved.id,
       role: 'player',
-      contact_phone: normStr(d.contact_phone),
       jersey_number: d.jersey_number ?? null,
       position: d.position ?? null,
       slot_role: d.position === 'goalie' ? 'g' : d.slot_role ?? null,

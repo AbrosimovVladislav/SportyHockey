@@ -655,8 +655,6 @@ export type Database = {
       team_memberships: {
         Row: {
           captaincy: string
-          contact_email: string | null
-          contact_phone: string | null
           id: string
           jersey_number: number | null
           joined_at: string | null
@@ -670,8 +668,6 @@ export type Database = {
         }
         Insert: {
           captaincy?: string
-          contact_email?: string | null
-          contact_phone?: string | null
           id?: string
           jersey_number?: number | null
           joined_at?: string | null
@@ -685,8 +681,6 @@ export type Database = {
         }
         Update: {
           captaincy?: string
-          contact_email?: string | null
-          contact_phone?: string | null
           id?: string
           jersey_number?: number | null
           joined_at?: string | null
@@ -764,8 +758,8 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           birth_date: string | null
-          contact_email: string | null
           contact_phone: string | null
+          contact_whatsapp: string | null
           created_at: string | null
           first_name: string | null
           id: string
@@ -780,8 +774,8 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           birth_date?: string | null
-          contact_email?: string | null
           contact_phone?: string | null
+          contact_whatsapp?: string | null
           created_at?: string | null
           first_name?: string | null
           id?: string
@@ -796,8 +790,8 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           birth_date?: string | null
-          contact_email?: string | null
           contact_phone?: string | null
+          contact_whatsapp?: string | null
           created_at?: string | null
           first_name?: string | null
           id?: string

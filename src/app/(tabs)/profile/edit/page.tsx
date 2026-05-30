@@ -55,6 +55,7 @@ export default function MyProfileEditPage() {
       name: [u.first_name, u.last_name].filter(Boolean).join(' '),
       birthDate: u.birth_date ?? '',
       phone: u.contact_phone ?? '',
+      whatsapp: u.contact_whatsapp ?? '',
       telegram: u.username ?? '',
       number: member?.jersey_number != null ? String(member.jersey_number) : '',
       position: member?.position ?? null,
@@ -90,17 +91,17 @@ export default function MyProfileEditPage() {
           shoots: form.shoots,
           username: form.telegram,
           contact_phone: form.phone,
+          contact_whatsapp: form.whatsapp,
         },
         photo,
       });
-      // Командные поля — только если игрок в команде.
+      // Командные поля — только если игрок в команде. Капитанство (captaincy)
+      // и статус в составе (tier) задаёт организатор; в личном редакторе их нет.
       if (memberQ.data?.member) {
         await updateMembership.mutateAsync({
           jersey_number: n != null && !Number.isNaN(n) ? n : null,
           position: form.position,
           slot_role: form.position === 'goalie' ? 'g' : form.slotRole,
-          captaincy: form.captaincy,
-          tier: form.tier,
         });
       }
       onBack();
@@ -153,6 +154,7 @@ export default function MyProfileEditPage() {
           onPhotoChange={setPhoto}
           currentAvatarUrl={u.avatar_url ?? u.photo_url}
           variant="full"
+          hideTeamFields
           t={t}
         />
 
