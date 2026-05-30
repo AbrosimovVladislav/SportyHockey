@@ -17,7 +17,11 @@ export async function GET(req: Request): Promise<Response> {
 
     const q = new URL(req.url).searchParams.get('q')?.trim() ?? '';
 
-    let query = sb.from('teams').select('id, name, logo_url').limit(LIMIT);
+    let query = sb
+      .from('teams')
+      .select('id, name, logo_url')
+      .is('archived_at', null)
+      .limit(LIMIT);
     if (q) query = query.ilike('name', `%${q}%`);
     query = query.order('created_at', { ascending: false });
 

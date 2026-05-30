@@ -15,6 +15,10 @@ import {
   LuShieldCheck,
   LuBadgeCheck,
   LuUserCheck,
+  LuMail,
+  LuAtSign,
+  LuHeadphones,
+  LuFileText,
 } from 'react-icons/lu';
 import { SiTelegram, SiWhatsapp } from 'react-icons/si';
 import { MdSportsHockey, MdSports } from 'react-icons/md';
@@ -484,4 +488,16 @@ export const IconBadgeCheck = ({ size = 24, color = 'currentColor' }: IconProps)
 );
 export const IconUserCheck = ({ size = 24, color = 'currentColor' }: IconProps) => (
   <LuUserCheck size={size} color={color} />
+);
+export const IconMail = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuMail size={size} color={color} />
+);
+export const IconAtSign = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuAtSign size={size} color={color} />
+);
+export const IconHeadphones = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuHeadphones size={size} color={color} />
+);
+export const IconFileText = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuFileText size={size} color={color} />
 );

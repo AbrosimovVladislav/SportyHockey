@@ -11,6 +11,10 @@ export type MeUser = {
   birth_date: string | null;
   bio: string | null;
   shoots: PlayerShoots | null;
+  // Личные контакты пользователя (общие, не по команде). Добавлены в v0.4
+  // миграцией users_add_contacts — поля contact_phone, contact_email в users.
+  contact_phone: string | null;
+  contact_email: string | null;
   // Прошёл ли пользователь онбординг (заполнил/подтвердил свой профиль).
   onboarded: boolean;
 };
@@ -33,6 +37,55 @@ export type MeResponse = {
   invite_link: string | null;
   pending_join_request: PendingJoinRequest | null;
 };
+
+// PATCH /api/me — игрок редактирует собственные поля в users (v0.4).
+// avatar_path добавляется в итерации 44 для подключения signed-upload аватара.
+export type UpdateMeRequest = {
+  first_name?: string | null;
+  last_name?: string | null;
+  birth_date?: string | null;
+  shoots?: PlayerShoots | null;
+  bio?: string | null;
+  username?: string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  avatar_path?: string | null;
+};
+// Возвращаем полный MeResponse, чтобы фронт мог сразу применить изменения
+// (новый avatar_url, пересчитанные membershipss и т.п.).
+export type UpdateMeResponse = MeResponse;
+
+// PATCH /api/me/membership — игрок редактирует свои командные поля в
+// активной команде (v0.4, итерация 44): номер, амплуа, слот, капитанство, tier.
+export type UpdateMyMembershipRequest = {
+  jersey_number?: number | null;
+  position?: PlayerPosition | null;
+  slot_role?: PlayerSlotRole | null;
+  captaincy?: PlayerCaptaincy;
+  tier?: MemberTier;
+};
+export type UpdateMyMembershipResponse = { ok: true };
+
+// Личный инбокс игрока (v0.4, итерация 46).
+// kind='invite' — приглашение от команды; kind='request' — моя заявка в команду.
+export type MyInviteKind = 'invite' | 'request';
+export type MyInviteItem = {
+  id: string;
+  team_id: string;
+  team_name: string;
+  team_logo_url: string | null;
+  kind: MyInviteKind;
+  status: JoinRequestStatus;
+  decided_at: string | null;
+  created_at: string;
+};
+export type MyInvitesResponse = { items: MyInviteItem[] };
+
+export type MyInviteDecisionRequest = { action: 'approve' | 'reject' };
+export type MyInviteDecisionResponse = { ok: true; team_id: string; status: JoinRequestStatus };
+
+export type ApplyToTeamRequest = { team_id: string };
+export type ApplyToTeamResponse = { ok: true; status: JoinRequestStatus; already?: boolean };
 
 export type CreateTeamRequest = {
   name: string;

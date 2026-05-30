@@ -1,31 +1,58 @@
 'use client';
 
 import { useMemo, useState, type CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { Screen } from '@/components/screen';
-import { Card } from '@/components/card';
 import { Avatar } from '@/components/avatar';
-import { Chip } from '@/components/chip';
+import { LightHeader } from '@/components/light-header';
+import { ListRow } from '@/components/list-row';
+import { BottomSheet } from '@/components/bottom-sheet';
 import { Button } from '@/components/button';
-import { IconCheck } from '@/components/icons';
-import { useT } from '@/hooks/use-t';
+import { Input } from '@/components/input';
+import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
+import {
+  IconPerson,
+  IconStats,
+  IconWallet,
+  IconUserCheck,
+  IconHeadphones,
+  IconFileText,
+  IconPhone,
+  IconMail,
+  IconAtSign,
+  IconCheck,
+} from '@/components/icons';
 import { useMe } from '@/hooks/use-me';
-import { JoinRequestsCard } from './join-requests-card';
-import { formatName } from '@/lib/format-name';
+import { useUpdateMe } from '@/hooks/use-update-me';
+import { useMyInvites } from '@/hooks/use-my-invites';
+import { useT } from '@/hooks/use-t';
+import { useTgHeader } from '@/hooks/use-tg-header';
 import { useActiveTeamStore } from '@/store/active-team';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
-import { radius } from '@/theme/radius';
 import { colors } from '@/theme/colors';
+import { spacing } from '@/theme/spacing';
+import { radius } from '@/theme/radius';
+import { typography } from '@/theme/typography';
+import { formatName } from '@/lib/format-name';
 import type { MeMembership } from '@/types/api';
+
+type ContactField = 'phone' | 'email' | 'username';
 
 export default function ProfilePage() {
   const t = useT();
+  const router = useRouter();
   const me = useMe();
   const qc = useQueryClient();
   const activeTeamId = useActiveTeamStore((s) => s.activeTeamId);
   const setActiveTeamId = useActiveTeamStore((s) => s.setActiveTeamId);
-  const [copied, setCopied] = useState(false);
+  useTgHeader(colors.bg);
+
+  const [teamSheet, setTeamSheet] = useState(false);
+  const [editing, setEditing] = useState<ContactField | null>(null);
+
+  const invitesQ = useMyInvites(!!me.data);
+  const pendingInvitesCount = (invitesQ.data?.items ?? []).filter(
+    (i) => i.kind === 'invite' && i.status === 'pending',
+  ).length;
 
   const memberships = me.data?.memberships ?? [];
   const activeMembership = useMemo<MeMembership | undefined>(() => {
@@ -37,203 +64,494 @@ export default function ProfilePage() {
     return memberships[0];
   }, [memberships, activeTeamId]);
 
+  const root: CSSProperties = { minHeight: '100dvh', background: colors.bg };
+  const content: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing['16'],
+    padding: spacing['16'],
+    paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
+  };
+
   if (me.isLoading) {
     return (
-      <Screen title={t('profile.title')}>
-        <span style={{ ...typography.body, color: colors.textSecondary }}>
-          {t('common.loading')}
-        </span>
-      </Screen>
+      <div style={root}>
+        <LightHeader title={t('myProfile.title')} />
+        <div style={{ ...content, justifyContent: 'center' }}>
+          <span style={{ ...typography.body, color: colors.textSecondary }}>
+            {t('common.loading')}
+          </span>
+        </div>
+      </div>
     );
   }
   if (me.error || !me.data) {
     return (
-      <Screen title={t('profile.title')}>
-        <span style={{ ...typography.body, color: colors.error }}>{t('common.error')}</span>
-      </Screen>
+      <div style={root}>
+        <LightHeader title={t('myProfile.title')} />
+        <div style={{ ...content, justifyContent: 'center' }}>
+          <span style={{ ...typography.body, color: colors.error }}>
+            {t('common.error')}
+          </span>
+        </div>
+      </div>
     );
   }
 
-  const { user, invite_link } = me.data;
+  const { user } = me.data;
+  const fullName = formatName(user);
   const roleLabel = activeMembership
     ? activeMembership.role === 'organizer'
       ? t('profile.role.organizer')
       : t('profile.role.player')
     : null;
 
-  const handleCopy = async () => {
-    if (!invite_link) return;
-    try {
-      await navigator.clipboard.writeText(invite_link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // буфер может быть недоступен — игнорируем
-    }
-  };
-
   const handleSwitchTeam = async (teamId: string) => {
+    setTeamSheet(false);
     if (activeMembership?.team_id === teamId) return;
     setActiveTeamId(teamId);
     await qc.invalidateQueries();
   };
 
-  const showSwitcher = memberships.length > 1;
-
   return (
-    <Screen title={t('profile.title')}>
-      <Card variant="warm">
+    <div style={root}>
+      <LightHeader title={t('myProfile.title')} />
+
+      <div style={content}>
+        {/* Шапка с аватаром, ФИО и pill роли/номера. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: spacing['12'] }}>
-          <Avatar src={user.avatar_url ?? user.photo_url} name={formatName(user)} size={56} />
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ ...typography.bodyBold, color: colors.text }}>{formatName(user)}</span>
-            {user.username ? (
-              <span style={{ ...typography.sm, color: colors.textSecondary }}>@{user.username}</span>
+          <Avatar src={user.avatar_url ?? user.photo_url} name={fullName} size={64} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ ...typography.h2, color: colors.text }}>{fullName}</div>
+            {roleLabel ? (
+              <div
+                style={{
+                  marginTop: spacing['6'],
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing['8'],
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={pillStyle(activeMembership!.role === 'organizer')}>{roleLabel}</span>
+              </div>
             ) : null}
           </div>
-          {activeMembership && roleLabel ? (
-            <Chip tone={activeMembership.role === 'organizer' ? 'primary' : 'neutral'}>
-              {roleLabel}
-            </Chip>
-          ) : null}
         </div>
-      </Card>
 
-      {!showSwitcher && activeMembership ? (
-        <Card variant="warm">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ ...typography.caption, color: colors.textSecondary }}>
-              {t('profile.team')}
-            </span>
-            <span style={{ ...typography.bodyBold, color: colors.text }}>
-              {activeMembership.team_name}
+        {/* Карточка контактов: три строки + статичная подпись «видны команде». */}
+        <div style={cardStyle}>
+          <ContactRow
+            icon={<IconPhone size={20} color={colors.iconFg} />}
+            value={user.contact_phone}
+            placeholder={t('myProfile.contacts.phonePlaceholder')}
+            onTap={() => setEditing('phone')}
+          />
+          <Divider />
+          <ContactRow
+            icon={<IconMail size={20} color={colors.iconFg} />}
+            value={user.contact_email}
+            placeholder={t('myProfile.contacts.emailPlaceholder')}
+            onTap={() => setEditing('email')}
+          />
+          <Divider />
+          <ContactRow
+            icon={<IconAtSign size={20} color={colors.iconFg} />}
+            value={user.username ? `@${user.username}` : null}
+            placeholder={t('myProfile.contacts.usernamePlaceholder')}
+            onTap={() => setEditing('username')}
+          />
+          <div
+            style={{
+              ...typography.sm,
+              color: colors.textSecondary,
+              padding: `${spacing['8']}px ${spacing['16']}px 0`,
+            }}
+          >
+            {t('myProfile.contacts.visibilityHint')}
+          </div>
+        </div>
+
+        {/* Селектор активной команды. Если команд нет — единый плейсхолдер. */}
+        {memberships.length === 0 ? (
+          <div style={emptyTeamCard}>
+            <span style={{ ...typography.body, color: colors.textSecondary }}>
+              {t('myProfile.team.empty')}
             </span>
           </div>
-        </Card>
-      ) : null}
+        ) : (
+          <button
+            type="button"
+            className="pressable"
+            onClick={() => memberships.length > 1 && setTeamSheet(true)}
+            style={{
+              ...cardStyle,
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing['12'],
+              padding: spacing['16'],
+              cursor: memberships.length > 1 ? 'pointer' : 'default',
+              border: 'none',
+              width: '100%',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ ...typography.caption, color: colors.textSecondary }}>
+                {t('myProfile.team.active')}
+              </div>
+              <div
+                style={{
+                  ...typography.bodyBold,
+                  color: colors.text,
+                  marginTop: 2,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {activeMembership!.team_name}
+              </div>
+              <div style={{ ...typography.sm, color: colors.textSecondary, marginTop: 2 }}>
+                {activeMembership!.role === 'organizer'
+                  ? t('profile.role.organizer')
+                  : t('profile.role.player')}
+              </div>
+            </div>
+            {memberships.length > 1 ? (
+              <span style={{ ...typography.sm, color: colors.primary }}>
+                {t('myProfile.team.change')}
+              </span>
+            ) : null}
+          </button>
+        )}
 
-      {showSwitcher ? (
-        <TeamSwitcher
-          memberships={memberships}
-          activeTeamId={activeMembership?.team_id ?? null}
-          onSelect={handleSwitchTeam}
-          headerLabel={t('profile.teamSwitcher.header')}
-          organizerLabel={t('profile.role.organizer')}
-          playerLabel={t('profile.role.player')}
+        {/* Список разделов. В итерации 43 все ведут на /profile/soon;
+            в 44–46 подменяются на реальные экраны. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
+          <ListRow
+            icon={<IconPerson size={20} color={colors.iconFg} />}
+            title={t('myProfile.section.card.title')}
+            subtitle={t('myProfile.section.card.subtitle')}
+            onClick={() => router.push('/profile/edit')}
+          />
+          <ListRow
+            icon={<IconStats size={20} color={colors.iconFg} />}
+            title={t('myProfile.section.stats.title')}
+            subtitle={t('myProfile.section.stats.subtitle')}
+            onClick={() => router.push('/profile/stats')}
+          />
+          <ListRow
+            icon={<IconWallet size={20} color={colors.iconFg} />}
+            title={t('myProfile.section.finance.title')}
+            subtitle={t('myProfile.section.finance.subtitle')}
+            onClick={() => router.push('/profile/finance')}
+          />
+          <ListRow
+            icon={<IconUserCheck size={20} color={colors.iconFg} />}
+            title={t('myProfile.section.invites.title')}
+            subtitle={t('myProfile.section.invites.subtitle')}
+            onClick={() => router.push('/profile/invites')}
+            right={
+              pendingInvitesCount > 0 ? (
+                <span style={pendingBadgeStyle}>{pendingInvitesCount}</span>
+              ) : undefined
+            }
+          />
+          <ListRow
+            icon={<IconHeadphones size={20} color={colors.iconFg} />}
+            title={t('myProfile.section.support.title')}
+            subtitle={t('myProfile.section.support.subtitle')}
+            onClick={() => router.push(soonHref('myProfile.section.support.title'))}
+          />
+          <ListRow
+            icon={<IconFileText size={20} color={colors.iconFg} />}
+            title={t('myProfile.section.privacy.title')}
+            subtitle={t('myProfile.section.privacy.subtitle')}
+            onClick={() => router.push(soonHref('myProfile.section.privacy.title'))}
+          />
+        </div>
+      </div>
+
+      <TeamPickerSheet
+        open={teamSheet}
+        onClose={() => setTeamSheet(false)}
+        memberships={memberships}
+        activeTeamId={activeMembership?.team_id ?? null}
+        onSelect={handleSwitchTeam}
+        title={t('myProfile.team.pickerTitle')}
+        organizerLabel={t('profile.role.organizer')}
+        playerLabel={t('profile.role.player')}
+      />
+
+      {editing ? (
+        <ContactEditor
+          field={editing}
+          initialValue={initialContactValue(editing, user.contact_phone, user.contact_email, user.username)}
+          onClose={() => setEditing(null)}
         />
       ) : null}
-
-      <JoinRequestsCard enabled={activeMembership?.role === 'organizer'} />
-
-      {invite_link ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
-          <Button fullWidth onClick={handleCopy}>
-            {copied ? t('profile.copied') : t('profile.copyInvite')}
-          </Button>
-          <span style={{ ...typography.sm, color: colors.textSecondary }}>
-            {t('profile.copyInviteHint')}
-          </span>
-        </div>
-      ) : null}
-    </Screen>
-  );
-}
-
-type TeamSwitcherProps = {
-  memberships: MeMembership[];
-  activeTeamId: string | null;
-  onSelect: (teamId: string) => void;
-  headerLabel: string;
-  organizerLabel: string;
-  playerLabel: string;
-};
-
-function TeamSwitcher({
-  memberships,
-  activeTeamId,
-  onSelect,
-  headerLabel,
-  organizerLabel,
-  playerLabel,
-}: TeamSwitcherProps) {
-  const wrap: CSSProperties = {
-    background: colors.bgWarm,
-    borderRadius: radius.lg,
-    padding: spacing['16'],
-    display: 'flex',
-    flexDirection: 'column',
-    gap: spacing['12'],
-  };
-  return (
-    <div style={wrap}>
-      <span style={{ ...typography.caption, color: colors.textSecondary }}>{headerLabel}</span>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
-        {memberships.map((m) => (
-          <TeamRow
-            key={m.team_id}
-            membership={m}
-            active={m.team_id === activeTeamId}
-            onClick={() => onSelect(m.team_id)}
-            organizerLabel={organizerLabel}
-            playerLabel={playerLabel}
-          />
-        ))}
-      </div>
     </div>
   );
 }
 
-type TeamRowProps = {
-  membership: MeMembership;
-  active: boolean;
-  onClick: () => void;
-  organizerLabel: string;
-  playerLabel: string;
-};
+function soonHref(titleKey: string): string {
+  return `/profile/soon?title=${encodeURIComponent(titleKey)}`;
+}
 
-function TeamRow({ membership, active, onClick, organizerLabel, playerLabel }: TeamRowProps) {
-  const row: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing['12'],
-    padding: `${spacing['12']}px ${spacing['12']}px`,
-    background: colors.bg,
-    borderRadius: radius.md,
-    border: `1.5px solid ${active ? colors.primary : 'transparent'}`,
-    cursor: 'pointer',
-    width: '100%',
-    textAlign: 'left',
-  };
-  const checkCircle: CSSProperties = {
-    width: 24,
-    height: 24,
-    borderRadius: '50%',
-    background: active ? colors.primary : colors.bgMuted,
-    color: active ? colors.textInverse : 'transparent',
+function initialContactValue(
+  field: ContactField,
+  phone: string | null,
+  email: string | null,
+  username: string | null,
+): string {
+  if (field === 'phone') return phone ?? '';
+  if (field === 'email') return email ?? '';
+  return username ?? '';
+}
+
+function pillStyle(primary: boolean): CSSProperties {
+  return {
     display: 'inline-flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+    padding: `${spacing['4']}px ${spacing['10']}px`,
+    borderRadius: radius.pill,
+    background: primary ? colors.primaryLight : colors.bgMuted,
+    color: primary ? colors.primary : colors.textSecondary,
+    fontSize: 12,
+    fontWeight: 700,
   };
+}
+
+const pendingBadgeStyle: CSSProperties = {
+  minWidth: 22,
+  height: 22,
+  padding: `0 ${spacing['8']}px`,
+  borderRadius: radius.pill,
+  background: colors.primary,
+  color: colors.textInverse,
+  fontSize: 12,
+  fontWeight: 800,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const cardStyle: CSSProperties = {
+  background: colors.bg,
+  borderRadius: radius.lg,
+  padding: spacing['16'],
+  boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)',
+};
+
+const emptyTeamCard: CSSProperties = {
+  ...cardStyle,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: `${spacing['24']}px ${spacing['16']}px`,
+};
+
+function Divider() {
   return (
-    <button type="button" className="pressable" onClick={onClick} style={row}>
-      <span style={checkCircle}>{active ? <IconCheck size={14} color={colors.textInverse} /> : null}</span>
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span
-          style={{
-            ...typography.bodyBold,
-            color: colors.text,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {membership.team_name}
-        </span>
-        <span style={{ ...typography.sm, color: colors.textSecondary }}>
-          {membership.role === 'organizer' ? organizerLabel : playerLabel}
-        </span>
-      </div>
+    <div
+      style={{
+        height: 1,
+        background: colors.line,
+        margin: `${spacing['12']}px -${spacing['16']}px`,
+      }}
+    />
+  );
+}
+
+function ContactRow({
+  icon,
+  value,
+  placeholder,
+  onTap,
+}: {
+  icon: React.ReactNode;
+  value: string | null;
+  placeholder: string;
+  onTap: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="pressable"
+      onClick={onTap}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: spacing['12'],
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        width: '100%',
+        textAlign: 'left',
+        cursor: 'pointer',
+      }}
+    >
+      <span style={{ display: 'inline-flex' }}>{icon}</span>
+      <span
+        style={{
+          flex: 1,
+          minWidth: 0,
+          ...(value ? typography.body : typography.body),
+          color: value ? colors.text : colors.textSecondary,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {value ?? placeholder}
+      </span>
     </button>
+  );
+}
+
+function ContactEditor({
+  field,
+  initialValue,
+  onClose,
+}: {
+  field: ContactField;
+  initialValue: string;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const update = useUpdateMe();
+  const [value, setValue] = useState(initialValue);
+
+  const fieldLabel =
+    field === 'phone'
+      ? t('myProfile.contacts.phoneTitle')
+      : field === 'email'
+        ? t('myProfile.contacts.emailTitle')
+        : t('myProfile.contacts.usernameTitle');
+
+  const placeholder =
+    field === 'phone'
+      ? t('myProfile.contacts.phonePlaceholder')
+      : field === 'email'
+        ? t('myProfile.contacts.emailPlaceholder')
+        : t('myProfile.contacts.usernamePlaceholder');
+
+  const onSave = () => {
+    const trimmed = value.trim();
+    const payload =
+      field === 'phone'
+        ? { contact_phone: trimmed || null }
+        : field === 'email'
+          ? { contact_email: trimmed || null }
+          : { username: trimmed || null };
+    update.mutate(
+      { body: payload },
+      {
+        onSuccess: onClose,
+      },
+    );
+  };
+
+  return (
+    <BottomSheet open onClose={onClose} title={fieldLabel}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={placeholder}
+          inputMode={field === 'phone' ? 'tel' : field === 'email' ? 'email' : 'text'}
+          autoFocus
+        />
+        {update.error ? (
+          <div style={{ ...typography.sm, color: colors.error }}>{update.error.message}</div>
+        ) : null}
+        <Button size="lg" fullWidth disabled={update.isPending} onClick={onSave}>
+          {t('common.save')}
+        </Button>
+      </div>
+    </BottomSheet>
+  );
+}
+
+function TeamPickerSheet({
+  open,
+  onClose,
+  memberships,
+  activeTeamId,
+  onSelect,
+  title,
+  organizerLabel,
+  playerLabel,
+}: {
+  open: boolean;
+  onClose: () => void;
+  memberships: MeMembership[];
+  activeTeamId: string | null;
+  onSelect: (teamId: string) => void;
+  title: string;
+  organizerLabel: string;
+  playerLabel: string;
+}) {
+  return (
+    <BottomSheet open={open} onClose={onClose} title={title}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
+        {memberships.map((m) => {
+          const active = m.team_id === activeTeamId;
+          return (
+            <button
+              key={m.team_id}
+              type="button"
+              className="pressable"
+              onClick={() => onSelect(m.team_id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: spacing['12'],
+                padding: spacing['12'],
+                background: colors.bg,
+                borderRadius: radius.md,
+                border: `1.5px solid ${active ? colors.primary : 'transparent'}`,
+                cursor: 'pointer',
+                width: '100%',
+                textAlign: 'left',
+              }}
+            >
+              <span
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  background: active ? colors.primary : colors.bgMuted,
+                  color: active ? colors.textInverse : 'transparent',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {active ? <IconCheck size={14} color={colors.textInverse} /> : null}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    ...typography.bodyBold,
+                    color: colors.text,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {m.team_name}
+                </div>
+                <div style={{ ...typography.sm, color: colors.textSecondary }}>
+                  {m.role === 'organizer' ? organizerLabel : playerLabel}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </BottomSheet>
   );
 }
