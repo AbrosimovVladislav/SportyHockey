@@ -20,7 +20,10 @@ export const dynamic = 'force-dynamic';
 
 const MEDIA_BUCKET = 'team-media';
 
-type TeamRef = { id: string; name: string } | { id: string; name: string }[] | null;
+type TeamRef =
+  | { id: string; name: string; logo_url: string | null }
+  | { id: string; name: string; logo_url: string | null }[]
+  | null;
 
 export async function GET(req: Request): Promise<Response> {
   try {
@@ -101,17 +104,21 @@ async function buildMeResponse(userId: string): Promise<MeResponse> {
 
   const { data, error } = await sb
     .from('team_memberships')
-    .select('team_id, role, teams(id, name)')
+    .select('team_id, role, teams(id, name, logo_url)')
     .eq('user_id', userId);
   if (error) {
     throw new Error(error.message);
   }
 
-  const memberships: MeMembership[] = (data ?? []).map((m) => ({
-    team_id: m.team_id,
-    team_name: extractTeamName(m.teams),
-    role: asMemberRole(m.role),
-  }));
+  const memberships: MeMembership[] = (data ?? []).map((m) => {
+    const team = pickTeam(m.teams as TeamRef);
+    return {
+      team_id: m.team_id,
+      team_name: team?.name ?? '',
+      team_logo_url: team?.logo_url ?? null,
+      role: asMemberRole(m.role),
+    };
+  });
 
   const organizer = memberships.find((m) => m.role === 'organizer');
   const invite_link = organizer ? buildInviteLink(organizer.team_id) : null;
@@ -172,8 +179,7 @@ async function buildMeResponse(userId: string): Promise<MeResponse> {
   };
 }
 
-function extractTeamName(teams: TeamRef): string {
-  if (!teams) return '';
-  if (Array.isArray(teams)) return teams[0]?.name ?? '';
-  return teams.name;
+function pickTeam(teams: TeamRef): { id: string; name: string; logo_url: string | null } | null {
+  if (!teams) return null;
+  return Array.isArray(teams) ? teams[0] ?? null : teams;
 }

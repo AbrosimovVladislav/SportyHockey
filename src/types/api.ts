@@ -23,6 +23,7 @@ export type MeUser = {
 export type MeMembership = {
   team_id: string;
   team_name: string;
+  team_logo_url: string | null;
   role: MemberRole;
 };
 

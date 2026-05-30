@@ -43,28 +43,43 @@ export default function MyProfileEditPage() {
   const [form, setForm] = useState<MemberFormValue>(emptyMemberForm());
   const [photo, setPhoto] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const initRef = useRef(false);
+  // Раздельные initRef-ы для двух источников данных: иначе на холодном старте
+  // `me` подгружается раньше `memberQ`, единый effect закрывает initRef
+  // дефолтами для командных полей, и при последующем приходе member они уже
+  // не подхватываются.
+  const userInitRef = useRef(false);
+  const memberInitRef = useRef(false);
 
   useEffect(() => {
-    if (initRef.current) return;
+    if (userInitRef.current) return;
     const u = me.data?.user;
     if (!u) return;
-    initRef.current = true;
-    const member = memberQ.data?.member;
-    setForm({
+    userInitRef.current = true;
+    setForm((prev) => ({
+      ...prev,
       name: [u.first_name, u.last_name].filter(Boolean).join(' '),
       birthDate: u.birth_date ?? '',
       phone: u.contact_phone ?? '',
       whatsapp: u.contact_whatsapp ?? '',
       telegram: u.username ?? '',
-      number: member?.jersey_number != null ? String(member.jersey_number) : '',
-      position: member?.position ?? null,
-      slotRole: member?.slot_role ?? null,
       shoots: u.shoots,
-      captaincy: member?.captaincy ?? 'none',
-      tier: member?.tier ?? 'main',
-    });
-  }, [me.data?.user, memberQ.data?.member]);
+    }));
+  }, [me.data?.user]);
+
+  useEffect(() => {
+    if (memberInitRef.current) return;
+    const member = memberQ.data?.member;
+    if (!member) return;
+    memberInitRef.current = true;
+    setForm((prev) => ({
+      ...prev,
+      number: member.jersey_number != null ? String(member.jersey_number) : '',
+      position: member.position,
+      slotRole: member.slot_role,
+      captaincy: member.captaincy,
+      tier: member.tier,
+    }));
+  }, [memberQ.data?.member]);
 
   const onBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) router.back();

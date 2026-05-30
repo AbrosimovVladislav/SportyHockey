@@ -220,6 +220,11 @@ export default function ProfilePage() {
               textAlign: 'left',
             }}
           >
+            <Avatar
+              src={activeMembership!.team_logo_url}
+              name={activeMembership!.team_name}
+              size={48}
+            />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ ...typography.caption, color: colors.textSecondary }}>
                 {t('myProfile.team.active')}
@@ -535,21 +540,7 @@ function TeamPickerSheet({
                 textAlign: 'left',
               }}
             >
-              <span
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  background: active ? colors.primary : colors.bgMuted,
-                  color: active ? colors.textInverse : 'transparent',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                {active ? <IconCheck size={14} color={colors.textInverse} /> : null}
-              </span>
+              <Avatar src={m.team_logo_url} name={m.team_name} size={40} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
@@ -566,6 +557,22 @@ function TeamPickerSheet({
                   {m.role === 'organizer' ? organizerLabel : playerLabel}
                 </div>
               </div>
+              {active ? (
+                <span
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: colors.primary,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <IconCheck size={14} color={colors.textInverse} />
+                </span>
+              ) : null}
             </button>
           );
         })}
