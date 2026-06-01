@@ -866,21 +866,59 @@ export const ru = {
   'money.transactions.title': 'Операции',
   'money.transactions.empty': 'Операций пока нет — добавьте оплату, депозит или расход на хабе «Деньги».',
   'money.transactions.emptyFiltered': 'По выбранным фильтрам ничего не нашлось.',
-  'money.transactions.kind.all': 'Все',
-  'money.transactions.kind.income': 'Доходы',
-  'money.transactions.kind.expense': 'Расходы',
-  'money.transactions.type.label': 'Тип',
-  'money.transactions.type.all': 'Все типы',
-  'money.transactions.type.player_payment': 'Оплата игрока',
-  'money.transactions.type.deposit': 'Депозит',
-  'money.transactions.type.adjustment': 'Корректировка',
-  'money.transactions.type.arena': 'Аренда',
-  'money.transactions.type.inventory': 'Инвентарь',
-  'money.transactions.type.uniform': 'Форма',
-  'money.transactions.type.refund': 'Возврат игроку',
-  'money.transactions.type.other': 'Прочий расход',
-  'money.transactions.kindLabel.income': 'Доход',
-  'money.transactions.kindLabel.expense': 'Расход',
+
+  // Плашки-фильтры (короткие лейблы — состояние «по умолчанию»):
+  'money.filter.pill.period': 'Все время',
+  'money.filter.pill.kind': 'Все',
+  'money.filter.pill.type': 'Все типы',
+
+  // Sheet «Период»:
+  'money.filter.period.sheetTitle': 'Период',
+  'money.filter.period.all': 'Все время',
+  'money.filter.period.custom': 'Произвольный период',
+  'money.filter.period.from': 'С',
+  'money.filter.period.to': 'По',
+
+  // Sheet «Направление»:
+  'money.filter.kind.sheetTitle': 'Направление',
+  'money.filter.kind.all': 'Все',
+  'money.filter.kind.income': 'Доходы',
+  'money.filter.kind.expense': 'Расходы',
+
+  // Sheet «Тип операции»:
+  'money.filter.type.sheetTitle': 'Тип операции',
+  'money.filter.type.all': 'Все типы',
+  'money.filter.type.payment': 'Оплата игрока',
+  'money.filter.type.deposit': 'Депозит',
+  'money.filter.type.adjustment': 'Корректировка',
+  'money.filter.type.arena': 'Аренда',
+  'money.filter.type.inventory': 'Инвентарь',
+  'money.filter.type.uniform': 'Форма',
+  'money.filter.type.refund': 'Возврат игроку',
+  'money.filter.type.other': 'Прочий расход',
+
+  // Кнопки в любом sheet'е:
+  'money.filter.reset': 'Сбросить',
+  'money.filter.apply': 'Применить',
+
+  // Группировка списка операций по дате:
+  'money.transactions.group.today': 'Сегодня',
+  'money.transactions.group.yesterday': 'Вчера',
+
+  // Подзаголовки карточек операций.
+  'money.transactions.sub.paymentForEvent': '{event} · Сборы',
+  'money.transactions.sub.deposit': 'Депозит',
+  'money.transactions.sub.refund': 'Возврат',
+  'money.transactions.sub.adjustment': 'Корректировка',
+  'money.transactions.sub.arena': 'Аренда',
+  'money.transactions.sub.inventory': 'Инвентарь',
+  'money.transactions.sub.uniform': 'Форма',
+  'money.transactions.sub.otherExpense': 'Расход',
+  // Fallback-заголовки, если нет имени игрока:
+  'money.transactions.fallback.playerPayment': 'Оплата игрока',
+  'money.transactions.fallback.deposit': 'Депозит',
+  'money.transactions.fallback.refund': 'Возврат игроку',
+  'money.transactions.fallback.adjustment': 'Корректировка',
 
   // Тексты для строк операций
   'money.row.playerPayment': 'Оплата игрока',

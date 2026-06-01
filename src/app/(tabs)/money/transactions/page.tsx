@@ -3,50 +3,30 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { LightHeader } from '@/components/light-header';
-import { ContentTabs } from '@/components/content-tabs';
-import { FilterChips } from '@/components/filter-chips';
 import { Skeleton } from '@/components/skeleton';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
+import { TransactionCard, type TransactionCardLabels } from '@/components/transaction-card';
 import {
-  TransactionCard,
-  directionOf,
-  type TransactionCardLabels,
-} from '@/components/transaction-card';
+  FinanceFilterBar,
+  DEFAULT_FILTERS,
+  matchesFilters,
+  type FinanceFilters,
+  type FinanceFilterLabels,
+} from '@/components/finance-filter-bar';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useMe } from '@/hooks/use-me';
 import { useFinanceList } from '@/hooks/use-finance-list';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
 import { radius } from '@/theme/radius';
+import { typography } from '@/theme/typography';
 import type { FinanceTransaction } from '@/types/api';
 
-// Все транзакции активной команды. Сортировка по `occurred_on` desc
-// идёт с сервера. Фильтры — на клиенте: сегмент «Все/Доходы/Расходы»
-// сужает направление, чипы — конкретный «слайс» (Оплата, Депозит,
-// Аренда, Инвентарь, Форма, Возврат, Корректировка, Прочее).
-
-type KindTab = 'all' | 'income' | 'expense';
-
-// Слайс — это конкретный «вид» операции для UI-чипов. Один слайс может
-// объединять условия по type+category+event_id (например, «Депозит» — это
-// player_payment без event_id). Маппинг — в `sliceOf` ниже.
-type Slice =
-  | 'all'
-  | 'payment'
-  | 'deposit'
-  | 'adjustment'
-  | 'arena'
-  | 'inventory'
-  | 'uniform'
-  | 'refund'
-  | 'other';
-
-const ALL_SLICES: Slice[] = ['all', 'payment', 'deposit', 'adjustment', 'arena', 'inventory', 'uniform', 'refund', 'other'];
-const INCOME_SLICES: Slice[] = ['all', 'payment', 'deposit', 'adjustment'];
-const EXPENSE_SLICES: Slice[] = ['all', 'arena', 'inventory', 'uniform', 'refund', 'other'];
-
+// Все транзакции активной команды. Сортировка по `occurred_on desc, created_at desc`
+// идёт с сервера. Фильтры — три плашки сверху, открывают bottomsheets:
+// период (месяц или произвольный диапазон), направление (доход/расход), тип
+// операции. Список группируется по дате (Сегодня / Вчера / 12 мая 2026).
 export default function MoneyTransactionsPage() {
   const t = useT();
   const router = useRouter();
@@ -54,42 +34,76 @@ export default function MoneyTransactionsPage() {
   const me = useMe();
   const hasTeam = (me.data?.memberships.length ?? 0) > 0;
 
-  const [kind, setKind] = useState<KindTab>('all');
-  const [slice, setSlice] = useState<Slice>('all');
+  const [filters, setFilters] = useState<FinanceFilters>(DEFAULT_FILTERS);
 
-  // На клиенте фильтруем — кол-во операций PoC-команды редко превышает сотни.
-  // Когда понадобится — добавим серверные фильтры в /api/finance.
+  // На клиенте фильтруем — на PoC ленты сотни операций. Серверные фильтры в
+  // /api/finance уже есть, переключим когда понадобится.
   const list = useFinanceList({ limit: 200 }, hasTeam);
 
-  const labels: TransactionCardLabels = useMemo(
+  const cardLabels: TransactionCardLabels = useMemo(
     () => ({
-      playerPayment: t('money.transactions.type.player_payment'),
-      deposit: t('money.transactions.type.deposit'),
-      adjustment: t('money.transactions.type.adjustment'),
-      refund: t('money.transactions.type.refund'),
-      arena: t('money.transactions.type.arena'),
-      inventory: t('money.transactions.type.inventory'),
-      uniform: t('money.transactions.type.uniform'),
-      other: t('money.transactions.type.other'),
-      incomeBadge: t('money.transactions.kindLabel.income'),
-      expenseBadge: t('money.transactions.kindLabel.expense'),
+      playerPayment: t('money.transactions.fallback.playerPayment'),
+      deposit: t('money.transactions.fallback.deposit'),
+      refund: t('money.transactions.fallback.refund'),
+      adjustment: t('money.transactions.fallback.adjustment'),
+      sub: {
+        paymentForEvent: t('money.transactions.sub.paymentForEvent'),
+        deposit: t('money.transactions.sub.deposit'),
+        refund: t('money.transactions.sub.refund'),
+        adjustment: t('money.transactions.sub.adjustment'),
+        arena: t('money.transactions.sub.arena'),
+        inventory: t('money.transactions.sub.inventory'),
+        uniform: t('money.transactions.sub.uniform'),
+        otherExpense: t('money.transactions.sub.otherExpense'),
+      },
+      today: t('money.transactions.group.today'),
+      yesterday: t('money.transactions.group.yesterday'),
     }),
     [t],
   );
 
-  const sliceOptions = useMemo(() => {
-    const ids = kind === 'income' ? INCOME_SLICES : kind === 'expense' ? EXPENSE_SLICES : ALL_SLICES;
-    return ids.map((id) => ({ id, label: sliceLabel(id, t) }));
-  }, [kind, t]);
+  const filterLabels: FinanceFilterLabels = useMemo(
+    () => ({
+      pillPeriod: t('money.filter.pill.period'),
+      pillKind: t('money.filter.pill.kind'),
+      pillType: t('money.filter.pill.type'),
+
+      periodSheetTitle: t('money.filter.period.sheetTitle'),
+      periodAll: t('money.filter.period.all'),
+      periodCustomTitle: t('money.filter.period.custom'),
+      periodCustomFrom: t('money.filter.period.from'),
+      periodCustomTo: t('money.filter.period.to'),
+
+      kindSheetTitle: t('money.filter.kind.sheetTitle'),
+      kindAll: t('money.filter.kind.all'),
+      kindIncome: t('money.filter.kind.income'),
+      kindExpense: t('money.filter.kind.expense'),
+
+      typeSheetTitle: t('money.filter.type.sheetTitle'),
+      typeAll: t('money.filter.type.all'),
+      typePayment: t('money.filter.type.payment'),
+      typeDeposit: t('money.filter.type.deposit'),
+      typeAdjustment: t('money.filter.type.adjustment'),
+      typeArena: t('money.filter.type.arena'),
+      typeInventory: t('money.filter.type.inventory'),
+      typeUniform: t('money.filter.type.uniform'),
+      typeRefund: t('money.filter.type.refund'),
+      typeOther: t('money.filter.type.other'),
+
+      reset: t('money.filter.reset'),
+      apply: t('money.filter.apply'),
+    }),
+    [t],
+  );
 
   const visible = useMemo(() => {
     const items = list.data?.items ?? [];
-    return items.filter((tx) => {
-      if (kind !== 'all' && directionOf(tx.type) !== kind) return false;
-      if (slice !== 'all' && sliceOf(tx) !== slice) return false;
-      return true;
-    });
-  }, [list.data, kind, slice]);
+    return items.filter((tx) => matchesFilters(tx, filters));
+  }, [list.data, filters]);
+
+  // Группируем по дате (по `occurred_on`). Ключи — в порядке появления в массиве
+  // (он уже отсортирован сервером по дате убывания).
+  const groups = useMemo(() => groupByDay(visible), [visible]);
 
   const root: CSSProperties = { minHeight: '100dvh', background: colors.bgOffWhite };
   const sticky: CSSProperties = {
@@ -99,40 +113,28 @@ export default function MoneyTransactionsPage() {
     background: colors.bg,
     borderBottom: `1px solid ${colors.line}`,
   };
-  const listWrap: CSSProperties = {
+  const content: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['10'],
+    gap: spacing['16'],
     padding: spacing['16'],
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
   };
 
+  const onBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
+    else router.push('/money');
+  };
+
   return (
     <div style={root}>
-      <LightHeader title={t('money.transactions.title')} onBack={() => router.push('/money')} />
+      <LightHeader title={t('money.transactions.title')} onBack={onBack} />
 
       <div style={sticky}>
-        <ContentTabs
-          tabs={[
-            { id: 'all', label: t('money.transactions.kind.all') },
-            { id: 'income', label: t('money.transactions.kind.income') },
-            { id: 'expense', label: t('money.transactions.kind.expense') },
-          ]}
-          activeId={kind}
-          onChange={(id) => {
-            setKind(id as KindTab);
-            setSlice('all'); // сброс гранулярного фильтра при смене сегмента
-          }}
-        />
-        <FilterChips
-          compact
-          options={sliceOptions}
-          activeId={slice}
-          onChange={(id) => setSlice(id as Slice)}
-        />
+        <FinanceFilterBar filters={filters} onChange={setFilters} labels={filterLabels} />
       </div>
 
-      <div style={listWrap}>
+      <div style={content}>
         {!hasTeam && me.isSuccess ? (
           <EmptyBlock
             title={t('money.empty.noTeam.title')}
@@ -151,7 +153,13 @@ export default function MoneyTransactionsPage() {
             }
           />
         ) : (
-          visible.map((tx) => <TransactionCard key={tx.id} tx={tx} labels={labels} />)
+          groups.map((g) => (
+            <DateGroup key={g.day} title={dayHeading(g.day, t)}>
+              {g.items.map((tx) => (
+                <TransactionCard key={tx.id} tx={tx} labels={cardLabels} />
+              ))}
+            </DateGroup>
+          ))
         )}
       </div>
     </div>
@@ -161,6 +169,24 @@ export default function MoneyTransactionsPage() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Локальные части страницы
 // ─────────────────────────────────────────────────────────────────────────────
+
+function DateGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h2
+        style={{
+          ...typography.bodyBold,
+          color: colors.text,
+          margin: 0,
+          marginBottom: spacing['8'],
+        }}
+      >
+        {title}
+      </h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>{children}</div>
+    </section>
+  );
+}
 
 function ListSkeleton() {
   const row: CSSProperties = {
@@ -173,21 +199,18 @@ function ListSkeleton() {
     gap: spacing['12'],
   };
   return (
-    <>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
       {[0, 1, 2, 3].map((i) => (
         <div key={i} style={row} aria-hidden>
-          <Skeleton width={44} height={44} borderRadius="50%" />
+          <Skeleton width={80} height={14} />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
             <Skeleton width="55%" height={14} />
             <Skeleton width="35%" height={12} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: spacing['6'] }}>
-            <Skeleton width={70} height={14} />
-            <Skeleton width={48} height={11} />
-          </div>
+          <Skeleton width={70} height={12} />
         </div>
       ))}
-    </>
+    </div>
   );
 }
 
@@ -232,45 +255,51 @@ function EmptyBlock({ title, body }: { title: string; body?: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Маппинг операции в Slice и i18n-лейбл слайса
+// Группировка и форматирование дат
 // ─────────────────────────────────────────────────────────────────────────────
 
-function sliceOf(tx: FinanceTransaction): Slice {
-  if (tx.type === 'player_payment') return tx.event ? 'payment' : 'deposit';
-  if (tx.type === 'adjustment') return 'adjustment';
-  if (tx.type === 'refund') return 'refund';
-  // expense
-  switch (tx.category) {
-    case 'arena':
-      return 'arena';
-    case 'inventory':
-      return 'inventory';
-    case 'uniform':
-      return 'uniform';
-    default:
-      return 'other';
+type Group = { day: string; items: FinanceTransaction[] };
+
+function groupByDay(items: FinanceTransaction[]): Group[] {
+  const map = new Map<string, FinanceTransaction[]>();
+  for (const it of items) {
+    const key = it.occurred_on;
+    const bucket = map.get(key);
+    if (bucket) bucket.push(it);
+    else map.set(key, [it]);
   }
+  // Map сохраняет порядок вставки — сервер уже отсортировал по дате убывания.
+  return Array.from(map.entries()).map(([day, list]) => ({ day, items: list }));
 }
 
-function sliceLabel(s: Slice, t: ReturnType<typeof useT>): string {
-  switch (s) {
-    case 'all':
-      return t('money.transactions.type.all');
-    case 'payment':
-      return t('money.transactions.type.player_payment');
-    case 'deposit':
-      return t('money.transactions.type.deposit');
-    case 'adjustment':
-      return t('money.transactions.type.adjustment');
-    case 'arena':
-      return t('money.transactions.type.arena');
-    case 'inventory':
-      return t('money.transactions.type.inventory');
-    case 'uniform':
-      return t('money.transactions.type.uniform');
-    case 'refund':
-      return t('money.transactions.type.refund');
-    case 'other':
-      return t('money.transactions.type.other');
-  }
+const MONTHS_LONG = [
+  'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+];
+
+function dayHeading(occurredOn: string, t: ReturnType<typeof useT>): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(occurredOn);
+  if (!m) return occurredOn;
+  const y = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const txDay = new Date(y, month - 1, day);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+
+  if (sameYMD(txDay, today)) return t('money.transactions.group.today');
+  if (sameYMD(txDay, yesterday)) return t('money.transactions.group.yesterday');
+
+  const monthLabel = MONTHS_LONG[month - 1] ?? '';
+  if (y === today.getFullYear()) return `${day} ${monthLabel}`;
+  return `${day} ${monthLabel} ${y}`;
+}
+
+function sameYMD(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }

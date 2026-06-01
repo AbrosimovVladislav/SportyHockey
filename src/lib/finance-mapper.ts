@@ -39,10 +39,12 @@ type RawEvent = {
 };
 
 // Колонки для SELECT — единая строка для всех роутов раздела.
+// FK-hint `!user_id` / `!event_id` обязателен: у `finance_transactions` две FK
+// на `users` (через `user_id` и `created_by`) — postgrest без подсказки 500-ит.
 export const FINANCE_SELECT =
   'id, type, category, amount, description, occurred_on, created_at, ' +
-  'user:users(id, first_name, last_name, avatar_url, photo_url), ' +
-  'event:events(id, title, type, opponent_name, starts_at)';
+  'user:users!user_id(id, first_name, last_name, avatar_url, photo_url), ' +
+  'event:events!event_id(id, title, type, opponent_name, starts_at)';
 
 const ALLOWED_TYPES: ReadonlySet<FinanceTxType> = new Set([
   'player_payment',

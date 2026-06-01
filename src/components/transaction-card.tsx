@@ -1,49 +1,41 @@
 'use client';
 
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
-import {
-  IconPerson,
-  IconWallet,
-  IconLocation,
-  IconHockeyStick,
-  IconShirt,
-  IconTag,
-  IconReset,
-  IconBadgeCheck,
-} from '@/components/icons';
 import { formatSignedMoney } from '@/lib/format-money';
+import { formatTime } from '@/lib/event-format';
 import { eventLabel } from '@/lib/event-label';
-import type {
-  FinancePartyUser,
-  FinanceTransaction,
-  FinanceTxType,
-} from '@/types/api';
+import type { FinancePartyUser, FinanceTransaction, FinanceTxType } from '@/types/api';
 
-// Карточка одной транзакции на экране `/money/transactions`. Стилистика —
-// производная от `PlayerFinanceTab` (см. `squad/[user_id]/finance-tab.tsx`):
-//  иконка в кружке с тоном по доход/расход, заголовок «что это», подзаголовок
-//  «кто/где», справа — сумма со знаком и дата.
+// Карточка одной операции на экране `/money/transactions`. Без иконок —
+// layout по референсу: слева крупно сумма с цветом по направлению,
+// в центре заголовок (имя игрока или название расхода) + подзаголовок
+// (тип/событие), справа — относительная дата и время.
 
 export type TransactionCardLabels = {
-  // Заголовки операций — что именно происходит:
+  // Заголовки для операций без явного имени игрока / описания (fallback):
   playerPayment: string; // «Оплата игрока»
-  deposit: string; // «Депозит» (player_payment без event_id)
-  adjustment: string; // «Корректировка баланса»
+  deposit: string; // «Депозит игрока» — title для player_payment без event и без user
   refund: string; // «Возврат игроку»
-  arena: string; // «Аренда»
-  inventory: string; // «Инвентарь»
-  uniform: string; // «Форма»
-  other: string; // «Прочий расход»
-  // Бейджи направления (показываются под заголовком мелким):
-  incomeBadge: string; // «Доход»
-  expenseBadge: string; // «Расход»
+  adjustment: string; // «Корректировка»
+  // Подзаголовки операций (то, что под крупным title):
+  sub: {
+    paymentForEvent: string; // «{event} · Сборы»  ({event} подставляется)
+    deposit: string; // «Депозит»
+    refund: string; // «Возврат»
+    adjustment: string; // «Корректировка»
+    arena: string; // «Аренда»
+    inventory: string; // «Инвентарь»
+    uniform: string; // «Форма»
+    otherExpense: string; // «Расход»
+  };
+  // Относительная дата на правой стороне:
+  today: string; // «Сегодня»
+  yesterday: string; // «Вчера»
 };
-
-export type Direction = 'income' | 'expense';
 
 type Props = {
   tx: FinanceTransaction;
@@ -53,104 +45,78 @@ type Props = {
 
 export function TransactionCard({ tx, labels, onClick }: Props) {
   const direction = directionOf(tx.type);
-  const tone = direction === 'income' ? 'positive' : 'negative';
-
   const amountColor = direction === 'income' ? colors.successDark : colors.errorDark;
   const signed = direction === 'income' ? tx.amount : -tx.amount;
-  const title = titleFor(tx, labels);
-  const subtitle = subtitleFor(tx);
-  const badge = direction === 'income' ? labels.incomeBadge : labels.expenseBadge;
-  const badgeColor = direction === 'income' ? colors.successDark : colors.errorDark;
-  const badgeBg = direction === 'income' ? colors.successBg : colors.errorBg;
+
+  const { title, subtitle } = headForTx(tx, labels);
+  const dateText = formatRelativeDate(tx.occurred_on, labels);
+  const timeText = tx.created_at ? formatTime(tx.created_at) : '';
 
   const wrap: CSSProperties = {
     background: colors.bg,
     borderRadius: radius.lg,
-    padding: spacing['16'],
+    padding: `${spacing['16']}px ${spacing['16']}px`,
     boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
     border: 'none',
     width: '100%',
     textAlign: 'left',
     cursor: onClick ? 'pointer' : 'default',
     display: 'flex',
+    alignItems: 'center',
     gap: spacing['12'],
-    alignItems: 'flex-start',
+  };
+
+  const amountStyle: CSSProperties = {
+    fontSize: 16,
+    fontWeight: 700,
+    color: amountColor,
+    fontVariantNumeric: 'tabular-nums',
+    letterSpacing: '-0.01em',
+    flexShrink: 0,
+    minWidth: 96,
+  };
+
+  const middle: CSSProperties = {
+    flex: 1,
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  };
+
+  const titleStyle: CSSProperties = {
+    ...typography.bodyBold,
+    color: colors.text,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  };
+
+  const subtitleStyle: CSSProperties = {
+    ...typography.sm,
+    color: colors.textSecondary,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  };
+
+  const dateColumn: CSSProperties = {
+    ...typography.sm,
+    color: colors.textSecondary,
+    flexShrink: 0,
+    textAlign: 'right',
+    fontVariantNumeric: 'tabular-nums',
+    whiteSpace: 'nowrap',
   };
 
   const content = (
     <>
-      <RoundIcon tone={tone}>{iconFor(tx)}</RoundIcon>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            ...typography.bodyBold,
-            color: colors.text,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {title}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: spacing['6'], marginTop: 4 }}>
-          <span
-            style={{
-              ...typography.caption,
-              color: badgeColor,
-              background: badgeBg,
-              padding: `2px ${spacing['8']}px`,
-              borderRadius: radius.pill,
-              fontWeight: 700,
-              flexShrink: 0,
-            }}
-          >
-            {badge}
-          </span>
-          {subtitle ? (
-            <span
-              style={{
-                ...typography.sm,
-                color: colors.textSecondary,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {subtitle}
-            </span>
-          ) : null}
-        </div>
+      <span style={amountStyle}>{formatSignedMoney(signed)}</span>
+      <div style={middle}>
+        <div style={titleStyle}>{title}</div>
+        {subtitle ? <div style={subtitleStyle}>{subtitle}</div> : null}
       </div>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          flexShrink: 0,
-          marginLeft: spacing['8'],
-        }}
-      >
-        <span
-          style={{
-            ...typography.bodyBold,
-            color: amountColor,
-            fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.01em',
-          }}
-        >
-          {formatSignedMoney(signed)}
-        </span>
-        <span
-          style={{
-            ...typography.caption,
-            color: colors.textTertiary,
-            fontVariantNumeric: 'tabular-nums',
-            marginTop: 2,
-          }}
-        >
-          {formatShortDate(tx.occurred_on)}
-        </span>
-      </div>
+      <span style={dateColumn}>{timeText ? `${dateText}, ${timeText}` : dateText}</span>
     </>
   );
 
@@ -168,87 +134,48 @@ export function TransactionCard({ tx, labels, onClick }: Props) {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+export type Direction = 'income' | 'expense';
+
 export function directionOf(type: FinanceTxType): Direction {
-  // adjustment отнесли к доходу: на PoC положительная сумма (organizer списывает долг
-  // игрока без движения денег). Когда появятся отрицательные корректировки —
-  // переработаем по знаку amount.
+  // adjustment относим к доходам — на PoC сумма всегда положительная
+  // (организатор списывает долг игрока). Когда появятся отрицательные
+  // корректировки — перейдём на знак amount.
   return type === 'player_payment' || type === 'adjustment' ? 'income' : 'expense';
 }
 
-function RoundIcon({ children, tone }: { children: ReactNode; tone: 'positive' | 'negative' }) {
-  const bg = tone === 'positive' ? colors.successBg : colors.errorBg;
-  return (
-    <span
-      style={{
-        width: 44,
-        height: 44,
-        borderRadius: '50%',
-        background: bg,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function iconFor(tx: FinanceTransaction): ReactNode {
-  const tone = directionOf(tx.type);
-  const color = tone === 'income' ? colors.successDark : colors.errorDark;
+function headForTx(
+  tx: FinanceTransaction,
+  labels: TransactionCardLabels,
+): { title: string; subtitle: string } {
   if (tx.type === 'player_payment') {
-    return tx.event ? <IconPerson size={22} color={color} /> : <IconWallet size={22} color={color} />;
-  }
-  if (tx.type === 'refund') return <IconReset size={22} color={color} />;
-  if (tx.type === 'adjustment') return <IconBadgeCheck size={22} color={color} />;
-  switch (tx.category) {
-    case 'arena':
-      return <IconLocation size={22} color={color} />;
-    case 'inventory':
-      return <IconHockeyStick size={22} color={color} />;
-    case 'uniform':
-      return <IconShirt size={22} color={color} />;
-    default:
-      return <IconTag size={22} color={color} />;
-  }
-}
-
-function titleFor(tx: FinanceTransaction, labels: TransactionCardLabels): string {
-  if (tx.type === 'player_payment') {
-    return tx.event ? labels.playerPayment : labels.deposit;
-  }
-  if (tx.type === 'refund') return labels.refund;
-  if (tx.type === 'adjustment') return labels.adjustment;
-  switch (tx.category) {
-    case 'arena':
-      return labels.arena;
-    case 'inventory':
-      return labels.inventory;
-    case 'uniform':
-      return labels.uniform;
-    default:
-      return labels.other;
-  }
-}
-
-function subtitleFor(tx: FinanceTransaction): string {
-  // Для оплаты с привязкой к событию — имя игрока + событие; депозит — имя игрока + description;
-  // расход — description (как правило, поставщик: «Ледовый дворец», «Спортмастер»).
-  const nameOrEmpty = tx.user ? nameOf(tx.user) : '';
-  if (tx.type === 'player_payment') {
+    const name = tx.user ? nameOf(tx.user) : '';
     if (tx.event) {
+      // «Иван Иванов» / «Тренировка · Сборы»
       const ev = eventLabel(tx.event);
-      return nameOrEmpty ? `${nameOrEmpty} · ${ev}` : ev;
+      const sub = labels.sub.paymentForEvent.replace('{event}', ev);
+      return { title: name || labels.playerPayment, subtitle: sub };
     }
-    return nameOrEmpty || tx.description || '';
+    // Депозит — имя игрока сверху, "Депозит" снизу
+    return { title: name || labels.deposit, subtitle: labels.sub.deposit };
   }
-  if (tx.type === 'refund' || tx.type === 'adjustment') {
-    if (nameOrEmpty && tx.description) return `${nameOrEmpty} · ${tx.description}`;
-    return nameOrEmpty || tx.description || '';
+  if (tx.type === 'refund') {
+    const name = tx.user ? nameOf(tx.user) : '';
+    return { title: name || labels.refund, subtitle: labels.sub.refund };
   }
-  return tx.description ?? '';
+  if (tx.type === 'adjustment') {
+    const name = tx.user ? nameOf(tx.user) : '';
+    return { title: name || labels.adjustment, subtitle: labels.sub.adjustment };
+  }
+  // expense — title = description (например, «Большая арена»), subtitle = категория
+  const catSub =
+    tx.category === 'arena'
+      ? labels.sub.arena
+      : tx.category === 'inventory'
+        ? labels.sub.inventory
+        : tx.category === 'uniform'
+          ? labels.sub.uniform
+          : labels.sub.otherExpense;
+  return { title: tx.description ?? catSub, subtitle: catSub };
 }
 
 function nameOf(u: FinancePartyUser): string {
@@ -258,10 +185,34 @@ function nameOf(u: FinancePartyUser): string {
 const MONTHS_SHORT = [
   'янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
 ];
-function formatShortDate(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (!m) return iso;
-  const [, , monthStr, dayStr] = m;
-  const month = MONTHS_SHORT[Number.parseInt(monthStr, 10) - 1] ?? '';
-  return `${Number.parseInt(dayStr, 10)} ${month}`;
+
+// «Сегодня» / «Вчера» / «12 мая» / «12 мая 2026» — последний вариант, если
+// год отличается от текущего.
+function formatRelativeDate(occurredOn: string, labels: TransactionCardLabels): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(occurredOn);
+  if (!m) return occurredOn;
+  const [, yearStr, monthStr, dayStr] = m;
+  const y = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  const txDay = new Date(y, month - 1, day);
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+
+  if (sameYMD(txDay, today)) return labels.today;
+  if (sameYMD(txDay, yesterday)) return labels.yesterday;
+
+  const monthLabel = MONTHS_SHORT[month - 1] ?? '';
+  if (y === today.getFullYear()) return `${day} ${monthLabel}`;
+  return `${day} ${monthLabel} ${y}`;
+}
+
+function sameYMD(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
