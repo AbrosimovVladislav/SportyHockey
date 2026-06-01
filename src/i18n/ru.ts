@@ -871,22 +871,39 @@ export const ru = {
   'money.filter.pill.period': 'Все время',
   'money.filter.pill.kind': 'Все',
   'money.filter.pill.type': 'Все типы',
+  // Короткие лейблы пресетов для плашки периода:
+  'money.filter.pill.period.last1m': 'Последний месяц',
+  'money.filter.pill.period.last3m': '3 мес.',
+  'money.filter.pill.period.last6m': '6 мес.',
+  // Краткая форма для плашки типа при множественном выборе («3 типа», «5 типов»).
+  // Падежи учитываем через два варианта — для счёта 2..4 и для счёта 5..20.
+  'money.filter.pill.type.few': '{n} типа',
+  'money.filter.pill.type.many': '{n} типов',
 
   // Sheet «Период»:
   'money.filter.period.sheetTitle': 'Период',
-  'money.filter.period.all': 'Все время',
-  'money.filter.period.custom': 'Произвольный период',
-  'money.filter.period.from': 'С',
-  'money.filter.period.to': 'По',
+  'money.filter.period.last1m': 'Последний месяц',
+  'money.filter.period.last3m': 'Последние 3 месяца',
+  'money.filter.period.last6m': 'Последние 6 месяцев',
+  'money.filter.period.rangeSection': 'Выбрать диапазон',
+  'money.filter.period.from': 'От',
+  'money.filter.period.to': 'До',
 
   // Sheet «Направление»:
   'money.filter.kind.sheetTitle': 'Направление',
+  'money.filter.kind.sheetHint': 'Показывает входящие и исходящие движения денег',
   'money.filter.kind.all': 'Все',
+  'money.filter.kind.allHint': 'Показывать все операции',
   'money.filter.kind.income': 'Доходы',
+  'money.filter.kind.incomeHint': 'Только входящие платежи',
   'money.filter.kind.expense': 'Расходы',
+  'money.filter.kind.expenseHint': 'Только исходящие платежи',
 
   // Sheet «Тип операции»:
   'money.filter.type.sheetTitle': 'Тип операции',
+  'money.filter.type.sheetHint': 'Можно выбрать несколько типов',
+  'money.filter.type.groupIncome': 'Поступления',
+  'money.filter.type.groupExpense': 'Списания',
   'money.filter.type.all': 'Все типы',
   'money.filter.type.payment': 'Оплата игрока',
   'money.filter.type.deposit': 'Депозит',

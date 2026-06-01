@@ -1,6 +1,16 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { Avatar } from '@/components/avatar';
+import {
+  IconHome,
+  IconArchive,
+  IconShirt,
+  IconFileText,
+  IconWallet,
+  IconBack,
+  IconSettings,
+} from '@/components/icons';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
@@ -10,15 +20,16 @@ import { formatTime } from '@/lib/event-format';
 import { eventLabel } from '@/lib/event-label';
 import type { FinancePartyUser, FinanceTransaction, FinanceTxType } from '@/types/api';
 
-// Карточка одной операции на экране `/money/transactions`. Без иконок —
-// layout по референсу: слева крупно сумма с цветом по направлению,
-// в центре заголовок (имя игрока или название расхода) + подзаголовок
-// (тип/событие), справа — относительная дата и время.
+// Карточка одной операции на экране `/money/transactions`.
+// Layout по референсу: слева крупно сумма с цветом по направлению, далее
+// медиа-кружок (аватар игрока или цветная иконка-плашка категории), в центре
+// заголовок (имя игрока или описание расхода) + подзаголовок (тип/событие),
+// справа — время.
 
 export type TransactionCardLabels = {
   // Заголовки для операций без явного имени игрока / описания (fallback):
   playerPayment: string; // «Оплата игрока»
-  deposit: string; // «Депозит игрока» — title для player_payment без event и без user
+  deposit: string; // «Депозит от клуба» — title для player_payment без event и без user
   refund: string; // «Возврат игроку»
   adjustment: string; // «Корректировка»
   // Подзаголовки операций (то, что под крупным title):
@@ -32,9 +43,6 @@ export type TransactionCardLabels = {
     uniform: string; // «Форма»
     otherExpense: string; // «Расход»
   };
-  // Относительная дата на правой стороне:
-  today: string; // «Сегодня»
-  yesterday: string; // «Вчера»
 };
 
 type Props = {
@@ -49,13 +57,12 @@ export function TransactionCard({ tx, labels, onClick }: Props) {
   const signed = direction === 'income' ? tx.amount : -tx.amount;
 
   const { title, subtitle } = headForTx(tx, labels);
-  const dateText = formatRelativeDate(tx.occurred_on, labels);
   const timeText = tx.created_at ? formatTime(tx.created_at) : '';
 
   const wrap: CSSProperties = {
     background: colors.bg,
     borderRadius: radius.lg,
-    padding: `${spacing['16']}px ${spacing['16']}px`,
+    padding: `${spacing['12']}px ${spacing['16']}px`,
     boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03)',
     border: 'none',
     width: '100%',
@@ -73,7 +80,7 @@ export function TransactionCard({ tx, labels, onClick }: Props) {
     fontVariantNumeric: 'tabular-nums',
     letterSpacing: '-0.01em',
     flexShrink: 0,
-    minWidth: 96,
+    minWidth: 80,
   };
 
   const middle: CSSProperties = {
@@ -100,7 +107,7 @@ export function TransactionCard({ tx, labels, onClick }: Props) {
     whiteSpace: 'nowrap',
   };
 
-  const dateColumn: CSSProperties = {
+  const timeColumn: CSSProperties = {
     ...typography.sm,
     color: colors.textSecondary,
     flexShrink: 0,
@@ -112,11 +119,12 @@ export function TransactionCard({ tx, labels, onClick }: Props) {
   const content = (
     <>
       <span style={amountStyle}>{formatSignedMoney(signed)}</span>
+      <TransactionMedia tx={tx} />
       <div style={middle}>
         <div style={titleStyle}>{title}</div>
         {subtitle ? <div style={subtitleStyle}>{subtitle}</div> : null}
       </div>
-      <span style={dateColumn}>{timeText ? `${dateText}, ${timeText}` : dateText}</span>
+      <span style={timeColumn}>{timeText}</span>
     </>
   );
 
@@ -128,6 +136,89 @@ export function TransactionCard({ tx, labels, onClick }: Props) {
     );
   }
   return <div style={wrap}>{content}</div>;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Медиа-слот: аватар игрока (если есть `user`) или цветная иконка-плашка
+// категории. Размер 40px, всегда круглый, между суммой и заголовком.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TransactionMedia({ tx }: { tx: FinanceTransaction }) {
+  if (tx.user) {
+    const src = tx.user.photo_url ?? tx.user.avatar_url;
+    return <Avatar src={src} name={nameOf(tx.user)} size={40} />;
+  }
+  const { bg, fg, icon } = iconForTx(tx);
+  return <IconBadge bg={bg} fg={fg} icon={icon} />;
+}
+
+function IconBadge({ bg, fg, icon }: { bg: string; fg: string; icon: ReactNode }) {
+  const wrap: CSSProperties = {
+    width: 40,
+    height: 40,
+    borderRadius: '50%',
+    background: bg,
+    color: fg,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  };
+  return <span style={wrap} aria-hidden>{icon}</span>;
+}
+
+// Для безъюзеровых операций маппим в (фон, цвет, иконку).
+function iconForTx(tx: FinanceTransaction): { bg: string; fg: string; icon: ReactNode } {
+  const size = 20;
+  if (tx.type === 'player_payment') {
+    // Без user — это «депозит от клуба/команды» (бухгалтерская проводка).
+    return {
+      bg: colors.mediaDepositBg,
+      fg: colors.mediaDepositFg,
+      icon: <IconWallet size={size} color="currentColor" />,
+    };
+  }
+  if (tx.type === 'refund') {
+    return {
+      bg: colors.mediaRefundBg,
+      fg: colors.mediaRefundFg,
+      icon: <IconBack size={size} color="currentColor" />,
+    };
+  }
+  if (tx.type === 'adjustment') {
+    return {
+      bg: colors.mediaDepositBg,
+      fg: colors.mediaDepositFg,
+      icon: <IconSettings size={size} color="currentColor" />,
+    };
+  }
+  // expense — по category.
+  switch (tx.category) {
+    case 'arena':
+      return {
+        bg: colors.mediaArenaBg,
+        fg: colors.mediaArenaFg,
+        icon: <IconHome size={size} color="currentColor" />,
+      };
+    case 'inventory':
+      return {
+        bg: colors.mediaInventoryBg,
+        fg: colors.mediaInventoryFg,
+        icon: <IconArchive size={size} color="currentColor" />,
+      };
+    case 'uniform':
+      return {
+        bg: colors.mediaUniformBg,
+        fg: colors.mediaUniformFg,
+        icon: <IconShirt size={size} color="currentColor" />,
+      };
+    default:
+      return {
+        bg: colors.mediaOtherBg,
+        fg: colors.mediaOtherFg,
+        icon: <IconFileText size={size} color="currentColor" />,
+      };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -150,12 +241,10 @@ function headForTx(
   if (tx.type === 'player_payment') {
     const name = tx.user ? nameOf(tx.user) : '';
     if (tx.event) {
-      // «Иван Иванов» / «Тренировка · Сборы»
       const ev = eventLabel(tx.event);
       const sub = labels.sub.paymentForEvent.replace('{event}', ev);
       return { title: name || labels.playerPayment, subtitle: sub };
     }
-    // Депозит — имя игрока сверху, "Депозит" снизу
     return { title: name || labels.deposit, subtitle: labels.sub.deposit };
   }
   if (tx.type === 'refund') {
@@ -180,39 +269,4 @@ function headForTx(
 
 function nameOf(u: FinancePartyUser): string {
   return [u.first_name, u.last_name].filter((s): s is string => Boolean(s)).join(' ').trim();
-}
-
-const MONTHS_SHORT = [
-  'янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
-];
-
-// «Сегодня» / «Вчера» / «12 мая» / «12 мая 2026» — последний вариант, если
-// год отличается от текущего.
-function formatRelativeDate(occurredOn: string, labels: TransactionCardLabels): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(occurredOn);
-  if (!m) return occurredOn;
-  const [, yearStr, monthStr, dayStr] = m;
-  const y = Number(yearStr);
-  const month = Number(monthStr);
-  const day = Number(dayStr);
-  const txDay = new Date(y, month - 1, day);
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
-
-  if (sameYMD(txDay, today)) return labels.today;
-  if (sameYMD(txDay, yesterday)) return labels.yesterday;
-
-  const monthLabel = MONTHS_SHORT[month - 1] ?? '';
-  if (y === today.getFullYear()) return `${day} ${monthLabel}`;
-  return `${day} ${monthLabel} ${y}`;
-}
-
-function sameYMD(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
 }

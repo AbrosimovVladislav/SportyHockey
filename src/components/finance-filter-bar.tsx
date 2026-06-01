@@ -1,14 +1,21 @@
 'use client';
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
-import { BottomSheet, BottomSheetOption } from '@/components/bottom-sheet';
-import { DateRangeFilter } from '@/components/date-range-filter';
+import { BottomSheet } from '@/components/bottom-sheet';
 import { Button } from '@/components/button';
 import {
   IconCalendar,
-  IconFileText,
-  IconTag,
   IconChevronDown,
+  IconHome,
+  IconArchive,
+  IconShirt,
+  IconFileText,
+  IconPerson,
+  IconShieldCheck,
+  IconSettings,
+  IconBack,
+  IconCheck,
+  IconTag,
 } from '@/components/icons';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
@@ -17,22 +24,29 @@ import { directionOf } from '@/components/transaction-card';
 import type { FinanceTransaction } from '@/types/api';
 
 // Панель фильтров на `/money/transactions`: три плашки-кнопки в строке.
-// Это НЕ chip-фильтры — каждая плашка всегда видна, цвет нейтральный, активное
-// значение пишется внутри лейбла. По тапу открывается соответствующий sheet.
+// Это НЕ chip-фильтры — каждая плашка всегда видна, цвет нейтральный,
+// активное значение пишется внутри лейбла. По тапу открывается соответствующий
+// bottomsheet. Внутри sheet'ов — radio (период/направление) или мульти-чекбоксы
+// (тип операции).
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Типы фильтров
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Период: три пресета относительно «сегодня», произвольный диапазон или «всё».
 export type PeriodFilter =
   | { mode: 'all' }
-  | { mode: 'month'; monthKey: string }
+  | { mode: 'last1m' }
+  | { mode: 'last3m' }
+  | { mode: 'last6m' }
   | { mode: 'custom'; from: string | null; to: string | null };
 
 export type KindFilter = 'all' | 'income' | 'expense';
 
+// `TypeSlice` — это «удобный для фильтра» тип, склеенный из (type, category).
+// Не совпадает с FinanceTxType: expense дробится по category, а player_payment
+// разделяется на 'payment' (есть event) и 'deposit' (нет event).
 export type TypeSlice =
-  | 'all'
   | 'payment'
   | 'deposit'
   | 'adjustment'
@@ -42,42 +56,69 @@ export type TypeSlice =
   | 'refund'
   | 'other';
 
+// type — массив выбранных slice'ов. Пустой массив = «все типы» (нет фильтра).
 export type FinanceFilters = {
   period: PeriodFilter;
   kind: KindFilter;
-  type: TypeSlice;
+  type: TypeSlice[];
 };
 
 export const DEFAULT_FILTERS: FinanceFilters = {
   period: { mode: 'all' },
   kind: 'all',
-  type: 'all',
+  type: [],
 };
 
+// Какие slice относятся к income / expense — нужно для адаптивности TypeSheet
+// под выбранное направление и для очистки невалидных пар при смене kind.
+const INCOME_SLICES: ReadonlySet<TypeSlice> = new Set(['payment', 'deposit', 'adjustment']);
+const EXPENSE_SLICES: ReadonlySet<TypeSlice> = new Set([
+  'arena',
+  'inventory',
+  'uniform',
+  'refund',
+  'other',
+]);
+
 // ─────────────────────────────────────────────────────────────────────────────
-// I18n-словарь для подписей плашек и sheet'ов
+// I18n-словарь
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type FinanceFilterLabels = {
-  // Плашки. Если значение фильтра — дефолт, на плашке показывается базовый
-  // лейбл, иначе текущее значение.
+  // Плашки (дефолт + краткие лейблы пресетов периода и счётчик типов):
   pillPeriod: string;
+  pillPeriodLast1m: string;
+  pillPeriodLast3m: string;
+  pillPeriodLast6m: string;
   pillKind: string;
   pillType: string;
+  pillTypeFew: string; // «{n} типа» — для 2..4
+  pillTypeMany: string; // «{n} типов» — для 5..20
+
   // Sheet «Период»:
   periodSheetTitle: string;
-  periodAll: string;
-  periodCustomTitle: string;
-  periodCustomFrom: string;
-  periodCustomTo: string;
+  periodLast1m: string;
+  periodLast3m: string;
+  periodLast6m: string;
+  periodRangeSection: string;
+  periodFrom: string;
+  periodTo: string;
+
   // Sheet «Направление»:
   kindSheetTitle: string;
+  kindSheetHint: string;
   kindAll: string;
+  kindAllHint: string;
   kindIncome: string;
+  kindIncomeHint: string;
   kindExpense: string;
+  kindExpenseHint: string;
+
   // Sheet «Тип операции»:
   typeSheetTitle: string;
-  typeAll: string;
+  typeSheetHint: string;
+  typeGroupIncome: string;
+  typeGroupExpense: string;
   typePayment: string;
   typeDeposit: string;
   typeAdjustment: string;
@@ -86,13 +127,14 @@ export type FinanceFilterLabels = {
   typeUniform: string;
   typeRefund: string;
   typeOther: string;
-  // Кнопки внизу sheet'ов:
+
+  // Действия:
   reset: string;
   apply: string;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Главный компонент
+// Главный компонент: три плашки + три bottomsheet'а
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Props = {
@@ -103,10 +145,6 @@ type Props = {
 
 export function FinanceFilterBar({ filters, onChange, labels }: Props) {
   const [open, setOpen] = useState<'period' | 'kind' | 'type' | null>(null);
-
-  const periodLabel = formatPeriodLabel(filters.period, labels);
-  const kindLabel = formatKindLabel(filters.kind, labels);
-  const typeLabel = formatTypeLabel(filters.type, labels);
 
   const row: CSSProperties = {
     display: 'flex',
@@ -122,17 +160,17 @@ export function FinanceFilterBar({ filters, onChange, labels }: Props) {
       <div style={row}>
         <FilterPill
           icon={<IconCalendar size={18} color={colors.text} />}
-          label={periodLabel}
+          label={formatPeriodPill(filters.period, labels)}
           onClick={() => setOpen('period')}
         />
         <FilterPill
-          icon={<IconFileText size={18} color={colors.text} />}
-          label={kindLabel}
+          icon={<KindPillIcon kind={filters.kind} />}
+          label={formatKindPill(filters.kind, labels)}
           onClick={() => setOpen('kind')}
         />
         <FilterPill
           icon={<IconTag size={18} color={colors.text} />}
-          label={typeLabel}
+          label={formatTypePill(filters.type, labels)}
           onClick={() => setOpen('type')}
         />
       </div>
@@ -152,9 +190,11 @@ export function FinanceFilterBar({ filters, onChange, labels }: Props) {
         onClose={() => setOpen(null)}
         value={filters.kind}
         onApply={(next) => {
-          // Смена направления сбрасывает slice — иначе остаётся невалидная пара
-          // (например, kind=income + type=arena).
-          onChange({ ...filters, kind: next, type: 'all' });
+          // При смене направления оставляем в массиве только slice'ы, валидные
+          // для нового kind (иначе остаётся противоречивая пара kind=income +
+          // type=[arena] → пустая выдача без понятной причины).
+          const nextType = pruneTypesForKind(filters.type, next);
+          onChange({ ...filters, kind: next, type: nextType });
           setOpen(null);
         }}
         labels={labels}
@@ -175,7 +215,7 @@ export function FinanceFilterBar({ filters, onChange, labels }: Props) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Внутренние UI-части
+// FilterPill — одна плашка-кнопка фильтра
 // ─────────────────────────────────────────────────────────────────────────────
 
 function FilterPill({
@@ -211,6 +251,28 @@ function FilterPill({
   );
 }
 
+// Кружок-иконка слева в плашке «Направление». Не показываем стрелочки в плашке
+// (мало места) — оставляем только цветную точку: зелёная для доходов/all,
+// красная для расходов.
+function KindPillIcon({ kind }: { kind: KindFilter }) {
+  const tint =
+    kind === 'expense' ? colors.error : kind === 'income' ? colors.success : colors.primary;
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 16,
+        height: 16,
+        borderRadius: '50%',
+        background: tint,
+        opacity: 0.18,
+        boxShadow: `inset 0 0 0 4px ${tint}`,
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sheet «Период»
 // ─────────────────────────────────────────────────────────────────────────────
@@ -229,60 +291,122 @@ function PeriodSheet({
   labels: FinanceFilterLabels;
 }) {
   const [draft, setDraft] = useState<PeriodFilter>(value);
-  // При повторном открытии возвращаем draft к текущему примененному значению.
   useEffect(() => {
     if (open) setDraft(value);
   }, [open, value]);
 
-  const months = useMemo(() => lastMonths(12), []);
+  const presets: { id: 'last1m' | 'last3m' | 'last6m'; label: string }[] = [
+    { id: 'last1m', label: labels.periodLast1m },
+    { id: 'last3m', label: labels.periodLast3m },
+    { id: 'last6m', label: labels.periodLast6m },
+  ];
+
+  const customFrom = draft.mode === 'custom' ? draft.from : null;
+  const customTo = draft.mode === 'custom' ? draft.to : null;
+
+  const setCustom = (next: { from: string | null; to: string | null }) => {
+    setDraft({ mode: 'custom', from: next.from, to: next.to });
+  };
 
   return (
     <BottomSheet open={open} onClose={onClose} title={labels.periodSheetTitle}>
-      <div style={listScroll}>
-        <BottomSheetOption
-          label={labels.periodAll}
-          active={draft.mode === 'all'}
-          onClick={() => setDraft({ mode: 'all' })}
-        />
-        {months.map((mk) => (
-          <BottomSheetOption
-            key={mk}
-            label={formatMonthLabel(mk)}
-            active={draft.mode === 'month' && draft.monthKey === mk}
-            onClick={() => setDraft({ mode: 'month', monthKey: mk })}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
+        {presets.map((p) => (
+          <RadioCard
+            key={p.id}
+            icon={<IconCalendar size={20} color={colors.text} />}
+            label={p.label}
+            active={draft.mode === p.id}
+            onClick={() => setDraft({ mode: p.id })}
           />
         ))}
-        <BottomSheetOption
-          label={labels.periodCustomTitle}
-          active={draft.mode === 'custom'}
-          onClick={() => {
-            const from = draft.mode === 'custom' ? draft.from : null;
-            const to = draft.mode === 'custom' ? draft.to : null;
-            setDraft({ mode: 'custom', from, to });
-          }}
+      </div>
+
+      <div style={{ marginTop: spacing['20'], marginBottom: spacing['8'] }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: colors.text }}>
+          {labels.periodRangeSection}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: spacing['8'] }}>
+        <DateInputField
+          label={labels.periodFrom}
+          value={customFrom}
+          onChange={(v) => setCustom({ from: v, to: customTo })}
+        />
+        <DateInputField
+          label={labels.periodTo}
+          value={customTo}
+          onChange={(v) => setCustom({ from: customFrom, to: v })}
         />
       </div>
 
-      {draft.mode === 'custom' ? (
-        <div style={{ marginTop: spacing['12'] }}>
-          <DateRangeFilter
-            from={draft.from}
-            to={draft.to}
-            onChange={(next) => setDraft({ mode: 'custom', from: next.from, to: next.to })}
-            fromLabel={labels.periodCustomFrom}
-            toLabel={labels.periodCustomTo}
-            resetLabel={labels.reset}
-          />
-        </div>
-      ) : null}
-
       <SheetActions
         onReset={() => setDraft({ mode: 'all' })}
-        onApply={() => onApply(draft)}
+        onApply={() => onApply(normalizePeriod(draft))}
         resetLabel={labels.reset}
         applyLabel={labels.apply}
       />
     </BottomSheet>
+  );
+}
+
+// Если в custom-диапазоне ничего не введено и mode='custom' — фактически это
+// «всё». Приводим к 'all', чтобы плашка не залипала на пустом диапазоне.
+function normalizePeriod(p: PeriodFilter): PeriodFilter {
+  if (p.mode === 'custom' && !p.from && !p.to) return { mode: 'all' };
+  return p;
+}
+
+function DateInputField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const wrap: CSSProperties = {
+    flex: 1,
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    padding: `${spacing['10']}px ${spacing['12']}px`,
+    background: colors.bg,
+    border: `1px solid ${colors.border}`,
+    borderRadius: radius.md,
+  };
+  const lbl: CSSProperties = { fontSize: 12, color: colors.textSecondary };
+  const inputRow: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing['8'],
+  };
+  const input: CSSProperties = {
+    flex: 1,
+    minWidth: 0,
+    border: 'none',
+    background: 'transparent',
+    padding: 0,
+    fontSize: 15,
+    fontWeight: 500,
+    color: colors.text,
+    fontFamily: 'inherit',
+  };
+  return (
+    <div style={wrap}>
+      <span style={lbl}>{label}</span>
+      <div style={inputRow}>
+        <input
+          type="date"
+          value={value ?? ''}
+          onChange={(e) => onChange(e.target.value || null)}
+          style={input}
+        />
+        <IconCalendar size={16} color={colors.textSecondary} />
+      </div>
+    </div>
   );
 }
 
@@ -308,24 +432,36 @@ function KindSheet({
     if (open) setDraft(value);
   }, [open, value]);
 
-  const options: { id: KindFilter; label: string }[] = [
-    { id: 'all', label: labels.kindAll },
-    { id: 'income', label: labels.kindIncome },
-    { id: 'expense', label: labels.kindExpense },
-  ];
-
   return (
     <BottomSheet open={open} onClose={onClose} title={labels.kindSheetTitle}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {options.map((o) => (
-          <BottomSheetOption
-            key={o.id}
-            label={o.label}
-            active={draft === o.id}
-            onClick={() => setDraft(o.id)}
-          />
-        ))}
+      <div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing['12'] }}>
+        {labels.kindSheetHint}
       </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
+        <KindCard
+          icon={<KindGlyph kind="all" />}
+          label={labels.kindAll}
+          hint={labels.kindAllHint}
+          active={draft === 'all'}
+          onClick={() => setDraft('all')}
+        />
+        <KindCard
+          icon={<KindGlyph kind="income" />}
+          label={labels.kindIncome}
+          hint={labels.kindIncomeHint}
+          active={draft === 'income'}
+          onClick={() => setDraft('income')}
+        />
+        <KindCard
+          icon={<KindGlyph kind="expense" />}
+          label={labels.kindExpense}
+          hint={labels.kindExpenseHint}
+          active={draft === 'expense'}
+          onClick={() => setDraft('expense')}
+        />
+      </div>
+
       <SheetActions
         onReset={() => setDraft('all')}
         onApply={() => onApply(draft)}
@@ -336,8 +472,107 @@ function KindSheet({
   );
 }
 
+// Карточка с radio для KindSheet — больше высота, иконка-кружок, подпись.
+function KindCard({
+  icon,
+  label,
+  hint,
+  active,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  hint: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const wrap: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing['12'],
+    padding: spacing['12'],
+    width: '100%',
+    border: `1.5px solid ${active ? colors.primary : colors.border}`,
+    background: active ? colors.primaryLight : colors.bg,
+    borderRadius: radius.lg,
+    cursor: 'pointer',
+    textAlign: 'left',
+  };
+  return (
+    <button type="button" className="pressable" onClick={onClick} style={wrap}>
+      {icon}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ fontSize: 16, fontWeight: 600, color: colors.text }}>{label}</span>
+        <span style={{ fontSize: 13, color: colors.textSecondary }}>{hint}</span>
+      </div>
+      <RadioMark active={active} />
+    </button>
+  );
+}
+
+// Цветной кружок-иконка для KindSheet — пастельный фон + стилизованная стрелка.
+function KindGlyph({ kind }: { kind: KindFilter }) {
+  const bg =
+    kind === 'expense' ? colors.errorBg : kind === 'income' ? colors.successBg : colors.primaryLight;
+  const fg = kind === 'expense' ? colors.error : colors.successDark;
+  const wrap: CSSProperties = {
+    width: 44,
+    height: 44,
+    borderRadius: '50%',
+    background: bg,
+    flexShrink: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: fg,
+  };
+  return <span style={wrap}>{kind === 'all' ? <ArrowsLR /> : <Arrow kind={kind} />}</span>;
+}
+
+function ArrowsLR() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M3 9h14M14 6l3 3-3 3M21 15H7m3-3l-3 3 3 3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function Arrow({ kind }: { kind: 'income' | 'expense' }) {
+  // income — стрелка вниз, expense — стрелка вверх-вправо (исходящая).
+  if (kind === 'income') {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M12 4v15m0 0l-6-6m6 6l6-6"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M6 18L18 6M8 6h10v10"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Sheet «Тип операции» — адаптивный под выбранное направление
+// Sheet «Тип операции» — мультиселект чекбоксами, две секции
 // ─────────────────────────────────────────────────────────────────────────────
 
 function TypeSheet({
@@ -350,63 +585,68 @@ function TypeSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  value: TypeSlice;
+  value: TypeSlice[];
   kind: KindFilter;
-  onApply: (next: TypeSlice) => void;
+  onApply: (next: TypeSlice[]) => void;
   labels: FinanceFilterLabels;
 }) {
-  const [draft, setDraft] = useState<TypeSlice>(value);
+  const [draft, setDraft] = useState<TypeSlice[]>(value);
   useEffect(() => {
     if (open) setDraft(value);
   }, [open, value]);
 
-  const options = useMemo<{ id: TypeSlice; label: string }[]>(() => {
-    const all = { id: 'all' as TypeSlice, label: labels.typeAll };
-    if (kind === 'income') {
-      return [
-        all,
-        { id: 'payment', label: labels.typePayment },
-        { id: 'deposit', label: labels.typeDeposit },
-        { id: 'adjustment', label: labels.typeAdjustment },
-      ];
-    }
-    if (kind === 'expense') {
-      return [
-        all,
-        { id: 'arena', label: labels.typeArena },
-        { id: 'inventory', label: labels.typeInventory },
-        { id: 'uniform', label: labels.typeUniform },
-        { id: 'refund', label: labels.typeRefund },
-        { id: 'other', label: labels.typeOther },
-      ];
-    }
-    return [
-      all,
-      { id: 'payment', label: labels.typePayment },
-      { id: 'deposit', label: labels.typeDeposit },
-      { id: 'adjustment', label: labels.typeAdjustment },
-      { id: 'arena', label: labels.typeArena },
-      { id: 'inventory', label: labels.typeInventory },
-      { id: 'uniform', label: labels.typeUniform },
-      { id: 'refund', label: labels.typeRefund },
-      { id: 'other', label: labels.typeOther },
-    ];
-  }, [kind, labels]);
+  const toggle = (id: TypeSlice) => {
+    setDraft((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const incomeOptions: TypeOption[] = [
+    { id: 'payment', label: labels.typePayment, icon: 'person' },
+    { id: 'deposit', label: labels.typeDeposit, icon: 'shield' },
+    { id: 'adjustment', label: labels.typeAdjustment, icon: 'sliders' },
+  ];
+  const expenseOptions: TypeOption[] = [
+    { id: 'arena', label: labels.typeArena, icon: 'home' },
+    { id: 'inventory', label: labels.typeInventory, icon: 'box' },
+    { id: 'uniform', label: labels.typeUniform, icon: 'shirt' },
+    { id: 'refund', label: labels.typeRefund, icon: 'back' },
+    { id: 'other', label: labels.typeOther, icon: 'file' },
+  ];
+
+  // Адаптивность по выбранному направлению: kind=income → только Поступления,
+  // kind=expense → только Списания, kind=all → обе.
+  const showIncome = kind !== 'expense';
+  const showExpense = kind !== 'income';
 
   return (
     <BottomSheet open={open} onClose={onClose} title={labels.typeSheetTitle}>
-      <div style={listScroll}>
-        {options.map((o) => (
-          <BottomSheetOption
-            key={o.id}
-            label={o.label}
-            active={draft === o.id}
-            onClick={() => setDraft(o.id)}
-          />
-        ))}
+      <div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing['16'] }}>
+        {labels.typeSheetHint}
       </div>
+
+      {showIncome ? (
+        <TypeGroup
+          title={labels.typeGroupIncome}
+          options={incomeOptions}
+          selected={draft}
+          onToggle={toggle}
+        />
+      ) : null}
+
+      {showIncome && showExpense ? <div style={{ height: spacing['20'] }} /> : null}
+
+      {showExpense ? (
+        <TypeGroup
+          title={labels.typeGroupExpense}
+          options={expenseOptions}
+          selected={draft}
+          onToggle={toggle}
+        />
+      ) : null}
+
       <SheetActions
-        onReset={() => setDraft('all')}
+        onReset={() => setDraft([])}
         onApply={() => onApply(draft)}
         resetLabel={labels.reset}
         applyLabel={labels.apply}
@@ -415,17 +655,216 @@ function TypeSheet({
   );
 }
 
+type TypeIconKey = 'person' | 'shield' | 'sliders' | 'home' | 'box' | 'shirt' | 'back' | 'file';
+
+type TypeOption = { id: TypeSlice; label: string; icon: TypeIconKey };
+
+function TypeGroup({
+  title,
+  options,
+  selected,
+  onToggle,
+}: {
+  title: string;
+  options: TypeOption[];
+  selected: TypeSlice[];
+  onToggle: (id: TypeSlice) => void;
+}) {
+  return (
+    <section>
+      <h3
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: colors.text,
+          margin: 0,
+          marginBottom: spacing['8'],
+        }}
+      >
+        {title}
+      </h3>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gap: spacing['8'],
+        }}
+      >
+        {options.map((o) => (
+          <TypeTile
+            key={o.id}
+            label={o.label}
+            icon={o.icon}
+            active={selected.includes(o.id)}
+            onClick={() => onToggle(o.id)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TypeTile({
+  label,
+  icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  icon: TypeIconKey;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const wrap: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing['10'],
+    padding: `${spacing['10']}px ${spacing['12']}px`,
+    border: `1.5px solid ${active ? colors.primary : colors.border}`,
+    background: active ? colors.primaryLight : colors.bg,
+    borderRadius: radius.lg,
+    cursor: 'pointer',
+    textAlign: 'left',
+    width: '100%',
+    minHeight: 60,
+  };
+  const iconWrap: CSSProperties = {
+    width: 36,
+    height: 36,
+    borderRadius: '50%',
+    background: active ? colors.primary : colors.bgMuted,
+    color: active ? colors.textInverse : colors.text,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  };
+  return (
+    <button type="button" className="pressable" onClick={onClick} style={wrap}>
+      <span style={iconWrap} aria-hidden>
+        <TypeIcon name={icon} size={18} />
+      </span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: colors.text }}>
+        {label}
+      </span>
+      <CheckboxMark active={active} />
+    </button>
+  );
+}
+
+function TypeIcon({ name, size }: { name: TypeIconKey; size: number }) {
+  switch (name) {
+    case 'person':
+      return <IconPerson size={size} color="currentColor" />;
+    case 'shield':
+      return <IconShieldCheck size={size} color="currentColor" />;
+    case 'sliders':
+      return <IconSettings size={size} color="currentColor" />;
+    case 'home':
+      return <IconHome size={size} color="currentColor" />;
+    case 'box':
+      return <IconArchive size={size} color="currentColor" />;
+    case 'shirt':
+      return <IconShirt size={size} color="currentColor" />;
+    case 'back':
+      return <IconBack size={size} color="currentColor" />;
+    case 'file':
+    default:
+      return <IconFileText size={size} color="currentColor" />;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Универсальные части sheet'ов
+// Маркеры выбора (radio для single-select, checkbox для multi-select)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const listScroll: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 2,
-  maxHeight: '50dvh',
-  overflow: 'auto',
-};
+function RadioMark({ active }: { active: boolean }) {
+  const wrap: CSSProperties = {
+    width: 22,
+    height: 22,
+    borderRadius: '50%',
+    background: active ? colors.primary : 'transparent',
+    border: active ? 'none' : `1.5px solid ${colors.chipBorder}`,
+    color: colors.textInverse,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  };
+  return (
+    <span style={wrap} aria-hidden>
+      {active ? <IconCheck size={14} color={colors.textInverse} /> : null}
+    </span>
+  );
+}
+
+function CheckboxMark({ active }: { active: boolean }) {
+  const wrap: CSSProperties = {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    background: active ? colors.primary : 'transparent',
+    border: active ? 'none' : `1.5px solid ${colors.chipBorder}`,
+    color: colors.textInverse,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  };
+  return (
+    <span style={wrap} aria-hidden>
+      {active ? <IconCheck size={14} color={colors.textInverse} /> : null}
+    </span>
+  );
+}
+
+// Универсальная карточка-radio для PeriodSheet (тонкая обёртка над общей разметкой).
+function RadioCard({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const wrap: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing['12'],
+    padding: `${spacing['12']}px ${spacing['12']}px`,
+    border: `1.5px solid ${active ? colors.primary : colors.border}`,
+    background: active ? colors.primaryLight : colors.bg,
+    borderRadius: radius.lg,
+    cursor: 'pointer',
+    textAlign: 'left',
+    width: '100%',
+  };
+  const iconWrap: CSSProperties = {
+    width: 32,
+    height: 32,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    color: colors.text,
+  };
+  return (
+    <button type="button" className="pressable" onClick={onClick} style={wrap}>
+      <span style={iconWrap} aria-hidden>
+        {icon}
+      </span>
+      <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: colors.text }}>{label}</span>
+      <RadioMark active={active} />
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Действия (Сбросить / Применить) внизу любого sheet'а
+// ─────────────────────────────────────────────────────────────────────────────
 
 function SheetActions({
   onReset,
@@ -438,17 +877,30 @@ function SheetActions({
   resetLabel: string;
   applyLabel: string;
 }) {
+  // По дизайну «Сбросить» — текстовая зелёная кнопка слева, «Применить» —
+  // зелёный pill на оставшейся ширине.
+  const reset: CSSProperties = {
+    background: 'transparent',
+    color: colors.primary,
+    border: 'none',
+    fontSize: 15,
+    fontWeight: 600,
+    padding: `${spacing['12']}px ${spacing['16']}px`,
+    cursor: 'pointer',
+    flexShrink: 0,
+  };
   return (
     <div
       style={{
         display: 'flex',
+        alignItems: 'center',
         gap: spacing['8'],
-        marginTop: spacing['16'],
+        marginTop: spacing['20'],
       }}
     >
-      <Button variant="secondary" size="md" onClick={onReset}>
+      <button type="button" className="pressable" onClick={onReset} style={reset}>
         {resetLabel}
-      </Button>
+      </button>
       <div style={{ flex: 1 }}>
         <Button variant="primary" size="md" fullWidth onClick={onApply}>
           {applyLabel}
@@ -459,58 +911,51 @@ function SheetActions({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Хелперы лейблов и месяцев
+// Хелперы лейблов плашек
 // ─────────────────────────────────────────────────────────────────────────────
-
-const MONTHS_LONG = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
-];
 
 const MONTHS_SHORT = [
   'янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
 ];
 
-function lastMonths(n: number): string[] {
-  const now = new Date();
-  const out: string[] = [];
-  for (let i = 0; i < n; i += 1) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    out.push(monthKey(d));
+function formatPeriodPill(p: PeriodFilter, labels: FinanceFilterLabels): string {
+  switch (p.mode) {
+    case 'last1m':
+      return labels.pillPeriodLast1m;
+    case 'last3m':
+      return labels.pillPeriodLast3m;
+    case 'last6m':
+      return labels.pillPeriodLast6m;
+    case 'custom': {
+      if (!p.from && !p.to) return labels.pillPeriod;
+      const f = p.from ? shortDate(p.from) : '…';
+      const t = p.to ? shortDate(p.to) : '…';
+      return `${f} — ${t}`;
+    }
+    default:
+      return labels.pillPeriod;
   }
-  return out;
 }
 
-export function monthKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function formatMonthLabel(key: string): string {
-  const m = /^(\d{4})-(\d{2})$/.exec(key);
-  if (!m) return key;
-  const y = Number(m[1]);
-  const idx = Number(m[2]) - 1;
-  const month = MONTHS_LONG[idx] ?? '';
-  const now = new Date();
-  return y === now.getFullYear() ? month : `${month} ${y}`;
-}
-
-function formatPeriodLabel(p: PeriodFilter, labels: FinanceFilterLabels): string {
-  if (p.mode === 'all') return labels.pillPeriod;
-  if (p.mode === 'month') return formatMonthLabel(p.monthKey);
-  if (!p.from && !p.to) return labels.pillPeriod;
-  const f = p.from ? shortDate(p.from) : '…';
-  const t = p.to ? shortDate(p.to) : '…';
-  return `${f} — ${t}`;
-}
-
-function formatKindLabel(k: KindFilter, labels: FinanceFilterLabels): string {
+function formatKindPill(k: KindFilter, labels: FinanceFilterLabels): string {
   if (k === 'income') return labels.kindIncome;
   if (k === 'expense') return labels.kindExpense;
   return labels.pillKind;
 }
 
-function formatTypeLabel(s: TypeSlice, labels: FinanceFilterLabels): string {
+function formatTypePill(slices: TypeSlice[], labels: FinanceFilterLabels): string {
+  if (slices.length === 0) return labels.pillType;
+  if (slices.length === 1) return sliceLabel(slices[0]!, labels);
+  // Множественное — выводим «N типа» / «N типов» по простому русскому правилу.
+  const n = slices.length;
+  const lastTwo = n % 100;
+  const last = n % 10;
+  const isFew = last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14);
+  const tmpl = isFew ? labels.pillTypeFew : labels.pillTypeMany;
+  return tmpl.replace('{n}', String(n));
+}
+
+function sliceLabel(s: TypeSlice, labels: FinanceFilterLabels): string {
   switch (s) {
     case 'payment': return labels.typePayment;
     case 'deposit': return labels.typeDeposit;
@@ -520,7 +965,6 @@ function formatTypeLabel(s: TypeSlice, labels: FinanceFilterLabels): string {
     case 'uniform': return labels.typeUniform;
     case 'refund': return labels.typeRefund;
     case 'other': return labels.typeOther;
-    default: return labels.pillType;
   }
 }
 
@@ -533,20 +977,35 @@ function shortDate(iso: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Применение фильтра к транзакции — отдельная функция, чтобы страница не
-// дублировала эту логику. Учитываем все три фильтра.
+// Применение фильтра к транзакции — используется на странице и в тестах
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function matchesFilters(tx: FinanceTransaction, f: FinanceFilters): boolean {
-  if (f.period.mode === 'month') {
-    if (tx.occurred_on.slice(0, 7) !== f.period.monthKey) return false;
-  } else if (f.period.mode === 'custom') {
-    if (f.period.from && tx.occurred_on < f.period.from) return false;
-    if (f.period.to && tx.occurred_on > f.period.to) return false;
-  }
+  if (!matchesPeriod(tx, f.period)) return false;
   if (f.kind !== 'all' && directionOf(tx.type) !== f.kind) return false;
-  if (f.type !== 'all' && sliceOf(tx) !== f.type) return false;
+  if (f.type.length > 0 && !f.type.includes(sliceOf(tx))) return false;
   return true;
+}
+
+function matchesPeriod(tx: FinanceTransaction, p: PeriodFilter): boolean {
+  if (p.mode === 'all') return true;
+  if (p.mode === 'custom') {
+    if (p.from && tx.occurred_on < p.from) return false;
+    if (p.to && tx.occurred_on > p.to) return false;
+    return true;
+  }
+  const months = p.mode === 'last1m' ? 1 : p.mode === 'last3m' ? 3 : 6;
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth() - months, now.getDate());
+  const fromIso = toIsoDay(from);
+  return tx.occurred_on >= fromIso;
+}
+
+function toIsoDay(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 export function sliceOf(tx: FinanceTransaction): TypeSlice {
@@ -559,4 +1018,10 @@ export function sliceOf(tx: FinanceTransaction): TypeSlice {
     case 'uniform': return 'uniform';
     default: return 'other';
   }
+}
+
+function pruneTypesForKind(types: TypeSlice[], kind: KindFilter): TypeSlice[] {
+  if (kind === 'all') return types;
+  const allowed = kind === 'income' ? INCOME_SLICES : EXPENSE_SLICES;
+  return types.filter((t) => allowed.has(t));
 }

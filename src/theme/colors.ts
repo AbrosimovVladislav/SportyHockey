@@ -67,6 +67,22 @@ export const colors = {
   // (эффективность, топ-штрафников и пр.). gold уже есть выше.
   silver: '#A8A8A8',
   bronze: '#A0673A',
+
+  // Пастельные фоны для медиа-иконок в строке транзакции (`/money/transactions`)
+  // и в других местах, где нужна квадратно-круглая «плашка категории».
+  // На каждый цвет — фон и цвет иконки поверх.
+  mediaArenaBg: '#FBE7DE',
+  mediaArenaFg: '#C45A2E',
+  mediaInventoryBg: '#EEE4F8',
+  mediaInventoryFg: '#7A4FB5',
+  mediaUniformBg: '#FFF1D0',
+  mediaUniformFg: '#A07300',
+  mediaDepositBg: '#DDF1E2',
+  mediaDepositFg: '#1E8E3E',
+  mediaRefundBg: '#E1ECFB',
+  mediaRefundFg: '#2766B5',
+  mediaOtherBg: '#ECECEC',
+  mediaOtherFg: '#5B5B5B',
 } as const;
 
 export type ColorToken = keyof typeof colors;
