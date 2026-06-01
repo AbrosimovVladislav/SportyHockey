@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
-import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
@@ -35,17 +34,17 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
     justifyContent: 'flex-end',
   };
 
-  // Sheet прижимается к низу backdrop'а, но отступает от низа экрана на
-  // высоту нашего bottom-nav (64px) — иначе кнопки на дне sheet'а уезжают
-  // под навбар табов. Также учитываем iOS safe-area для внутренних кнопок.
+  // Sheet прижат к низу backdrop'а. Внутри есть нижний padding с учётом
+  // iOS safe-area-inset-bottom, чтобы содержимое (особенно кнопки) не
+  // упиралось в нижний край viewport на устройствах с home-indicator.
   const sheet: CSSProperties = {
     background: colors.bg,
     borderRadius: '24px 24px 0 0',
     padding: `${spacing['12']}px ${spacing['16']}px ${spacing['24']}px`,
-    maxHeight: `calc(85dvh - ${BOTTOM_NAV_HEIGHT}px)`,
+    paddingBottom: `calc(${spacing['24']}px + env(safe-area-inset-bottom))`,
+    maxHeight: '85dvh',
     overflowY: 'auto',
     boxShadow: '0 -8px 24px rgba(0,0,0,0.18)',
-    marginBottom: BOTTOM_NAV_HEIGHT,
   };
 
   const handle: CSSProperties = {
