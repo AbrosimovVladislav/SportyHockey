@@ -46,7 +46,7 @@ export default function MoneyPlayersPage() {
     return items;
   }, [list.data, filter]);
 
-  const root: CSSProperties = { minHeight: '100dvh', background: colors.bgOffWhite };
+  const root: CSSProperties = { minHeight: '100dvh', background: colors.bg };
   const sticky: CSSProperties = {
     position: 'sticky',
     top: 56,
