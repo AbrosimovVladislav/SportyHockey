@@ -316,19 +316,7 @@ function PeriodSheet({
   };
 
   return (
-    <BottomSheet
-      open={open}
-      onClose={onClose}
-      title={labels.periodSheetTitle}
-      footer={
-        <SheetActions
-          onReset={() => setDraft({ mode: 'all' })}
-          onApply={() => onApply(normalizePeriod(draft))}
-          resetLabel={labels.reset}
-          applyLabel={labels.apply}
-        />
-      }
-    >
+    <BottomSheet open={open} onClose={onClose} title={labels.periodSheetTitle}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
         {presets.map((p) => (
           <RadioCard
@@ -358,6 +346,13 @@ function PeriodSheet({
           onChange={(v) => setCustom({ from: customFrom, to: v })}
         />
       </div>
+
+      <SheetActions
+        onReset={() => setDraft({ mode: 'all' })}
+        onApply={() => onApply(normalizePeriod(draft))}
+        resetLabel={labels.reset}
+        applyLabel={labels.apply}
+      />
     </BottomSheet>
   );
 }
@@ -445,19 +440,7 @@ function KindSheet({
   }, [open, value]);
 
   return (
-    <BottomSheet
-      open={open}
-      onClose={onClose}
-      title={labels.kindSheetTitle}
-      footer={
-        <SheetActions
-          onReset={() => setDraft('all')}
-          onApply={() => onApply(draft)}
-          resetLabel={labels.reset}
-          applyLabel={labels.apply}
-        />
-      }
-    >
+    <BottomSheet open={open} onClose={onClose} title={labels.kindSheetTitle}>
       <div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing['12'] }}>
         {labels.kindSheetHint}
       </div>
@@ -485,6 +468,13 @@ function KindSheet({
           onClick={() => setDraft('expense')}
         />
       </div>
+
+      <SheetActions
+        onReset={() => setDraft('all')}
+        onApply={() => onApply(draft)}
+        resetLabel={labels.reset}
+        applyLabel={labels.apply}
+      />
     </BottomSheet>
   );
 }
@@ -637,19 +627,7 @@ function TypeSheet({
   const showExpense = kind !== 'income';
 
   return (
-    <BottomSheet
-      open={open}
-      onClose={onClose}
-      title={labels.typeSheetTitle}
-      footer={
-        <SheetActions
-          onReset={() => setDraft([])}
-          onApply={() => onApply(draft)}
-          resetLabel={labels.reset}
-          applyLabel={labels.apply}
-        />
-      }
-    >
+    <BottomSheet open={open} onClose={onClose} title={labels.typeSheetTitle}>
       <div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing['16'] }}>
         {labels.typeSheetHint}
       </div>
@@ -673,6 +651,13 @@ function TypeSheet({
           onToggle={toggle}
         />
       ) : null}
+
+      <SheetActions
+        onReset={() => setDraft([])}
+        onApply={() => onApply(draft)}
+        resetLabel={labels.reset}
+        applyLabel={labels.apply}
+      />
     </BottomSheet>
   );
 }
@@ -888,10 +873,10 @@ function RadioCard({
 // Действия (Сбросить / Применить) внизу любого sheet'а
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Footer-полоса с кнопками «Сбросить / Применить». Рендерится через `footer`
-// prop в BottomSheet — это отдельная нескроллируемая зона снизу sheet'а,
-// поэтому кнопки гарантированно видны независимо от длины контента и от
-// safe-area iOS.
+// Кнопки «Сбросить / Применить» под вариантами фильтра. Просто блок в конце
+// контента — никаких sticky/footer, как на референсе.
+// «Сбросить» — outline (белая с зелёным border'ом и текстом, через secondary
+// + переопределение цвета), «Применить» — primary (зелёная закрашенная).
 function SheetActions({
   onReset,
   onApply,
@@ -903,21 +888,19 @@ function SheetActions({
   resetLabel: string;
   applyLabel: string;
 }) {
-  const reset: CSSProperties = {
-    background: 'transparent',
-    color: colors.primary,
-    border: 'none',
-    fontSize: 15,
-    fontWeight: 600,
-    padding: `${spacing['12']}px ${spacing['16']}px`,
-    cursor: 'pointer',
-    flexShrink: 0,
-  };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: spacing['8'] }}>
-      <button type="button" className="pressable" onClick={onReset} style={reset}>
-        {resetLabel}
-      </button>
+    <div style={{ display: 'flex', gap: spacing['8'], marginTop: spacing['20'] }}>
+      <div style={{ flex: 1 }}>
+        <Button
+          variant="secondary"
+          size="md"
+          fullWidth
+          onClick={onReset}
+          style={{ color: colors.primary, borderColor: colors.primary }}
+        >
+          {resetLabel}
+        </Button>
+      </div>
       <div style={{ flex: 1 }}>
         <Button variant="primary" size="md" fullWidth onClick={onApply}>
           {applyLabel}
