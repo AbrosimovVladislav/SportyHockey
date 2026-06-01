@@ -159,7 +159,7 @@ export function FinanceFilterBar({ filters, onChange, labels }: Props) {
     <>
       <div style={row}>
         <FilterPill
-          icon={<IconCalendar size={18} color={colors.text} />}
+          icon={<IconCalendar size={16} color={colors.text} />}
           label={formatPeriodPill(filters.period, labels)}
           onClick={() => setOpen('period')}
         />
@@ -169,7 +169,7 @@ export function FinanceFilterBar({ filters, onChange, labels }: Props) {
           onClick={() => setOpen('kind')}
         />
         <FilterPill
-          icon={<IconTag size={18} color={colors.text} />}
+          icon={<IconTag size={16} color={colors.text} />}
           label={formatTypePill(filters.type, labels)}
           onClick={() => setOpen('type')}
         />
@@ -227,26 +227,29 @@ function FilterPill({
   label: string;
   onClick: () => void;
 }) {
+  // Размер подобран так, чтобы три плашки умещались в строку на iPhone SE/13
+  // (~375px ширина). Шрифт 13, иконка 16, gap 6, паддинг 8/10.
   const wrap: CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: spacing['8'],
-    padding: `${spacing['10']}px ${spacing['12']}px`,
+    gap: spacing['6'],
+    padding: `${spacing['8']}px ${spacing['10']}px`,
     background: colors.bg,
     border: `1px solid ${colors.border}`,
     borderRadius: radius.pill,
     cursor: 'pointer',
     color: colors.text,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 600,
     whiteSpace: 'nowrap',
     flexShrink: 0,
+    minWidth: 0,
   };
   return (
     <button type="button" className="pressable" onClick={onClick} style={wrap}>
       {icon}
-      <span>{label}</span>
-      <IconChevronDown size={12} color={colors.textSecondary} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+      <IconChevronDown size={10} color={colors.textSecondary} />
     </button>
   );
 }
@@ -261,12 +264,12 @@ function KindPillIcon({ kind }: { kind: KindFilter }) {
     <span
       aria-hidden
       style={{
-        width: 16,
-        height: 16,
+        width: 12,
+        height: 12,
         borderRadius: '50%',
         background: tint,
-        opacity: 0.18,
-        boxShadow: `inset 0 0 0 4px ${tint}`,
+        opacity: 0.22,
+        boxShadow: `inset 0 0 0 3px ${tint}`,
         flexShrink: 0,
       }}
     />
@@ -601,17 +604,17 @@ function TypeSheet({
     );
   };
 
+  // По решению пользователя в фильтре оставлены только 5 ходовых типов.
+  // adjustment / uniform / other в БД могут быть, но из мультиселекта убраны —
+  // если ни один чекбокс не выбран, такие операции в выдаче остаются.
   const incomeOptions: TypeOption[] = [
     { id: 'payment', label: labels.typePayment, icon: 'person' },
     { id: 'deposit', label: labels.typeDeposit, icon: 'shield' },
-    { id: 'adjustment', label: labels.typeAdjustment, icon: 'sliders' },
   ];
   const expenseOptions: TypeOption[] = [
     { id: 'arena', label: labels.typeArena, icon: 'home' },
-    { id: 'inventory', label: labels.typeInventory, icon: 'box' },
-    { id: 'uniform', label: labels.typeUniform, icon: 'shirt' },
     { id: 'refund', label: labels.typeRefund, icon: 'back' },
-    { id: 'other', label: labels.typeOther, icon: 'file' },
+    { id: 'inventory', label: labels.typeInventory, icon: 'box' },
   ];
 
   // Адаптивность по выбранному направлению: kind=income → только Поступления,
@@ -878,7 +881,8 @@ function SheetActions({
   applyLabel: string;
 }) {
   // По дизайну «Сбросить» — текстовая зелёная кнопка слева, «Применить» —
-  // зелёный pill на оставшейся ширине.
+  // зелёный pill на оставшейся ширине. Sticky bottom внутри sheet'а, чтобы
+  // кнопки оставались видны при скролле длинного контента.
   const reset: CSSProperties = {
     background: 'transparent',
     color: colors.primary,
@@ -889,15 +893,25 @@ function SheetActions({
     cursor: 'pointer',
     flexShrink: 0,
   };
+  const bar: CSSProperties = {
+    position: 'sticky',
+    bottom: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing['8'],
+    background: colors.bg,
+    paddingTop: spacing['12'],
+    marginTop: spacing['16'],
+    marginLeft: -spacing['16'],
+    marginRight: -spacing['16'],
+    paddingLeft: spacing['16'],
+    paddingRight: spacing['16'],
+    paddingBottom: spacing['4'],
+    borderTop: `1px solid ${colors.divider}`,
+    zIndex: 1,
+  };
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: spacing['8'],
-        marginTop: spacing['20'],
-      }}
-    >
+    <div style={bar}>
       <button type="button" className="pressable" onClick={onReset} style={reset}>
         {resetLabel}
       </button>

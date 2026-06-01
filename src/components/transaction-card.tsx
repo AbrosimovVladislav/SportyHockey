@@ -73,6 +73,8 @@ export function TransactionCard({ tx, labels, onClick }: Props) {
     gap: spacing['12'],
   };
 
+  // Сумма прижата к аватару (`gap` маленький) — иначе между ними образуется
+  // лишняя «дыра», как было замечено на ревью.
   const amountStyle: CSSProperties = {
     fontSize: 16,
     fontWeight: 700,
@@ -80,7 +82,7 @@ export function TransactionCard({ tx, labels, onClick }: Props) {
     fontVariantNumeric: 'tabular-nums',
     letterSpacing: '-0.01em',
     flexShrink: 0,
-    minWidth: 80,
+    marginRight: -spacing['4'],
   };
 
   const middle: CSSProperties = {
@@ -145,7 +147,9 @@ export function TransactionCard({ tx, labels, onClick }: Props) {
 
 function TransactionMedia({ tx }: { tx: FinanceTransaction }) {
   if (tx.user) {
-    const src = tx.user.photo_url ?? tx.user.avatar_url;
+    // Порядок важен: `avatar_url` — загруженный пользователем кроп, `photo_url` —
+    // устаревшее TG-фото. Всегда avatar_url первым.
+    const src = tx.user.avatar_url ?? tx.user.photo_url;
     return <Avatar src={src} name={nameOf(tx.user)} size={40} />;
   }
   const { bg, fg, icon } = iconForTx(tx);
