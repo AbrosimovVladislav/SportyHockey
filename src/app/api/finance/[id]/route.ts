@@ -8,6 +8,7 @@ import {
   mapFinanceTransaction,
   type RawFinanceRow,
 } from '@/lib/finance-mapper';
+import { syncArenaPaidAmount, syncArenaPaidAmountForChange } from '@/lib/sync-arena-paid';
 import type {
   UpdateFinanceResponse,
   DeleteFinanceResponse,
@@ -122,6 +123,18 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       .single();
     if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
 
+    // Если запись затрагивает аренду (была или стала) — пересинхронизируем
+    // arena_paid_amount у обоих событий (старого и нового), если они есть.
+    const wasArena = existing.type === 'expense' && existing.category === 'arena';
+    const isArena = merged.type === 'expense' && merged.category === 'arena';
+    if (wasArena || isArena) {
+      await syncArenaPaidAmountForChange(
+        sb,
+        wasArena ? existing.event_id : null,
+        isArena ? merged.event_id : null,
+      );
+    }
+
     const body: UpdateFinanceResponse = {
       transaction: mapFinanceTransaction(updated as unknown as RawFinanceRow),
     };
@@ -146,7 +159,7 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
 
     const { data: existing, error: exErr } = await sb
       .from('finance_transactions')
-      .select('id, team_id')
+      .select('id, team_id, type, category, event_id')
       .eq('id', id)
       .maybeSingle();
     if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 });
@@ -159,6 +172,11 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
       .delete()
       .eq('id', id);
     if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+
+    // Если удалили аренду события — пересинхронизируем arena_paid_amount.
+    if (existing.type === 'expense' && existing.category === 'arena' && existing.event_id) {
+      await syncArenaPaidAmount(sb, existing.event_id);
+    }
 
     const body: DeleteFinanceResponse = { ok: true };
     return NextResponse.json(body);

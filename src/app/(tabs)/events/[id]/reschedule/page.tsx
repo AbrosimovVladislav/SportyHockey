@@ -127,6 +127,10 @@ type FormState = {
   durationStr: string;
   venueId: string | null;
   details: string;
+  // Числовые поля как string — чтобы корректно различать «пусто» и 0.
+  // Парсятся в number при отправке.
+  costPerPlayer: string;
+  arenaCost: string;
 };
 
 const DETAILS_LIMIT = 1000;
@@ -153,6 +157,8 @@ export default function EventReschedulePage() {
       durationStr: minutesToDurationStr(durationMinutes(data.starts_at, data.ends_at)),
       venueId: data.venue?.id ?? null,
       details: data.details ?? '',
+      costPerPlayer: data.cost_per_player != null ? String(data.cost_per_player) : '',
+      arenaCost: data.arena_cost != null ? String(data.arena_cost) : '',
     };
   }, [data]);
 
@@ -296,7 +302,20 @@ export default function EventReschedulePage() {
     durationMins !== initialMins;
   const venueChanged = form.venueId !== initialForm!.venueId;
   const detailsChanged = detailsTrimmed !== initialDetailsTrimmed;
-  const changed = scheduleChanged || venueChanged || detailsChanged;
+  // Поля «Взнос» и «Стоимость аренды» — сравниваем как числа (или null,
+  // если поле очищено). Парсим один раз для submit и для detection.
+  const costPerPlayerParsed = parseMoneyString(form.costPerPlayer);
+  const arenaCostParsed = parseMoneyString(form.arenaCost);
+  const initialCostPerPlayer = data.cost_per_player ?? null;
+  const initialArenaCost = data.arena_cost ?? null;
+  const costPerPlayerChanged = costPerPlayerParsed !== initialCostPerPlayer;
+  const arenaCostChanged = arenaCostParsed !== initialArenaCost;
+  const changed =
+    scheduleChanged ||
+    venueChanged ||
+    detailsChanged ||
+    costPerPlayerChanged ||
+    arenaCostChanged;
 
   const valid =
     Boolean(form.date) && Boolean(form.time) && durationMins > 0 && Boolean(form.venueId);
@@ -316,6 +335,12 @@ export default function EventReschedulePage() {
     }
     if (detailsChanged) {
       body.details = detailsTrimmed ? detailsTrimmed : null;
+    }
+    if (costPerPlayerChanged) {
+      body.cost_per_player = costPerPlayerParsed;
+    }
+    if (arenaCostChanged) {
+      body.arena_cost = arenaCostParsed;
     }
     update.mutate(body, {
       onSuccess: () => router.replace(`/events/${id}`),
@@ -415,6 +440,37 @@ export default function EventReschedulePage() {
           />
         </div>
 
+        {/* Финансовые поля — взнос игрока и стоимость аренды (v0.5, итерация 51.1).
+            Оба опциональные. Пустое значение шлётся как null — это значит «не указана». */}
+        <div style={sectionLabel}>{t('reschedule.sections.money')}</div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing['8'] }}>
+          <div>
+            <div style={fieldLabel}>{t('reschedule.fields.costPerPlayer')}</div>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={form.costPerPlayer}
+              onChange={(e) =>
+                setField('costPerPlayer', e.currentTarget.value.replace(/[^\d]/g, ''))
+              }
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <div style={fieldLabel}>{t('reschedule.fields.arenaCost')}</div>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={form.arenaCost}
+              onChange={(e) =>
+                setField('arenaCost', e.currentTarget.value.replace(/[^\d]/g, ''))
+              }
+              placeholder="0"
+            />
+          </div>
+        </div>
+
         <InfoListCard
           title={t('reschedule.changes.title')}
           items={changesItems}
@@ -459,4 +515,14 @@ export default function EventReschedulePage() {
 
 function interp(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
+}
+
+// Пустая строка → null (поле очищено), валидное число → number.
+// Невалидный ввод (не-числовое) — возвращаем null, чтобы не передавать NaN.
+function parseMoneyString(s: string): number | null {
+  const trimmed = s.trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
 }

@@ -8,6 +8,7 @@ import {
   mapFinanceTransaction,
   type RawFinanceRow,
 } from '@/lib/finance-mapper';
+import { syncArenaPaidAmount } from '@/lib/sync-arena-paid';
 import type {
   CreateFinanceResponse,
   FinanceListResponse,
@@ -180,6 +181,11 @@ export async function POST(req: Request): Promise<Response> {
       .select(FINANCE_SELECT)
       .single();
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+
+    // Если это аренда события — пересинхронизируем event.arena_paid_amount.
+    if (d.type === 'expense' && d.category === 'arena' && d.event_id) {
+      await syncArenaPaidAmount(sb, d.event_id);
+    }
 
     const body: CreateFinanceResponse = {
       transaction: mapFinanceTransaction(created as unknown as RawFinanceRow),

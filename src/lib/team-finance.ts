@@ -5,16 +5,16 @@ import type { TeamBalance, TeamBalanceBreakdown, PlayerBalance } from '@/types/a
 
 type SB = SupabaseClient<Database>;
 
-// Разбивка баланса команды для карточки на `/money`.
-// Подплитки — четыре независимых среза, не сумма:
-//  • on_hand          = ∑ player_payment − ∑ expense (occurred_on ≤ today)
-//  • arenas_this_month= ∑ expense (category=arena) c occurred_on внутри текущего календарного месяца
-//                       (включая уже оплаченные и запланированные)
-//  • overpayments     = ∑ |balance| у игроков, где команда должна игроку
-//  • debts            = ∑ balance у игроков, где игрок должен команде
+// Разбивка баланса команды для карточки на `/money` (v0.5, итерация 51.1).
+// Четыре подплитки = четыре независимых среза состояния:
+//  • on_hand        — текущий баланс: ∑ player_payment − ∑ expense (occurred_on ≤ today)
+//  • debts          — долги игроков (плюс к балансу, будущие поступления)
+//  • overpayments   — переплаты игрокам (минус к балансу, команда должна вернуть)
+//  • arena_debts    — долги перед площадками: ∑ max(0, arena_cost − arena_paid_amount)
+//                     по всем не отменённым событиям (минус к балансу)
 //
-// Формула total — без вычета аренд (они уже учтены в on_hand как expense):
-//   total = on_hand − overpayments + debts
+// Расчётный баланс — реальное финансовое положение:
+//   total = on_hand + debts − overpayments − arena_debts
 //
 // Баланс игрока = ∑ cost_per_player × showed_up по прошедшим событиям
 //               − ∑ player_payment − ∑ adjustment + ∑ refund этого игрока.
@@ -25,19 +25,22 @@ type AttendanceRow = {
 
 type TxRow = {
   amount: number;
-  category: string | null;
   occurred_on: string;
   type: string;
   user_id: string | null;
 };
 
+type EventArenaRow = {
+  arena_cost: number | null;
+  arena_paid_amount: number;
+};
+
 export async function computeTeamBalance(sb: SB, teamId: string): Promise<TeamBalance> {
   const today = new Date();
   const todayIso = today.toISOString().slice(0, 10);
-  const { firstDay, lastDay } = monthRange(today);
   const nowIso = today.toISOString();
 
-  const [attRes, txRes] = await Promise.all([
+  const [attRes, txRes, evRes] = await Promise.all([
     sb
       .from('event_attendances')
       .select('user_id, events!inner(cost_per_player)')
@@ -47,12 +50,18 @@ export async function computeTeamBalance(sb: SB, teamId: string): Promise<TeamBa
       .lt('events.starts_at', nowIso),
     sb
       .from('finance_transactions')
-      .select('amount, category, occurred_on, type, user_id')
+      .select('amount, occurred_on, type, user_id')
       .eq('team_id', teamId),
+    sb
+      .from('events')
+      .select('arena_cost, arena_paid_amount')
+      .eq('team_id', teamId)
+      .neq('status', 'cancelled'),
   ]);
 
   if (attRes.error) throw new Error(attRes.error.message);
   if (txRes.error) throw new Error(txRes.error.message);
+  if (evRes.error) throw new Error(evRes.error.message);
 
   // Начисления по игрокам.
   const charged = new Map<string, number>();
@@ -62,10 +71,9 @@ export async function computeTeamBalance(sb: SB, teamId: string): Promise<TeamBa
     charged.set(r.user_id, (charged.get(r.user_id) ?? 0) + cost);
   }
 
-  // Оплаты и расходы.
+  // Оплаты и расходы. on_hand учитывает только occurred_on ≤ today.
   const paid = new Map<string, number>();
   let onHand = 0;
-  let arenasThisMonth = 0;
 
   for (const tx of (txRes.data ?? []) as TxRow[]) {
     const amt = Number(tx.amount);
@@ -76,19 +84,23 @@ export async function computeTeamBalance(sb: SB, teamId: string): Promise<TeamBa
       onHand += amt;
       if (tx.user_id) paid.set(tx.user_id, (paid.get(tx.user_id) ?? 0) + amt);
     } else if (tx.type === 'expense') {
-      // В кассу уже не входит только то, что ещё не наступило.
+      // В кассу не входит только то, что ещё не наступило.
       if (day <= todayIso) onHand -= amt;
-      // В «Аренды этого месяца» — все аренды текущего календарного месяца
-      // (и прошедшие, и запланированные).
-      if (tx.category === 'arena' && day >= firstDay && day <= lastDay) {
-        arenasThisMonth += amt;
-      }
     } else if (tx.type === 'refund') {
       if (day <= todayIso) onHand -= amt;
       if (tx.user_id) charged.set(tx.user_id, (charged.get(tx.user_id) ?? 0) + amt);
     } else if (tx.type === 'adjustment') {
       if (tx.user_id) paid.set(tx.user_id, (paid.get(tx.user_id) ?? 0) + amt);
     }
+  }
+
+  // Долги перед площадками: сумма недоплаты по всем активным событиям.
+  let arenaDebts = 0;
+  for (const e of (evRes.data ?? []) as EventArenaRow[]) {
+    const cost = e.arena_cost != null ? Number(e.arena_cost) : 0;
+    const paidAmt = Number(e.arena_paid_amount) || 0;
+    const unpaid = cost - paidAmt;
+    if (unpaid > 0) arenaDebts += unpaid;
   }
 
   // Балансы игроков и агрегаты долгов/переплат.
@@ -107,21 +119,12 @@ export async function computeTeamBalance(sb: SB, teamId: string): Promise<TeamBa
 
   const breakdown: TeamBalanceBreakdown = {
     on_hand: onHand,
-    arenas_this_month: arenasThisMonth,
-    overpayments,
     debts,
+    overpayments,
+    arena_debts: arenaDebts,
   };
-  // Аренды в total не вычитаем — они уже учтены в on_hand для уже оплаченных,
-  // запланированные показываются справочно в подплитке.
-  const total = onHand - overpayments + debts;
+  // Расчётный баланс: реальное положение с учётом всех обязательств в обе стороны.
+  const total = onHand + debts - overpayments - arenaDebts;
 
   return { total, breakdown, players };
-}
-
-function monthRange(d: Date): { firstDay: string; lastDay: string } {
-  const y = d.getFullYear();
-  const m = d.getMonth();
-  const first = new Date(Date.UTC(y, m, 1));
-  const last = new Date(Date.UTC(y, m + 1, 0));
-  return { firstDay: first.toISOString().slice(0, 10), lastDay: last.toISOString().slice(0, 10) };
 }

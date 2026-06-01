@@ -23,6 +23,7 @@ import { useTgHeader } from '@/hooks/use-tg-header';
 import { useTeamBalance } from '@/hooks/use-team-balance';
 import { useTeamMembers } from '@/hooks/use-team-members';
 import { useEvents } from '@/hooks/use-events';
+import { useVenues } from '@/hooks/use-venues';
 import { useCreateFinance } from '@/hooks/use-create-finance';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
@@ -47,6 +48,7 @@ export default function MoneyPage() {
   const balanceQ = useTeamBalance(hasTeam);
   const membersQ = useTeamMembers();
   const eventsQ = useEvents();
+  const venuesQ = useVenues();
   const createFinance = useCreateFinance();
 
   const [depositOpen, setDepositOpen] = useState(false);
@@ -123,9 +125,9 @@ export default function MoneyPage() {
                 title={t('money.balance.title')}
                 labels={{
                   on_hand: t('money.balance.onHand'),
-                  arenas_this_month: t('money.balance.arenasThisMonth'),
-                  overpayments: t('money.balance.overpayments'),
                   debts: t('money.balance.debts'),
+                  overpayments: t('money.balance.overpayments'),
+                  arena_debts: t('money.balance.arenaDebts'),
                 }}
               />
             )}
@@ -224,6 +226,7 @@ export default function MoneyPage() {
         mode="create"
         initial={null}
         events={eventsQ.data?.events ?? []}
+        venues={venuesQ.data?.venues ?? []}
         onSubmit={handleArenaSubmit}
         isSaving={createFinance.isPending}
         error={arenaError}

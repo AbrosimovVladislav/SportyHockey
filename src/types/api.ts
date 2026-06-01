@@ -271,6 +271,10 @@ export type EventDto = {
   venue: EventVenue | null;
   cost_per_player: number | null;
   arena_cost: number | null;
+  // Сколько уже фактически оплачено по аренде этого события (∑ amount всех
+  // finance_transactions с type=expense, category=arena, event_id=<id>).
+  // Дефолт 0. Поддерживается синхронно из API роутов финансов (v0.5, итерация 51.1).
+  arena_paid_amount: number;
   opponent_name: string | null;
   status: EventStatus;
   attendance: AttendanceCount;
@@ -873,20 +877,20 @@ export type PlayerBalance = {
 
 export type TeamBalanceBreakdown = {
   // Деньги команды на сегодня: ∑ player_payment − ∑ expense (occurred_on ≤ today).
+  // Это «текущий баланс» в чистом виде — реально лежащие на руках/счёте деньги.
   on_hand: number;
-  // ∑ expense (category=arena) c occurred_on в текущем календарном месяце.
-  // Включает и уже оплаченные, и запланированные на этот месяц аренды.
-  arenas_this_month: number;
-  // ∑ положительных переплат игроков (где команда должна игроку).
-  overpayments: number;
-  // ∑ долгов игроков (где игрок должен команде).
+  // ∑ долгов игроков (где игрок должен команде). Будущие поступления → плюс к балансу.
   debts: number;
+  // ∑ положительных переплат игроков (где команда должна игроку). Минус к балансу.
+  overpayments: number;
+  // ∑ долгов перед площадками: max(0, event.arena_cost − event.arena_paid_amount)
+  // по всем не отменённым событиям. Минус к балансу.
+  arena_debts: number;
 };
 
 export type TeamBalance = {
-  // total = on_hand − overpayments + debts. Аренды текущего месяца в total
-  // не вычитаем — они уже учтены в on_hand для уже оплаченных, остальные
-  // показываются справочно в подплитке.
+  // Расчётный баланс — реальное финансовое положение команды:
+  // total = on_hand + debts − overpayments − arena_debts.
   total: number;
   breakdown: TeamBalanceBreakdown;
   players: PlayerBalance[];

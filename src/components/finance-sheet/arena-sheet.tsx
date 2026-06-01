@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
+import { VenueSelectSheet } from '@/components/venue-select-sheet';
 import { IconSearch, IconCalendar, IconLocation } from '@/components/icons';
 import { useT } from '@/hooks/use-t';
 import { eventLabel } from '@/lib/event-label';
@@ -11,27 +12,27 @@ import { formatEventDateRange } from '@/lib/event-format';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
-import type { EventDto } from '@/types/api';
+import type { EventDto, VenueDto } from '@/types/api';
 
-// Bottomsheet для ввода/правки аренды льда. Аренда всегда привязана к событию —
-// в `finance_transactions` это запись type='expense', category='arena', с
-// обязательным event_id. Поле "площадка" — это `description` транзакции
-// (отдельной колонки venue_id у транзакций нет на v0.5).
+// Bottomsheet для ввода/правки аренды льда (v0.5, итерации 51 + 51.1).
+// Аренда всегда привязана к событию — в `finance_transactions` это запись
+// type='expense', category='arena', с обязательным event_id. Поле «Площадка» —
+// выбор из справочника venues; в `description` транзакции пишется venue.name
+// (отдельной venue_id колонки у транзакций пока нет).
 //
-// Sheet открывается из двух мест:
+// Sheet открывается из трёх мест:
 //   - quick-action «Аренда» на хабе `/money` (mode='create' без initial)
-//   - кнопка «Оплатить аренду» на странице события `/events/[id]` (mode='create' с initial,
-//     поля заполнены из выбранного события)
-// Из ленты `/money/transactions` тап по арена-карточке открывает sheet в mode='edit'.
+//   - кнопка «Оплатить аренду» на странице события `/events/[id]` (mode='create' + initial)
+//   - тап по карточке аренды в `/money/transactions` (mode='edit' + initial с id)
 
 export type ArenaInitial = {
   // Если задан — это режим редактирования существующей транзакции.
-  // Если null — это create-с-предзаполнением (из страницы события).
+  // Если null — это create-с-предзаполнением (со страницы события).
   id?: string;
   event_id: string | null;
   amount: number | null;
   occurred_on: string; // YYYY-MM-DD
-  description: string | null; // название площадки
+  description: string | null; // название площадки (для матча в picker'е по имени)
 };
 
 export type ArenaFormValue = {
@@ -47,6 +48,7 @@ type Props = {
   mode: 'create' | 'edit';
   initial: ArenaInitial | null;
   events: EventDto[];
+  venues: VenueDto[];
   onSubmit: (value: ArenaFormValue) => void;
   onDelete?: () => void;
   isSaving?: boolean;
@@ -60,6 +62,7 @@ export function ArenaSheet({
   mode,
   initial,
   events,
+  venues,
   onSubmit,
   onDelete,
   isSaving,
@@ -72,45 +75,53 @@ export function ArenaSheet({
   const [eventId, setEventId] = useState<string | null>(null);
   const [amount, setAmount] = useState<string>('');
   const [date, setDate] = useState<string>(todayIso());
-  const [venue, setVenue] = useState<string>('');
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [venueId, setVenueId] = useState<string | null>(null);
+  const [eventPickerOpen, setEventPickerOpen] = useState(false);
+  const [venuePickerOpen, setVenuePickerOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   // Наполняем поля при открытии. initial может быть либо edit-транзакцией,
   // либо create-prefill'ом со страницы события (без id, но с event_id).
+  // venueId резолвится из description: ищем площадку с таким именем в справочнике.
+  // Если в БД лежит старая «свободная» запись без матча — venueId остаётся null,
+  // и пользователь обязан перевыбрать площадку перед сохранением.
   useEffect(() => {
     if (!open) return;
     if (initial) {
       setEventId(initial.event_id);
       setAmount(initial.amount != null ? String(initial.amount) : '');
       setDate(initial.occurred_on);
-      setVenue(initial.description ?? '');
+      setVenueId(matchVenueByName(initial.description, venues));
     } else {
       setEventId(null);
       setAmount('');
       setDate(todayIso());
-      setVenue('');
+      setVenueId(null);
     }
-    setPickerOpen(false);
+    setEventPickerOpen(false);
+    setVenuePickerOpen(false);
     setConfirmOpen(false);
     setLocalError(null);
-  }, [open, initial]);
+  }, [open, initial, venues]);
 
   const selectedEvent = useMemo(
     () => (eventId ? events.find((e) => e.id === eventId) ?? null : null),
     [eventId, events],
   );
+  const selectedVenue = useMemo(
+    () => (venueId ? venues.find((v) => v.id === venueId) ?? null : null),
+    [venueId, venues],
+  );
 
   // При смене события в picker'е перезаполняем venue/amount/date из нового.
   // Простой паттерн: overwrite — пользователь может откорректировать руками.
-  // Не дёргается на первом open (initial-эффект выше пишет всё за раз).
   const handlePickEvent = (id: string) => {
-    setPickerOpen(false);
+    setEventPickerOpen(false);
     setEventId(id);
     const e = events.find((x) => x.id === id);
     if (!e) return;
-    setVenue(e.venue?.name ?? '');
+    setVenueId(e.venue?.id ?? null);
     setAmount(e.arena_cost != null ? String(e.arena_cost) : '');
     setDate(isoFromDateTime(e.starts_at));
   };
@@ -119,6 +130,10 @@ export function ArenaSheet({
     setLocalError(null);
     if (!eventId) {
       setLocalError(t('money.sheet.arena.errorEmptyEvent'));
+      return;
+    }
+    if (!venueId || !selectedVenue) {
+      setLocalError(t('money.sheet.arena.errorEmptyVenue'));
       return;
     }
     const n = Number(amount);
@@ -134,7 +149,7 @@ export function ArenaSheet({
       event_id: eventId,
       amount: n,
       occurred_on: date,
-      description: venue.trim() ? venue.trim() : null,
+      description: selectedVenue.name,
     });
   };
 
@@ -143,7 +158,7 @@ export function ArenaSheet({
     setConfirmOpen(false);
   };
 
-  // Дата в будущем — показываем баннер про «попадёт в Аренды этого месяца».
+  // Дата в будущем — показываем баннер про запланированную аренду.
   const isFutureDate = date > todayIso();
 
   const label: CSSProperties = {
@@ -215,7 +230,7 @@ export function ArenaSheet({
               type="button"
               className="pressable"
               style={selectBtn}
-              onClick={() => setPickerOpen(true)}
+              onClick={() => setEventPickerOpen(true)}
             >
               <IconCalendar size={18} color={colors.iconFg} />
               {selectedEvent ? (
@@ -241,16 +256,39 @@ export function ArenaSheet({
             </button>
           </div>
 
-          {/* Площадка (название) */}
+          {/* Площадка (selector из справочника) */}
           <div style={fieldBlock}>
             <div style={label}>{t('money.sheet.arena.venueLabel')}</div>
-            <Input
-              type="text"
-              value={venue}
-              onChange={(e) => setVenue(e.currentTarget.value)}
-              placeholder={t('money.sheet.arena.venuePlaceholder')}
-              maxLength={200}
-            />
+            <button
+              type="button"
+              className="pressable"
+              style={selectBtn}
+              onClick={() => setVenuePickerOpen(true)}
+            >
+              <IconLocation size={18} color={colors.iconFg} />
+              {selectedVenue ? (
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span
+                    style={{
+                      display: 'block',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {selectedVenue.name}
+                  </span>
+                  {selectedVenue.address ? (
+                    <span style={{ fontSize: 12, color: colors.textSecondary }}>
+                      {selectedVenue.address}
+                    </span>
+                  ) : null}
+                </span>
+              ) : (
+                <span style={placeholderText}>{t('money.sheet.arena.venuePlaceholder')}</span>
+              )}
+            </button>
           </div>
 
           {/* Сумма */}
@@ -343,14 +381,26 @@ export function ArenaSheet({
       </BottomSheet>
 
       <EventPicker
-        open={pickerOpen}
+        open={eventPickerOpen}
         events={events}
         currentId={eventId}
         searchPlaceholder={t('money.sheet.arena.eventSearch')}
         emptyText={t('money.sheet.arena.eventEmpty')}
         title={t('money.sheet.arena.eventLabel')}
+        statusLabels={{
+          paid: t('money.sheet.arena.eventStatus.paid'),
+          unpaid: t('money.sheet.arena.eventStatus.unpaid'),
+        }}
         onPick={handlePickEvent}
-        onClose={() => setPickerOpen(false)}
+        onClose={() => setEventPickerOpen(false)}
+      />
+
+      <VenueSelectSheet
+        open={venuePickerOpen}
+        onClose={() => setVenuePickerOpen(false)}
+        venues={venues}
+        activeId={venueId}
+        onSelect={(id) => setVenueId(id)}
       />
 
       <BottomSheet
@@ -389,8 +439,10 @@ export function ArenaSheet({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Вложенный picker событий — список с поиском по названию и сопернику.
-// События сортируются по starts_at desc (последние сверху).
+// Вложенный picker событий — список с поиском по названию и площадке.
+// События сортируются по starts_at desc. У каждой строки виден чип статуса
+// оплаты аренды: зелёный «Оплачено», серый «Не оплачено», ничего — если
+// arena_cost не задан (нет цены, нечего оплачивать).
 // ─────────────────────────────────────────────────────────────────────────────
 
 type PickerProps = {
@@ -400,6 +452,7 @@ type PickerProps = {
   currentId: string | null;
   searchPlaceholder: string;
   emptyText: string;
+  statusLabels: { paid: string; unpaid: string };
   onPick: (id: string) => void;
   onClose: () => void;
 };
@@ -411,6 +464,7 @@ function EventPicker({
   currentId,
   searchPlaceholder,
   emptyText,
+  statusLabels,
   onPick,
   onClose,
 }: PickerProps) {
@@ -485,6 +539,7 @@ function EventPicker({
         ) : (
           filtered.map((e) => {
             const active = e.id === currentId;
+            const status = paymentStatus(e);
             return (
               <button
                 key={e.id}
@@ -541,6 +596,7 @@ function EventPicker({
                     {e.venue?.name ? ` · ${e.venue.name}` : ''}
                   </span>
                 </span>
+                {status !== 'none' ? <StatusChip status={status} labels={statusLabels} /> : null}
               </button>
             );
           })
@@ -550,9 +606,50 @@ function EventPicker({
   );
 }
 
+// Маленький чип статуса оплаты аренды для строки события в picker'е.
+function StatusChip({
+  status,
+  labels,
+}: {
+  status: 'paid' | 'unpaid';
+  labels: { paid: string; unpaid: string };
+}) {
+  const bg = status === 'paid' ? colors.successBg : colors.bgMuted;
+  const fg = status === 'paid' ? colors.successDark : colors.textSecondary;
+  const css: CSSProperties = {
+    padding: `${spacing['2']}px ${spacing['8']}px`,
+    borderRadius: radius.pill,
+    background: bg,
+    color: fg,
+    fontSize: 11,
+    fontWeight: 700,
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+  };
+  return <span style={css}>{status === 'paid' ? labels.paid : labels.unpaid}</span>;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+type EventPaymentStatus = 'paid' | 'unpaid' | 'none';
+
+function paymentStatus(e: EventDto): EventPaymentStatus {
+  const cost = e.arena_cost ?? 0;
+  if (cost <= 0) return 'none';
+  return e.arena_paid_amount >= cost ? 'paid' : 'unpaid';
+}
+
+function matchVenueByName(name: string | null, venues: VenueDto[]): string | null {
+  if (!name) return null;
+  const trimmed = name.trim().toLowerCase();
+  if (!trimmed) return null;
+  const hit = venues.find((v) => v.name.trim().toLowerCase() === trimmed);
+  return hit?.id ?? null;
+}
 
 function todayIso(): string {
   const d = new Date();

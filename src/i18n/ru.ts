@@ -528,12 +528,15 @@ export const ru = {
   'reschedule.summary.game': 'Игра',
   'reschedule.sections.newTime': 'Время и место',
   'reschedule.sections.details': 'Детали события',
+  'reschedule.sections.money': 'Деньги',
   'reschedule.fields.newDate': 'Дата',
   'reschedule.fields.startTime': 'Время начала',
   'reschedule.fields.duration': 'Длительность',
   'reschedule.fields.venue': 'Площадка',
   'reschedule.fields.eventTitle': 'Детали',
   'reschedule.fields.eventTitle.placeholder': 'Например: форма тёмная, приходим за 20 минут',
+  'reschedule.fields.costPerPlayer': 'Взнос с игрока, ₽',
+  'reschedule.fields.arenaCost': 'Стоимость аренды, ₽',
   'reschedule.changes.title': 'Что изменится',
   'reschedule.changes.notify': 'Уведомим {count} участников',
   'reschedule.changes.notifyHint': 'Все приглашённые получат уведомление',
@@ -835,11 +838,11 @@ export const ru = {
   // ───────────────────────────────────────────────────────────────────────
 
   // Баланс-карточка
-  'money.balance.title': 'Баланс команды',
+  'money.balance.title': 'Расчётный баланс',
   'money.balance.onHand': 'На руках',
-  'money.balance.arenasThisMonth': 'Аренды этого месяца',
-  'money.balance.overpayments': 'Переплаты игрокам',
   'money.balance.debts': 'Долги игроков',
+  'money.balance.overpayments': 'Переплаты игрокам',
+  'money.balance.arenaDebts': 'Долги аренам',
 
   // Быстрые действия (4 операции, не привязанные к событию).
   // Оплата игрока за событие — на экране события, на хабе её нет.
@@ -1014,14 +1017,21 @@ export const ru = {
   'money.sheet.arena.deleteConfirmBody': 'Действие необратимо. Операция будет удалена, баланс пересчитается.',
   'money.sheet.arena.deleteConfirmCta': 'Удалить',
   'money.sheet.arena.errorEmptyEvent': 'Выберите событие',
+  'money.sheet.arena.errorEmptyVenue': 'Выберите площадку из списка',
   'money.sheet.arena.errorEmptyAmount': 'Укажите сумму больше нуля',
   'money.sheet.arena.errorBadDate': 'Укажите корректную дату',
+  'money.sheet.arena.eventStatus.paid': 'Оплачено',
+  'money.sheet.arena.eventStatus.unpaid': 'Не оплачено',
 
-  // Блок «Аренда события» на странице события (v0.5, итерация 51).
+  // Блок «Аренда события» на странице события (v0.5, итерации 51 + 51.1).
+  // Три состояния: не оплачено / частично / оплачено.
   'eventDetail.arena.title': 'Аренда события',
   'eventDetail.arena.amount': '{amount}',
   'eventDetail.arena.amountUnset': 'Сумма не указана',
   'eventDetail.arena.payButton': 'Оплатить аренду',
+  'eventDetail.arena.partial.summary': 'Оплачено {paid} из {total}',
+  'eventDetail.arena.partial.button': 'Доплатить аренду',
+  'eventDetail.arena.paid': 'Аренда оплачена · {amount}',
 } as const;
 
 export type TKey = keyof typeof ru;

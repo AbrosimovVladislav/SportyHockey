@@ -192,6 +192,7 @@ export type Database = {
       events: {
         Row: {
           arena_cost: number | null
+          arena_paid_amount: number
           cancelled_reason: string | null
           cost_per_player: number | null
           created_at: string | null
@@ -210,6 +211,7 @@ export type Database = {
         }
         Insert: {
           arena_cost?: number | null
+          arena_paid_amount?: number
           cancelled_reason?: string | null
           cost_per_player?: number | null
           created_at?: string | null
@@ -228,6 +230,7 @@ export type Database = {
         }
         Update: {
           arena_cost?: number | null
+          arena_paid_amount?: number
           cancelled_reason?: string | null
           cost_per_player?: number | null
           created_at?: string | null

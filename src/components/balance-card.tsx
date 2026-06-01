@@ -9,12 +9,13 @@ import { Skeleton } from '@/components/skeleton';
 import { formatMoney, formatSignedMoney } from '@/lib/format-money';
 import type { TeamBalanceBreakdown } from '@/types/api';
 
-// Главная карточка хаба «Деньги»: итог + четыре подплитки разбивки.
-// Подплитки — независимые срезы (не сумма к total):
-//  • on_hand — нейтральный текст (всегда показываем как есть, без знака);
-//  • arenas_this_month — красный (показатель «во сколько обошлась аренда в этом месяце»);
-//  • overpayments — красный (команда должна игрокам);
-//  • debts — зелёный (игроки должны команде).
+// Главная карточка хаба «Деньги» (v0.5, итерация 51.1). Сверху — расчётный
+// баланс (реальное финансовое положение команды), под ним 4 подплитки 2×2:
+//  • on_hand        — нейтральный (текущий кэш в кассе/на счёте);
+//  • debts          — зелёный (долги игроков, плюс к балансу);
+//  • overpayments   — красный (команда должна игрокам, минус);
+//  • arena_debts    — красный (команда должна площадкам, минус).
+// Формула: total = on_hand + debts − overpayments − arena_debts.
 
 type BalanceCardProps = {
   total: number;
@@ -22,9 +23,9 @@ type BalanceCardProps = {
   title: string;
   labels: {
     on_hand: string;
-    arenas_this_month: string;
-    overpayments: string;
     debts: string;
+    overpayments: string;
+    arena_debts: string;
   };
 };
 
@@ -70,9 +71,9 @@ export function BalanceCard({ total, breakdown, title, labels }: BalanceCardProp
       <div style={grid}>
         <Subtile label={labels.on_hand} value={formatMoney(breakdown.on_hand)} tone="neutral" />
         <Subtile
-          label={labels.arenas_this_month}
-          value={formatSignedMoney(-breakdown.arenas_this_month)}
-          tone="negative"
+          label={labels.debts}
+          value={formatSignedMoney(breakdown.debts)}
+          tone="positive"
         />
         <Subtile
           label={labels.overpayments}
@@ -80,9 +81,9 @@ export function BalanceCard({ total, breakdown, title, labels }: BalanceCardProp
           tone="negative"
         />
         <Subtile
-          label={labels.debts}
-          value={formatSignedMoney(breakdown.debts)}
-          tone="positive"
+          label={labels.arena_debts}
+          value={formatSignedMoney(-breakdown.arena_debts)}
+          tone="negative"
         />
       </div>
     </div>

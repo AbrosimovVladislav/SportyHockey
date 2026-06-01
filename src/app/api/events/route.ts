@@ -54,7 +54,7 @@ export async function GET(req: Request): Promise<Response> {
       sb
         .from('events')
         .select(
-          'id, type, title, starts_at, ends_at, cost_per_player, arena_cost, opponent_name, status, venue:venues(id, name, address, photo_url)',
+          'id, type, title, starts_at, ends_at, cost_per_player, arena_cost, arena_paid_amount, opponent_name, status, venue:venues(id, name, address, photo_url)',
         )
         .eq('team_id', teamId)
         .neq('status', 'cancelled')
@@ -88,6 +88,7 @@ export async function GET(req: Request): Promise<Response> {
       venue: pickVenue(r.venue as VenueRow | VenueRow[] | null),
       cost_per_player: r.cost_per_player != null ? Number(r.cost_per_player) : null,
       arena_cost: r.arena_cost != null ? Number(r.arena_cost) : null,
+      arena_paid_amount: Number(r.arena_paid_amount) || 0,
       opponent_name: r.opponent_name ?? null,
       status: asEventStatus(r.status),
       attendance: attendanceMap.get(r.id) ?? { going: 0, not_going: 0 },

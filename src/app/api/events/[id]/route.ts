@@ -79,7 +79,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: rawEvent, error } = await sb
       .from('events')
       .select(
-        'id, team_id, type, title, details, starts_at, ends_at, cost_per_player, arena_cost, opponent_name, status, created_by, cancelled_reason, venue:venues(id, name, address, photo_url)',
+        'id, team_id, type, title, details, starts_at, ends_at, cost_per_player, arena_cost, arena_paid_amount, opponent_name, status, created_by, cancelled_reason, venue:venues(id, name, address, photo_url)',
       )
       .eq('id', id)
       .maybeSingle();
@@ -257,6 +257,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       venue: pickVenue(event.venue as VenueRow | VenueRow[] | null),
       cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
       arena_cost: event.arena_cost != null ? Number(event.arena_cost) : null,
+      arena_paid_amount: Number(event.arena_paid_amount) || 0,
       opponent_name: event.opponent_name ?? null,
       status: asEventStatus(event.status),
       created_by: event.created_by,
