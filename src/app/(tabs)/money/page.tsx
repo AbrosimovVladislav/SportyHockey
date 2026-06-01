@@ -121,9 +121,7 @@ export default function MoneyPage() {
                   icon={<IconPeople size={22} color={colors.iconFg} />}
                   title={t('money.sections.players.title')}
                   subtitle={t('money.sections.players.subtitle')}
-                  onClick={() =>
-                    router.push('/money/soon?title=money.sections.players.title')
-                  }
+                  onClick={() => router.push('/money/players')}
                 />
                 <ListRow
                   icon={<IconFileText size={22} color={colors.iconFg} />}

@@ -937,6 +937,19 @@ export const ru = {
   'money.transactions.fallback.refund': 'Возврат игроку',
   'money.transactions.fallback.adjustment': 'Корректировка',
 
+  // Экран «Балансы игроков» — `/money/players`.
+  'money.players.title': 'Балансы игроков',
+  'money.players.tab.all': 'Все',
+  'money.players.tab.debtors': 'Должники',
+  'money.players.tab.overpaid': 'С депозитом',
+  'money.players.status.debtor': 'Должник',
+  'money.players.status.overpaid': 'С депозитом',
+  'money.players.status.closed': 'Закрыт',
+  'money.players.status.inactive': 'Без оплат',
+  'money.players.empty.all': 'В команде пока нет игроков — пригласите участников на вкладке «Команда».',
+  'money.players.empty.debtors': 'Должников нет — все рассчитались.',
+  'money.players.empty.overpaid': 'Игроков с депозитом нет.',
+
   // Тексты для строк операций
   'money.row.playerPayment': 'Оплата игрока',
   'money.row.deposit': 'Депозит',

@@ -22,6 +22,7 @@ export function useCreateFinance(): UseMutationResult<
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['team-balance'] });
       qc.invalidateQueries({ queryKey: ['finance-list'] });
+      qc.invalidateQueries({ queryKey: ['players-balance'] });
       if (vars.user_id) invalidatePlayer(qc, vars.user_id);
     },
   });

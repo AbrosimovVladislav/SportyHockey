@@ -894,6 +894,26 @@ export type TeamBalance = {
 // На хабе нужен только агрегат — players[] на этом эндпоинте не отдаём.
 export type TeamBalanceResponse = Omit<TeamBalance, 'players'>;
 
+// Балансы игроков `/api/finance/players`. Поле `balance` здесь — в перспективе
+// игрока: положительный = у игрока депозит, отрицательный = игрок должен
+// команде. Это противоположно знаку `PlayerBalance.balance` (там положительный
+// = долг), чтобы UI рисовал сумму как есть без инверсий.
+export type PlayerBalanceStatus = 'debtor' | 'overpaid' | 'closed' | 'inactive';
+
+export type PlayerBalanceItem = {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  photo_url: string | null;
+  total_charged: number;
+  total_paid: number;
+  balance: number;
+  status: PlayerBalanceStatus;
+};
+
+export type PlayersBalanceResponse = { items: PlayerBalanceItem[] };
+
 // Создание транзакции (POST /api/finance). Валидируется zod-схемой на сервере:
 // у каждого type — свой обязательный набор полей.
 export type CreateFinanceRequest = {
