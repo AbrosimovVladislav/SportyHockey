@@ -13,15 +13,26 @@ import {
   type FinanceFilters,
   type FinanceFilterLabels,
 } from '@/components/finance-filter-bar';
+import { DepositSheet, type DepositFormValue, type DepositInitial } from '@/components/finance-sheet/deposit-sheet';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useMe } from '@/hooks/use-me';
 import { useFinanceList } from '@/hooks/use-finance-list';
+import { useTeamMembers } from '@/hooks/use-team-members';
+import { useUpdateFinance } from '@/hooks/use-update-finance';
+import { useDeleteFinance } from '@/hooks/use-delete-finance';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import type { FinanceTransaction } from '@/types/api';
+
+// Депозит — это `player_payment` без привязки к событию (event === null).
+// Только такие карточки кликабельны в этой итерации (50); правка платежей
+// за событие, возвратов и расходов появится в 51–53.
+function isDeposit(tx: FinanceTransaction): boolean {
+  return tx.type === 'player_payment' && tx.event === null;
+}
 
 // Все транзакции активной команды. Сортировка по `occurred_on desc, created_at desc`
 // идёт с сервера. Фильтры — три плашки сверху, открывают bottomsheets:
@@ -36,9 +47,17 @@ export default function MoneyTransactionsPage() {
 
   const [filters, setFilters] = useState<FinanceFilters>(DEFAULT_FILTERS);
 
+  // Тап по карточке-депозиту открывает sheet в режиме edit. Храним всю
+  // транзакцию целиком, чтобы из неё собрать DepositInitial при mount'е sheet'а.
+  const [editingDeposit, setEditingDeposit] = useState<FinanceTransaction | null>(null);
+  const [depositError, setDepositError] = useState<string | null>(null);
+
   // На клиенте фильтруем — на PoC ленты сотни операций. Серверные фильтры в
   // /api/finance уже есть, переключим когда понадобится.
   const list = useFinanceList({ limit: 200 }, hasTeam);
+  const membersQ = useTeamMembers();
+  const updateFinance = useUpdateFinance();
+  const deleteFinance = useDeleteFinance();
 
   const cardLabels: TransactionCardLabels = useMemo(
     () => ({
@@ -120,7 +139,10 @@ export default function MoneyTransactionsPage() {
   const sticky: CSSProperties = {
     position: 'sticky',
     top: 56,
-    zIndex: 4,
+    // НЕ задаём z-index: иначе sticky создаёт stacking-context, и position:fixed
+    // bottomsheet'ов фильтра внутри уже не пробивается поверх bottom-nav. Без
+    // z-index sticky не создаёт контекст; фон + border достаточно, чтобы блок
+    // не сливался со скроллящимся под ним контентом.
     background: colors.bg,
     borderBottom: `1px solid ${colors.line}`,
   };
@@ -135,6 +157,55 @@ export default function MoneyTransactionsPage() {
   const onBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) router.back();
     else router.push('/money');
+  };
+
+  // Из транзакции собираем initial для DepositSheet. Дефолт user_id —
+  // пустая строка маловероятна, но fallback нужен (сервер не вернёт user==null
+  // на player_payment без event, потому что у депозита user_id обязателен).
+  const depositInitial: DepositInitial | null = editingDeposit
+    ? {
+        id: editingDeposit.id,
+        user_id: editingDeposit.user?.user_id ?? '',
+        amount: editingDeposit.amount,
+        occurred_on: editingDeposit.occurred_on,
+        description: editingDeposit.description,
+      }
+    : null;
+
+  const handleDepositSubmit = (v: DepositFormValue) => {
+    if (!editingDeposit) return;
+    setDepositError(null);
+    updateFinance.mutate(
+      {
+        id: editingDeposit.id,
+        prev_user_id: editingDeposit.user?.user_id ?? null,
+        patch: {
+          amount: v.amount,
+          user_id: v.user_id,
+          occurred_on: v.occurred_on,
+          description: v.description,
+        },
+      },
+      {
+        onSuccess: () => setEditingDeposit(null),
+        onError: (e) => setDepositError(e.message),
+      },
+    );
+  };
+
+  const handleDepositDelete = () => {
+    if (!editingDeposit) return;
+    setDepositError(null);
+    deleteFinance.mutate(
+      {
+        id: editingDeposit.id,
+        user_id: editingDeposit.user?.user_id ?? null,
+      },
+      {
+        onSuccess: () => setEditingDeposit(null),
+        onError: (e) => setDepositError(e.message),
+      },
+    );
   };
 
   return (
@@ -167,12 +238,37 @@ export default function MoneyTransactionsPage() {
           groups.map((g) => (
             <DateGroup key={g.day} title={dayHeading(g.day, t)}>
               {g.items.map((tx) => (
-                <TransactionCard key={tx.id} tx={tx} labels={cardLabels} />
+                <TransactionCard
+                  key={tx.id}
+                  tx={tx}
+                  labels={cardLabels}
+                  onClick={
+                    isDeposit(tx)
+                      ? () => {
+                          setDepositError(null);
+                          setEditingDeposit(tx);
+                        }
+                      : undefined
+                  }
+                />
               ))}
             </DateGroup>
           ))
         )}
       </div>
+
+      <DepositSheet
+        open={editingDeposit !== null}
+        onClose={() => setEditingDeposit(null)}
+        mode="edit"
+        initial={depositInitial}
+        members={membersQ.data?.members ?? []}
+        onSubmit={handleDepositSubmit}
+        onDelete={handleDepositDelete}
+        isSaving={updateFinance.isPending}
+        isDeleting={deleteFinance.isPending}
+        error={depositError}
+      />
     </div>
   );
 }

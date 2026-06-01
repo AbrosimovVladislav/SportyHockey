@@ -1,7 +1,7 @@
 'use client';
 
+import { useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import type { CSSProperties } from 'react';
 import { DarkHeader } from '@/components/dark-header';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ListRow } from '@/components/list-row';
@@ -15,20 +15,25 @@ import {
   IconFileText,
   IconStats,
 } from '@/components/icons';
+import { DepositSheet, type DepositFormValue } from '@/components/finance-sheet/deposit-sheet';
 import { useMe } from '@/hooks/use-me';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useTeamBalance } from '@/hooks/use-team-balance';
+import { useTeamMembers } from '@/hooks/use-team-members';
+import { useCreateFinance } from '@/hooks/use-create-finance';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 
-// Хаб раздела «Деньги» (v0.5, итерация 48): DarkHeader с фото арены,
+// Хаб раздела «Деньги» (v0.5, итерации 48 + 50): DarkHeader с фото арены,
 // карточка-баланс с разбивкой, четыре быстрых действия 2×2 (Депозит,
-// Аренда, Возврат, Инвентарь — placeholder на soon до итераций 50–53),
-// переходы в четыре подэкрана. Оплата игрока за событие — только из
-// экрана события, на хабе её нет.
+// Аренда, Возврат, Инвентарь), переходы в четыре подэкрана. Оплата игрока
+// за событие — только из экрана события, на хабе её нет.
+//
+// Итерация 50: «Депозит» открывает реальный bottomsheet, остальные три плитки
+// пока ведут в `/money/soon` до итераций 51–53.
 export default function MoneyPage() {
   const t = useT();
   const router = useRouter();
@@ -37,6 +42,28 @@ export default function MoneyPage() {
 
   const hasTeam = (me.data?.memberships.length ?? 0) > 0;
   const balanceQ = useTeamBalance(hasTeam);
+  const membersQ = useTeamMembers();
+  const createFinance = useCreateFinance();
+
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [depositError, setDepositError] = useState<string | null>(null);
+
+  const handleDepositSubmit = (v: DepositFormValue) => {
+    setDepositError(null);
+    createFinance.mutate(
+      {
+        type: 'player_payment',
+        amount: v.amount,
+        user_id: v.user_id,
+        occurred_on: v.occurred_on,
+        description: v.description,
+      },
+      {
+        onSuccess: () => setDepositOpen(false),
+        onError: (e) => setDepositError(e.message),
+      },
+    );
+  };
 
   const root: CSSProperties = { minHeight: '100dvh', background: colors.bg };
 
@@ -91,7 +118,10 @@ export default function MoneyPage() {
                   tone="positive"
                   icon={<IconWallet size={22} color={quickActionForeground('positive')} />}
                   label={t('money.actions.deposit')}
-                  onClick={() => router.push('/money/soon?title=money.actions.deposit')}
+                  onClick={() => {
+                    setDepositError(null);
+                    setDepositOpen(true);
+                  }}
                 />
                 <QuickActionTile
                   tone="negative"
@@ -149,6 +179,17 @@ export default function MoneyPage() {
           </>
         )}
       </div>
+
+      <DepositSheet
+        open={depositOpen}
+        onClose={() => setDepositOpen(false)}
+        mode="create"
+        initial={null}
+        members={membersQ.data?.members ?? []}
+        onSubmit={handleDepositSubmit}
+        isSaving={createFinance.isPending}
+        error={depositError}
+      />
     </div>
   );
 }

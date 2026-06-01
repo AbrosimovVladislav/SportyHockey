@@ -927,3 +927,18 @@ export type CreateFinanceRequest = {
 };
 export type CreateFinanceResponse = { transaction: FinanceTransaction };
 
+// Правка транзакции (PATCH /api/finance/[id]). Тип менять нельзя — если
+// ошиблись типом, проще удалить и создать заново. Остальные поля опциональны
+// и валидируются той же логикой, что и при создании (категория обязательна
+// для expense, user_id для refund/adjustment).
+export type UpdateFinanceRequest = {
+  amount?: number;
+  occurred_on?: string | null;
+  category?: FinanceExpenseCategory | null;
+  user_id?: string | null;
+  event_id?: string | null;
+  description?: string | null;
+};
+export type UpdateFinanceResponse = { transaction: FinanceTransaction };
+export type DeleteFinanceResponse = { ok: true };
+

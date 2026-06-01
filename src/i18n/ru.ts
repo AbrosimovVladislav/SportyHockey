@@ -966,6 +966,30 @@ export const ru = {
   'money.soon.title': 'Раздел в разработке',
   'money.soon.heading': 'Скоро в разработке',
   'money.soon.body': 'Раздел появится в одной из ближайших итераций v0.5.',
+
+  // Bottomsheet «Депозит» (v0.5, итерация 50). Создание/правка/удаление
+  // оплаты игрока без привязки к событию.
+  'money.sheet.deposit.createTitle': 'Депозит игрока',
+  'money.sheet.deposit.editTitle': 'Депозит',
+  'money.sheet.deposit.playerLabel': 'Игрок',
+  'money.sheet.deposit.playerPlaceholder': 'Выберите игрока',
+  'money.sheet.deposit.playerSearch': 'Поиск по имени',
+  'money.sheet.deposit.playerEmpty': 'Никого не нашли',
+  'money.sheet.deposit.amountLabel': 'Сумма',
+  'money.sheet.deposit.dateLabel': 'Дата',
+  'money.sheet.deposit.descriptionLabel': 'Описание',
+  'money.sheet.deposit.descriptionPlaceholder': 'Например, «за апрель»',
+  'money.sheet.deposit.save': 'Сохранить',
+  'money.sheet.deposit.saving': 'Сохраняем…',
+  'money.sheet.deposit.cancel': 'Отмена',
+  'money.sheet.deposit.delete': 'Удалить депозит',
+  'money.sheet.deposit.deleting': 'Удаляем…',
+  'money.sheet.deposit.deleteConfirmTitle': 'Удалить операцию?',
+  'money.sheet.deposit.deleteConfirmBody': 'Действие необратимо. Депозит будет удалён, баланс пересчитается.',
+  'money.sheet.deposit.deleteConfirmCta': 'Удалить',
+  'money.sheet.deposit.errorEmptyPlayer': 'Выберите игрока',
+  'money.sheet.deposit.errorEmptyAmount': 'Укажите сумму больше нуля',
+  'money.sheet.deposit.errorBadDate': 'Укажите корректную дату',
 } as const;
 
 export type TKey = keyof typeof ru;
