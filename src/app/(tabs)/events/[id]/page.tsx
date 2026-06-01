@@ -25,14 +25,19 @@ import {
   IconImage,
   IconClock,
 } from '@/components/icons';
+import { ArenaSheet, type ArenaFormValue, type ArenaInitial } from '@/components/finance-sheet/arena-sheet';
+import { Button } from '@/components/button';
 import { useEvent } from '@/hooks/use-event';
+import { useEvents } from '@/hooks/use-events';
 import { useEventResult } from '@/hooks/use-event-result';
 import { useVoteEvent } from '@/hooks/use-vote-event';
 import { useMe } from '@/hooks/use-me';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
+import { useCreateFinance } from '@/hooks/use-create-finance';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { formatEventDateRange } from '@/lib/event-format';
+import { formatMoney } from '@/lib/format-money';
 import { formatName } from '@/lib/format-name';
 import { interp } from '@/lib/format';
 import { colors } from '@/theme/colors';
@@ -50,7 +55,11 @@ export default function EventDetailPage() {
   const me = useMe();
   const ev = useEvent(id);
   const vote = useVoteEvent(id, me.data?.user.id);
+  const eventsQ = useEvents();
+  const createFinance = useCreateFinance();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [arenaOpen, setArenaOpen] = useState(false);
+  const [arenaError, setArenaError] = useState<string | null>(null);
 
   const data = ev.data;
   const isTraining = data?.type !== 'game';
@@ -275,6 +284,57 @@ export default function EventDetailPage() {
           onClick={() => router.push(`/events/${id}/attendees`)}
         />
 
+        {/* АРЕНДА — кнопка оплаты, только organizer (v0.5, итерация 51).
+            Открывает ArenaSheet с предзаполнением из текущего события. */}
+        {isOrganizer ? (
+          <div
+            style={{
+              background: colors.bg,
+              borderRadius: radius.lg,
+              padding: spacing['16'],
+              border: `1px solid ${colors.line}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: spacing['12'],
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'space-between',
+                gap: spacing['8'],
+              }}
+            >
+              <span style={{ ...typography.bodyBold, color: colors.text }}>
+                {t('eventDetail.arena.title')}
+              </span>
+              <span
+                style={{
+                  ...typography.h2,
+                  color: data.arena_cost != null ? colors.error : colors.textTertiary,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {data.arena_cost != null
+                  ? formatMoney(data.arena_cost)
+                  : t('eventDetail.arena.amountUnset')}
+              </span>
+            </div>
+            <Button
+              variant="primary"
+              size="md"
+              fullWidth
+              onClick={() => {
+                setArenaError(null);
+                setArenaOpen(true);
+              }}
+            >
+              {t('eventDetail.arena.payButton')}
+            </Button>
+          </div>
+        ) : null}
+
         {/* ССЫЛКИ */}
         <ListRow
           icon={<IconShirt size={20} color={colors.iconFg} />}
@@ -365,6 +425,63 @@ export default function EventDetailPage() {
           />
         </BottomSheet>
       ) : null}
+
+      {/* ArenaSheet с предзаполнением из текущего события (v0.5, итерация 51).
+          События для picker'а тянем через useEvents — пользователь может
+          переключить событие, поля автоматически перезаполнятся из нового. */}
+      {isOrganizer ? (
+        <ArenaSheet
+          open={arenaOpen}
+          onClose={() => setArenaOpen(false)}
+          mode="create"
+          initial={makeArenaInitialFromEvent({
+            event_id: data.id,
+            arena_cost: data.arena_cost,
+            starts_at: data.starts_at,
+            venue_name: data.venue?.name ?? null,
+          })}
+          events={eventsQ.data?.events ?? []}
+          onSubmit={(v: ArenaFormValue) => {
+            setArenaError(null);
+            createFinance.mutate(
+              {
+                type: 'expense',
+                category: 'arena',
+                amount: v.amount,
+                event_id: v.event_id,
+                occurred_on: v.occurred_on,
+                description: v.description,
+              },
+              {
+                onSuccess: () => setArenaOpen(false),
+                onError: (e) => setArenaError(e.message),
+              },
+            );
+          }}
+          isSaving={createFinance.isPending}
+          error={arenaError}
+        />
+      ) : null}
     </div>
   );
+}
+
+// Собираем ArenaInitial из полей события для предзаполнения sheet'а.
+// Без id транзакции — sheet работает в create-режиме (новая запись).
+function makeArenaInitialFromEvent(args: {
+  event_id: string;
+  arena_cost: number | null;
+  starts_at: string;
+  venue_name: string | null;
+}): ArenaInitial {
+  const d = new Date(args.starts_at);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return {
+    event_id: args.event_id,
+    amount: args.arena_cost,
+    occurred_on: `${y}-${m}-${day}`,
+    description: args.venue_name,
+  };
 }

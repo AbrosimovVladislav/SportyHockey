@@ -990,6 +990,38 @@ export const ru = {
   'money.sheet.deposit.errorEmptyPlayer': 'Выберите игрока',
   'money.sheet.deposit.errorEmptyAmount': 'Укажите сумму больше нуля',
   'money.sheet.deposit.errorBadDate': 'Укажите корректную дату',
+
+  // Bottomsheet «Аренда» (v0.5, итерация 51). Оплата льда — всегда привязана
+  // к конкретному событию. Открывается из quick-action на хабе и кнопки на
+  // странице события.
+  'money.sheet.arena.createTitle': 'Оплата аренды',
+  'money.sheet.arena.editTitle': 'Аренда',
+  'money.sheet.arena.eventLabel': 'Событие',
+  'money.sheet.arena.eventPlaceholder': 'Выберите событие',
+  'money.sheet.arena.eventSearch': 'Поиск по названию или площадке',
+  'money.sheet.arena.eventEmpty': 'Событий не нашли',
+  'money.sheet.arena.venueLabel': 'Площадка',
+  'money.sheet.arena.venuePlaceholder': 'Название арены',
+  'money.sheet.arena.amountLabel': 'Сумма',
+  'money.sheet.arena.dateLabel': 'Дата',
+  'money.sheet.arena.futureDateHint': 'Эта операция в будущем — попадёт в баланс как «Аренды этого месяца».',
+  'money.sheet.arena.save': 'Сохранить',
+  'money.sheet.arena.saving': 'Сохраняем…',
+  'money.sheet.arena.cancel': 'Отмена',
+  'money.sheet.arena.delete': 'Удалить операцию',
+  'money.sheet.arena.deleting': 'Удаляем…',
+  'money.sheet.arena.deleteConfirmTitle': 'Удалить операцию?',
+  'money.sheet.arena.deleteConfirmBody': 'Действие необратимо. Операция будет удалена, баланс пересчитается.',
+  'money.sheet.arena.deleteConfirmCta': 'Удалить',
+  'money.sheet.arena.errorEmptyEvent': 'Выберите событие',
+  'money.sheet.arena.errorEmptyAmount': 'Укажите сумму больше нуля',
+  'money.sheet.arena.errorBadDate': 'Укажите корректную дату',
+
+  // Блок «Аренда события» на странице события (v0.5, итерация 51).
+  'eventDetail.arena.title': 'Аренда события',
+  'eventDetail.arena.amount': '{amount}',
+  'eventDetail.arena.amountUnset': 'Сумма не указана',
+  'eventDetail.arena.payButton': 'Оплатить аренду',
 } as const;
 
 export type TKey = keyof typeof ru;

@@ -14,11 +14,13 @@ import {
   type FinanceFilterLabels,
 } from '@/components/finance-filter-bar';
 import { DepositSheet, type DepositFormValue, type DepositInitial } from '@/components/finance-sheet/deposit-sheet';
+import { ArenaSheet, type ArenaFormValue, type ArenaInitial } from '@/components/finance-sheet/arena-sheet';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useMe } from '@/hooks/use-me';
 import { useFinanceList } from '@/hooks/use-finance-list';
 import { useTeamMembers } from '@/hooks/use-team-members';
+import { useEvents } from '@/hooks/use-events';
 import { useUpdateFinance } from '@/hooks/use-update-finance';
 import { useDeleteFinance } from '@/hooks/use-delete-finance';
 import { colors } from '@/theme/colors';
@@ -28,10 +30,16 @@ import { typography } from '@/theme/typography';
 import type { FinanceTransaction } from '@/types/api';
 
 // Депозит — это `player_payment` без привязки к событию (event === null).
-// Только такие карточки кликабельны в этой итерации (50); правка платежей
-// за событие, возвратов и расходов появится в 51–53.
 function isDeposit(tx: FinanceTransaction): boolean {
   return tx.type === 'player_payment' && tx.event === null;
+}
+
+// Арена — расход с category='arena'. Привязка к событию обязательна, но
+// для устаревших записей (созданных до итерации 51) event может быть null —
+// фронт всё равно открывает sheet, чтобы можно было либо привязать событие,
+// либо удалить такую запись.
+function isArenaExpense(tx: FinanceTransaction): boolean {
+  return tx.type === 'expense' && tx.category === 'arena';
 }
 
 // Все транзакции активной команды. Сортировка по `occurred_on desc, created_at desc`
@@ -47,15 +55,18 @@ export default function MoneyTransactionsPage() {
 
   const [filters, setFilters] = useState<FinanceFilters>(DEFAULT_FILTERS);
 
-  // Тап по карточке-депозиту открывает sheet в режиме edit. Храним всю
-  // транзакцию целиком, чтобы из неё собрать DepositInitial при mount'е sheet'а.
+  // Тап по карточке-депозиту/аренде открывает соответствующий sheet в edit.
+  // Храним всю транзакцию целиком — из неё собирается initial при mount'е sheet'а.
   const [editingDeposit, setEditingDeposit] = useState<FinanceTransaction | null>(null);
   const [depositError, setDepositError] = useState<string | null>(null);
+  const [editingArena, setEditingArena] = useState<FinanceTransaction | null>(null);
+  const [arenaError, setArenaError] = useState<string | null>(null);
 
   // На клиенте фильтруем — на PoC ленты сотни операций. Серверные фильтры в
   // /api/finance уже есть, переключим когда понадобится.
   const list = useFinanceList({ limit: 200 }, hasTeam);
   const membersQ = useTeamMembers();
+  const eventsQ = useEvents();
   const updateFinance = useUpdateFinance();
   const deleteFinance = useDeleteFinance();
 
@@ -208,6 +219,51 @@ export default function MoneyTransactionsPage() {
     );
   };
 
+  // Аренда: из транзакции собираем initial. event_id может быть null (для
+  // старых записей до итерации 51) — sheet всё равно откроется, пользователь
+  // выберет событие и пересохранит.
+  const arenaInitial: ArenaInitial | null = editingArena
+    ? {
+        id: editingArena.id,
+        event_id: editingArena.event?.id ?? null,
+        amount: editingArena.amount,
+        occurred_on: editingArena.occurred_on,
+        description: editingArena.description,
+      }
+    : null;
+
+  const handleArenaSubmit = (v: ArenaFormValue) => {
+    if (!editingArena) return;
+    setArenaError(null);
+    updateFinance.mutate(
+      {
+        id: editingArena.id,
+        patch: {
+          amount: v.amount,
+          event_id: v.event_id,
+          occurred_on: v.occurred_on,
+          description: v.description,
+        },
+      },
+      {
+        onSuccess: () => setEditingArena(null),
+        onError: (e) => setArenaError(e.message),
+      },
+    );
+  };
+
+  const handleArenaDelete = () => {
+    if (!editingArena) return;
+    setArenaError(null);
+    deleteFinance.mutate(
+      { id: editingArena.id },
+      {
+        onSuccess: () => setEditingArena(null),
+        onError: (e) => setArenaError(e.message),
+      },
+    );
+  };
+
   return (
     <div style={root}>
       <LightHeader title={t('money.transactions.title')} onBack={onBack} />
@@ -248,7 +304,12 @@ export default function MoneyTransactionsPage() {
                           setDepositError(null);
                           setEditingDeposit(tx);
                         }
-                      : undefined
+                      : isArenaExpense(tx)
+                        ? () => {
+                            setArenaError(null);
+                            setEditingArena(tx);
+                          }
+                        : undefined
                   }
                 />
               ))}
@@ -268,6 +329,19 @@ export default function MoneyTransactionsPage() {
         isSaving={updateFinance.isPending}
         isDeleting={deleteFinance.isPending}
         error={depositError}
+      />
+
+      <ArenaSheet
+        open={editingArena !== null}
+        onClose={() => setEditingArena(null)}
+        mode="edit"
+        initial={arenaInitial}
+        events={eventsQ.data?.events ?? []}
+        onSubmit={handleArenaSubmit}
+        onDelete={handleArenaDelete}
+        isSaving={updateFinance.isPending}
+        isDeleting={deleteFinance.isPending}
+        error={arenaError}
       />
     </div>
   );

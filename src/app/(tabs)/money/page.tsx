@@ -16,24 +16,27 @@ import {
   IconStats,
 } from '@/components/icons';
 import { DepositSheet, type DepositFormValue } from '@/components/finance-sheet/deposit-sheet';
+import { ArenaSheet, type ArenaFormValue } from '@/components/finance-sheet/arena-sheet';
 import { useMe } from '@/hooks/use-me';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useTeamBalance } from '@/hooks/use-team-balance';
 import { useTeamMembers } from '@/hooks/use-team-members';
+import { useEvents } from '@/hooks/use-events';
 import { useCreateFinance } from '@/hooks/use-create-finance';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 
-// Хаб раздела «Деньги» (v0.5, итерации 48 + 50): DarkHeader с фото арены,
+// Хаб раздела «Деньги» (v0.5, итерации 48 + 50 + 51): DarkHeader с фото арены,
 // карточка-баланс с разбивкой, четыре быстрых действия 2×2 (Депозит,
 // Аренда, Возврат, Инвентарь), переходы в четыре подэкрана. Оплата игрока
 // за событие — только из экрана события, на хабе её нет.
 //
-// Итерация 50: «Депозит» открывает реальный bottomsheet, остальные три плитки
-// пока ведут в `/money/soon` до итераций 51–53.
+// Итерация 50: «Депозит» открывает реальный bottomsheet.
+// Итерация 51: «Аренда» открывает реальный bottomsheet (привязка к событию обязательна).
+// Оставшиеся две плитки (Возврат, Инвентарь) пока ведут в `/money/soon` до итераций 52–53.
 export default function MoneyPage() {
   const t = useT();
   const router = useRouter();
@@ -43,10 +46,13 @@ export default function MoneyPage() {
   const hasTeam = (me.data?.memberships.length ?? 0) > 0;
   const balanceQ = useTeamBalance(hasTeam);
   const membersQ = useTeamMembers();
+  const eventsQ = useEvents();
   const createFinance = useCreateFinance();
 
   const [depositOpen, setDepositOpen] = useState(false);
   const [depositError, setDepositError] = useState<string | null>(null);
+  const [arenaOpen, setArenaOpen] = useState(false);
+  const [arenaError, setArenaError] = useState<string | null>(null);
 
   const handleDepositSubmit = (v: DepositFormValue) => {
     setDepositError(null);
@@ -61,6 +67,24 @@ export default function MoneyPage() {
       {
         onSuccess: () => setDepositOpen(false),
         onError: (e) => setDepositError(e.message),
+      },
+    );
+  };
+
+  const handleArenaSubmit = (v: ArenaFormValue) => {
+    setArenaError(null);
+    createFinance.mutate(
+      {
+        type: 'expense',
+        category: 'arena',
+        amount: v.amount,
+        event_id: v.event_id,
+        occurred_on: v.occurred_on,
+        description: v.description,
+      },
+      {
+        onSuccess: () => setArenaOpen(false),
+        onError: (e) => setArenaError(e.message),
       },
     );
   };
@@ -127,7 +151,10 @@ export default function MoneyPage() {
                   tone="negative"
                   icon={<IconLocation size={22} color={quickActionForeground('negative')} />}
                   label={t('money.actions.arena')}
-                  onClick={() => router.push('/money/soon?title=money.actions.arena')}
+                  onClick={() => {
+                    setArenaError(null);
+                    setArenaOpen(true);
+                  }}
                 />
                 <QuickActionTile
                   tone="negative"
@@ -189,6 +216,17 @@ export default function MoneyPage() {
         onSubmit={handleDepositSubmit}
         isSaving={createFinance.isPending}
         error={depositError}
+      />
+
+      <ArenaSheet
+        open={arenaOpen}
+        onClose={() => setArenaOpen(false)}
+        mode="create"
+        initial={null}
+        events={eventsQ.data?.events ?? []}
+        onSubmit={handleArenaSubmit}
+        isSaving={createFinance.isPending}
+        error={arenaError}
       />
     </div>
   );
