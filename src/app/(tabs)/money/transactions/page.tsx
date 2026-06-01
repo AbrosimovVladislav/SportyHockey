@@ -116,7 +116,7 @@ export default function MoneyTransactionsPage() {
   // (он уже отсортирован сервером по дате убывания).
   const groups = useMemo(() => groupByDay(visible), [visible]);
 
-  const root: CSSProperties = { minHeight: '100dvh', background: colors.bgOffWhite };
+  const root: CSSProperties = { minHeight: '100dvh', background: colors.bg };
   const sticky: CSSProperties = {
     position: 'sticky',
     top: 56,

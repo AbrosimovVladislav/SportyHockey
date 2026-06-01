@@ -53,6 +53,9 @@ export default function MoneyPlayersPage() {
     zIndex: 4,
     background: colors.bg,
     borderBottom: `1px solid ${colors.line}`,
+    // FilterChips в compact-режиме сам по себе кладёт всего 2px снизу, чипы
+    // упираются в border. Добавляем воздух здесь, чтобы не трогать компонент.
+    paddingBottom: spacing['12'],
   };
   const content: CSSProperties = {
     display: 'flex',
