@@ -82,7 +82,7 @@ export default function MoneyPage() {
 
   return (
     <div style={root}>
-      <DarkHeader title={t('money.title')} imageSrc="/arena.png" />
+      <DarkHeader title={t('money.title')} imageSrc="/money.png" />
       <div style={sheet}>
         {!hasTeam && me.isSuccess ? (
           <EmptyTeam title={t('money.empty.noTeam.title')} body={t('money.empty.noTeam.body')} />
