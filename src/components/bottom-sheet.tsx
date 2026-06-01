@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
@@ -23,6 +24,7 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
   }, [open]);
 
   if (!open) return null;
+  if (typeof document === 'undefined') return null;
 
   const backdrop: CSSProperties = {
     position: 'fixed',
@@ -62,7 +64,12 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
     marginBottom: spacing['12'],
   };
 
-  return (
+  // Рендерим через портал в document.body — иначе sheet оказывается внутри
+  // родительского stacking-контекста (position: sticky/relative с z-index или
+  // transform у предка), и его фиксированный backdrop не пробивается поверх
+  // глобального bottom-nav. Портал избавляет от этой зависимости от структуры
+  // дерева на странице, где используется sheet.
+  return createPortal(
     <div
       style={backdrop}
       onClick={onClose}
@@ -81,7 +88,8 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
         {title ? <div style={titleStyle}>{title}</div> : null}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
