@@ -10,9 +10,13 @@ type Props = {
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  // Опциональная нижняя панель (например, «Сбросить / Применить»). Если задана —
+  // рендерится отдельной нескроллируемой зоной снизу sheet'а и всегда видна,
+  // даже когда контент длинный. Учитывает iOS safe-area-inset-bottom.
+  footer?: ReactNode;
 };
 
-export function BottomSheet({ open, onClose, title, children }: Props) {
+export function BottomSheet({ open, onClose, title, children, footer }: Props) {
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -34,13 +38,31 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
     justifyContent: 'flex-end',
   };
 
+  // Sheet — flex column. Контент скроллится, footer (если есть) — отдельная
+  // фиксированная полоса снизу, чтобы кнопки «Применить» всегда были видны.
   const sheet: CSSProperties = {
     background: colors.bg,
     borderRadius: '24px 24px 0 0',
-    padding: `${spacing['12']}px ${spacing['16']}px ${spacing['24']}px`,
     maxHeight: '85dvh',
-    overflowY: 'auto',
     boxShadow: '0 -8px 24px rgba(0,0,0,0.18)',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: 0,
+  };
+
+  const scrollArea: CSSProperties = {
+    padding: `${spacing['12']}px ${spacing['16']}px ${footer ? spacing['16'] : spacing['24']}px`,
+    overflowY: 'auto',
+    minHeight: 0,
+    flex: '1 1 auto',
+  };
+
+  const footerArea: CSSProperties = {
+    flexShrink: 0,
+    padding: `${spacing['12']}px ${spacing['16']}px`,
+    paddingBottom: `calc(${spacing['16']}px + env(safe-area-inset-bottom))`,
+    borderTop: `1px solid ${colors.divider}`,
+    background: colors.bg,
   };
 
   const handle: CSSProperties = {
@@ -73,9 +95,12 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
         role="dialog"
         aria-modal="true"
       >
-        <div style={handle} />
-        {title ? <div style={titleStyle}>{title}</div> : null}
-        {children}
+        <div style={scrollArea}>
+          <div style={handle} />
+          {title ? <div style={titleStyle}>{title}</div> : null}
+          {children}
+        </div>
+        {footer ? <div style={footerArea}>{footer}</div> : null}
       </div>
     </div>
   );

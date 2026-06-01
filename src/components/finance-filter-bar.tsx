@@ -153,6 +153,10 @@ export function FinanceFilterBar({ filters, onChange, labels }: Props) {
     scrollbarWidth: 'none',
     padding: `${spacing['8']}px ${spacing['16']}px ${spacing['12']}px`,
     background: colors.bg,
+    // Чипы центрируются по горизонтали. Если когда-нибудь добавятся фильтры
+    // и они перестанут влезать — `justify-content: center` корректно
+    // деградирует под overflow-x scroll: контент остаётся слева, обрезка ок.
+    justifyContent: 'center',
   };
 
   return (
@@ -312,7 +316,19 @@ function PeriodSheet({
   };
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={labels.periodSheetTitle}>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={labels.periodSheetTitle}
+      footer={
+        <SheetActions
+          onReset={() => setDraft({ mode: 'all' })}
+          onApply={() => onApply(normalizePeriod(draft))}
+          resetLabel={labels.reset}
+          applyLabel={labels.apply}
+        />
+      }
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
         {presets.map((p) => (
           <RadioCard
@@ -342,13 +358,6 @@ function PeriodSheet({
           onChange={(v) => setCustom({ from: customFrom, to: v })}
         />
       </div>
-
-      <SheetActions
-        onReset={() => setDraft({ mode: 'all' })}
-        onApply={() => onApply(normalizePeriod(draft))}
-        resetLabel={labels.reset}
-        applyLabel={labels.apply}
-      />
     </BottomSheet>
   );
 }
@@ -436,7 +445,19 @@ function KindSheet({
   }, [open, value]);
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={labels.kindSheetTitle}>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={labels.kindSheetTitle}
+      footer={
+        <SheetActions
+          onReset={() => setDraft('all')}
+          onApply={() => onApply(draft)}
+          resetLabel={labels.reset}
+          applyLabel={labels.apply}
+        />
+      }
+    >
       <div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing['12'] }}>
         {labels.kindSheetHint}
       </div>
@@ -464,13 +485,6 @@ function KindSheet({
           onClick={() => setDraft('expense')}
         />
       </div>
-
-      <SheetActions
-        onReset={() => setDraft('all')}
-        onApply={() => onApply(draft)}
-        resetLabel={labels.reset}
-        applyLabel={labels.apply}
-      />
     </BottomSheet>
   );
 }
@@ -623,7 +637,19 @@ function TypeSheet({
   const showExpense = kind !== 'income';
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={labels.typeSheetTitle}>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={labels.typeSheetTitle}
+      footer={
+        <SheetActions
+          onReset={() => setDraft([])}
+          onApply={() => onApply(draft)}
+          resetLabel={labels.reset}
+          applyLabel={labels.apply}
+        />
+      }
+    >
       <div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing['16'] }}>
         {labels.typeSheetHint}
       </div>
@@ -647,13 +673,6 @@ function TypeSheet({
           onToggle={toggle}
         />
       ) : null}
-
-      <SheetActions
-        onReset={() => setDraft([])}
-        onApply={() => onApply(draft)}
-        resetLabel={labels.reset}
-        applyLabel={labels.apply}
-      />
     </BottomSheet>
   );
 }
@@ -869,6 +888,10 @@ function RadioCard({
 // Действия (Сбросить / Применить) внизу любого sheet'а
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Footer-полоса с кнопками «Сбросить / Применить». Рендерится через `footer`
+// prop в BottomSheet — это отдельная нескроллируемая зона снизу sheet'а,
+// поэтому кнопки гарантированно видны независимо от длины контента и от
+// safe-area iOS.
 function SheetActions({
   onReset,
   onApply,
@@ -880,9 +903,6 @@ function SheetActions({
   resetLabel: string;
   applyLabel: string;
 }) {
-  // По дизайну «Сбросить» — текстовая зелёная кнопка слева, «Применить» —
-  // зелёный pill на оставшейся ширине. Sticky bottom внутри sheet'а, чтобы
-  // кнопки оставались видны при скролле длинного контента.
   const reset: CSSProperties = {
     background: 'transparent',
     color: colors.primary,
@@ -893,25 +913,8 @@ function SheetActions({
     cursor: 'pointer',
     flexShrink: 0,
   };
-  const bar: CSSProperties = {
-    position: 'sticky',
-    bottom: 0,
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing['8'],
-    background: colors.bg,
-    paddingTop: spacing['12'],
-    marginTop: spacing['16'],
-    marginLeft: -spacing['16'],
-    marginRight: -spacing['16'],
-    paddingLeft: spacing['16'],
-    paddingRight: spacing['16'],
-    paddingBottom: spacing['4'],
-    borderTop: `1px solid ${colors.divider}`,
-    zIndex: 1,
-  };
   return (
-    <div style={bar}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: spacing['8'] }}>
       <button type="button" className="pressable" onClick={onReset} style={reset}>
         {resetLabel}
       </button>
