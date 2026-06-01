@@ -41,7 +41,7 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
   const sheet: CSSProperties = {
     background: colors.bg,
     borderRadius: '24px 24px 0 0',
-    padding: `${spacing['12']}px ${spacing['16']}px ${spacing['16']}px`,
+    padding: `${spacing['12']}px ${spacing['16']}px ${spacing['24']}px`,
     maxHeight: `calc(85dvh - ${BOTTOM_NAV_HEIGHT}px)`,
     overflowY: 'auto',
     boxShadow: '0 -8px 24px rgba(0,0,0,0.18)',
