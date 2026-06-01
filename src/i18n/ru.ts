@@ -841,11 +841,13 @@ export const ru = {
   'money.balance.overpayments': 'Переплаты игрокам',
   'money.balance.debts': 'Долги игроков',
 
-  // Быстрые действия
+  // Быстрые действия (4 операции, не привязанные к событию).
+  // Оплата игрока за событие — на экране события, на хабе её нет.
   'money.actions.title': 'Быстрые действия',
-  'money.actions.payment': 'Оплата игрока',
   'money.actions.deposit': 'Депозит',
-  'money.actions.expense': 'Расход',
+  'money.actions.arena': 'Аренда',
+  'money.actions.refund': 'Возврат',
+  'money.actions.inventory': 'Инвентарь',
 
   // Список разделов
   'money.sections.title': 'Разделы',

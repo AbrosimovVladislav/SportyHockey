@@ -8,8 +8,8 @@ import { ListRow } from '@/components/list-row';
 import { BalanceCard, BalanceCardSkeleton } from '@/components/balance-card';
 import { QuickActionTile, quickActionForeground } from '@/components/quick-action-tile';
 import {
-  IconPerson,
   IconWallet,
+  IconLocation,
   IconChart,
   IconPeople,
   IconFileText,
@@ -25,9 +25,10 @@ import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 
 // Хаб раздела «Деньги» (v0.5, итерация 48): DarkHeader с фото арены,
-// карточка-баланс с разбивкой, три быстрых действия (placeholder на soon
-// до итераций 49–50), переходы в четыре подэкрана. Список «Последние
-// операции» убран — вся лента живёт на `/money/transactions`.
+// карточка-баланс с разбивкой, четыре быстрых действия 2×2 (Депозит,
+// Аренда, Возврат, Инвентарь — placeholder на soon до итераций 50–53),
+// переходы в четыре подэкрана. Оплата игрока за событие — только из
+// экрана события, на хабе её нет.
 export default function MoneyPage() {
   const t = useT();
   const router = useRouter();
@@ -82,16 +83,10 @@ export default function MoneyPage() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
                   gap: spacing['10'],
                 }}
               >
-                <QuickActionTile
-                  tone="positive"
-                  icon={<IconPerson size={22} color={quickActionForeground('positive')} />}
-                  label={t('money.actions.payment')}
-                  onClick={() => router.push('/money/soon?title=money.actions.payment')}
-                />
                 <QuickActionTile
                   tone="positive"
                   icon={<IconWallet size={22} color={quickActionForeground('positive')} />}
@@ -100,9 +95,21 @@ export default function MoneyPage() {
                 />
                 <QuickActionTile
                   tone="negative"
-                  icon={<IconArrowDown size={22} color={quickActionForeground('negative')} />}
-                  label={t('money.actions.expense')}
-                  onClick={() => router.push('/money/soon?title=money.actions.expense')}
+                  icon={<IconLocation size={22} color={quickActionForeground('negative')} />}
+                  label={t('money.actions.arena')}
+                  onClick={() => router.push('/money/soon?title=money.actions.arena')}
+                />
+                <QuickActionTile
+                  tone="negative"
+                  icon={<IconReturn size={22} color={quickActionForeground('negative')} />}
+                  label={t('money.actions.refund')}
+                  onClick={() => router.push('/money/soon?title=money.actions.refund')}
+                />
+                <QuickActionTile
+                  tone="negative"
+                  icon={<IconBox size={22} color={quickActionForeground('negative')} />}
+                  label={t('money.actions.inventory')}
+                  onClick={() => router.push('/money/soon?title=money.actions.inventory')}
                 />
               </div>
             </SectionBlock>
@@ -203,13 +210,28 @@ function EmptyTeam({ title, body }: { title: string; body: string }) {
   );
 }
 
-// Inline-стрелка вниз для quick-action «Расход». В общую icons.tsx не выносим
-// до повторного использования (см. iteration 50 — там тоже понадобится).
-function IconArrowDown({ size = 22, color = 'currentColor' }: { size?: number; color?: string }) {
+// Inline-иконки для quick-action плиток «Возврат» и «Инвентарь». В общую
+// icons.tsx вынесем когда понадобятся в других местах (sheet'ы из итераций
+// 52–53 будут использовать те же символы).
+function IconReturn({ size = 22, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
-        d="M12 5v14M5 12l7 7 7-7"
+        d="M9 14L4 9l5-5M4 9h11a5 5 0 0 1 5 5v3"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconBox({ size = 22, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M3 7l9-4 9 4M3 7v10l9 4 9-4V7M3 7l9 4 9-4M12 11v10"
         stroke={color}
         strokeWidth="1.8"
         strokeLinecap="round"
