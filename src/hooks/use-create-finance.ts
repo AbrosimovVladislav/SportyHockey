@@ -29,6 +29,7 @@ export function useCreateFinance(): UseMutationResult<
       qc.invalidateQueries({ queryKey: ['events'] });
       qc.invalidateQueries({ queryKey: ['event'] });
       qc.invalidateQueries({ queryKey: ['finance-report'] });
+      qc.invalidateQueries({ queryKey: ['finance-analytics'] });
       if (vars.user_id) invalidatePlayer(qc, vars.user_id);
     },
   });

@@ -782,9 +782,9 @@ export const ru = {
   'myProfile.section.invites.title': 'Приглашения и заявки',
   'myProfile.section.invites.subtitle': 'Входящие приглашения и ваши заявки в команды',
   'myProfile.section.support.title': 'Поддержка',
-  'myProfile.section.support.subtitle': 'Помощь с приложением',
+  'myProfile.section.support.subtitle': 'Раздел в разработке',
   'myProfile.section.privacy.title': 'Политика конфиденциальности',
-  'myProfile.section.privacy.subtitle': 'Как мы обрабатываем ваши данные',
+  'myProfile.section.privacy.subtitle': 'Раздел в разработке',
   'myProfile.soon.title': 'Раздел в разработке',
   'myProfile.soon.heading': 'Скоро в разработке',
   'myProfile.soon.body': 'Этот раздел появится в одном из ближайших обновлений.',
@@ -854,8 +854,8 @@ export const ru = {
 
   // Список разделов
   'money.sections.title': 'Разделы',
-  'money.sections.report.title': 'Финансовый срез',
-  'money.sections.report.subtitle': 'Показатели за месяц или период',
+  'money.sections.report.title': 'Срез по месяцам',
+  'money.sections.report.subtitle': 'Раздел в разработке',
   'money.sections.players.title': 'Балансы игроков',
   'money.sections.players.subtitle': 'Долги, переплаты и нулевые балансы',
   'money.sections.transactions.title': 'Операции',
@@ -1099,6 +1099,12 @@ export const ru = {
   'money.report.soon.title': 'Скоро будет',
   'money.report.soon.body': 'Полный список событий месяца с финансовыми итогами появится позже — пока экран в разработке.',
   'money.report.soon.close': 'Понятно',
+
+  // Аналитика финансов `/money/analytics` (v0.5, итерация 55).
+  'money.analytics.title': 'Аналитика финансов',
+  'money.analytics.balance.title': 'Динамика баланса',
+  'money.analytics.cashflow.title': 'Доходы и расходы',
+  'money.analytics.debts.title': 'Долги и переплаты',
 
   // Блок «Аренда события» на странице события (v0.5, итерации 51 + 51.1).
   // Три состояния: не оплачено / частично / оплачено.

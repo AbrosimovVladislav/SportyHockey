@@ -20,6 +20,9 @@ import {
   LuHeadphones,
   LuFileText,
   LuLandmark,
+  LuTrendingDown,
+  LuArrowDownRight,
+  LuArrowUpRight,
 } from 'react-icons/lu';
 import { SiTelegram, SiWhatsapp } from 'react-icons/si';
 import { MdSportsHockey, MdSports } from 'react-icons/md';
@@ -504,4 +507,13 @@ export const IconFileText = ({ size = 24, color = 'currentColor' }: IconProps) =
 );
 export const IconBuilding = ({ size = 24, color = 'currentColor' }: IconProps) => (
   <LuLandmark size={size} color={color} />
+);
+export const IconTrendUp = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuArrowUpRight size={size} color={color} />
+);
+export const IconTrendDown = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuArrowDownRight size={size} color={color} />
+);
+export const IconTrendingDown = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuTrendingDown size={size} color={color} />
 );

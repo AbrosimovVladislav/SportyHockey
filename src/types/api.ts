@@ -996,3 +996,58 @@ export type FinanceReportResponse = {
   recent_operations: FinanceTransaction[];
 };
 
+// Аналитика финансов `/money/analytics` (итерация 55). Месячные точки
+// внутри периода + 3 тренда (баланс/долги/прогноз) + прогноз на 3 месяца
+// вперёд от сегодня.
+export type FinanceAnalyticsMonthly = {
+  // Первый день месяца в формате YYYY-MM-DD — ключ оси X на графиках.
+  month: string;
+  // Расчётный баланс на конец месяца (computeTeamBalance(asOf=lastDay)).
+  balance: number;
+  // ∑ player_payment за этот месяц.
+  income: number;
+  // ∑ expense + ∑ refund за этот месяц (без разбивки по категориям).
+  expenses: number;
+  // Долги игроков и переплаты на конец месяца.
+  debts: number;
+  overpayments: number;
+};
+
+// Прогноз на 3 месяца вперёд от сегодняшней даты. Считается от уже
+// запланированных в БД событий (starts_at > today) + средней посещаемости
+// последних 6 событий того же типа. Прочие расходы (не аренда) —
+// усреднение за последние 3 завершённых месяца × 3.
+export type FinanceForecast = {
+  // Сумма ожидаемых взносов от игроков: явка_avg × cost_per_player × число
+  // будущих событий с этим cost_per_player.
+  expected_income: number;
+  // Сумма arena_cost будущих событий (плановая стоимость аренды).
+  expected_arenas: number;
+  // Средние «прочие расходы» × 3 (inventory, uniform, other, refund).
+  expected_other_expenses: number;
+  // expected_income − expected_arenas − expected_other_expenses.
+  net: number;
+  // Будет ли on_hand на конец 3 месяцев ≥ 0 (с учётом прогноза)
+  // — то есть «денег хватит на покрытие планируемых трат».
+  has_funds: boolean;
+};
+
+export type FinanceAnalyticsTrends = {
+  // Изменение расчётного баланса между первым и последним месяцем.
+  balance_change: number;
+  // Изменение долгов игроков (последний − первый).
+  debts_change: number;
+  // Изменение переплат игрокам (последний − первый).
+  overpayments_change: number;
+};
+
+export type FinanceAnalyticsResponse = {
+  from: string;
+  to: string;
+  // Текущий расчётный баланс — для большой суммы в шапке.
+  balance: TeamBalanceResponse;
+  monthly: FinanceAnalyticsMonthly[];
+  trends: FinanceAnalyticsTrends;
+  forecast: FinanceForecast;
+};
+

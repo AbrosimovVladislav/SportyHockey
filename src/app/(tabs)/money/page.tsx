@@ -222,12 +222,6 @@ export default function MoneyPage() {
             <SectionBlock title={t('money.sections.title')}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
                 <ListRow
-                  icon={<IconChart size={22} color={colors.iconFg} />}
-                  title={t('money.sections.report.title')}
-                  subtitle={t('money.sections.report.subtitle')}
-                  onClick={() => router.push('/money/report')}
-                />
-                <ListRow
                   icon={<IconPeople size={22} color={colors.iconFg} />}
                   title={t('money.sections.players.title')}
                   subtitle={t('money.sections.players.subtitle')}
@@ -243,9 +237,15 @@ export default function MoneyPage() {
                   icon={<IconStats size={22} color={colors.iconFg} />}
                   title={t('money.sections.analytics.title')}
                   subtitle={t('money.sections.analytics.subtitle')}
-                  onClick={() =>
-                    router.push('/money/soon?title=money.sections.analytics.title')
-                  }
+                  onClick={() => router.push('/money/analytics')}
+                />
+                {/* «Срез по месяцам» замьючен до большого тестирования —
+                    смысл экрана пока не подтверждён, в работе. */}
+                <ListRow
+                  icon={<IconChart size={22} color={colors.iconFg} />}
+                  title={t('money.sections.report.title')}
+                  subtitle={t('money.sections.report.subtitle')}
+                  muted
                 />
               </div>
             </SectionBlock>
