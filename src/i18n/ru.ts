@@ -1026,6 +1026,58 @@ export const ru = {
   'money.sheet.arena.eventStatus.paid': 'Оплачено',
   'money.sheet.arena.eventStatus.unpaid': 'Не оплачено',
 
+  // Bottomsheet «Возврат игроку» (v0.5, итерация 52). Расход, обязателен игрок.
+  'money.sheet.refund.createTitle': 'Возврат игроку',
+  'money.sheet.refund.editTitle': 'Возврат',
+  'money.sheet.refund.playerLabel': 'Игрок',
+  'money.sheet.refund.playerPlaceholder': 'Выберите игрока',
+  'money.sheet.refund.playerSearch': 'Поиск по имени',
+  'money.sheet.refund.playerEmpty': 'Никого не нашли',
+  'money.sheet.refund.amountLabel': 'Сумма',
+  'money.sheet.refund.dateLabel': 'Дата',
+  'money.sheet.refund.descriptionLabel': 'Описание',
+  'money.sheet.refund.descriptionPlaceholder': 'Например, «отказ от тренировки»',
+  'money.sheet.refund.save': 'Сохранить',
+  'money.sheet.refund.saving': 'Сохраняем…',
+  'money.sheet.refund.cancel': 'Отмена',
+  'money.sheet.refund.delete': 'Удалить возврат',
+  'money.sheet.refund.deleting': 'Удаляем…',
+  'money.sheet.refund.deleteConfirmTitle': 'Удалить возврат?',
+  'money.sheet.refund.deleteConfirmBody': 'Действие необратимо. Возврат будет удалён, баланс пересчитается.',
+  'money.sheet.refund.deleteConfirmCta': 'Удалить',
+  'money.sheet.refund.errorEmptyPlayer': 'Выберите игрока',
+  'money.sheet.refund.errorEmptyAmount': 'Укажите сумму больше нуля',
+  'money.sheet.refund.errorBadDate': 'Укажите корректную дату',
+  'money.sheet.refund.errorInsufficient': 'В кассе только {available} — пополните счёт перед возвратом',
+  'money.sheet.refund.availableOnHand': 'На руках: {amount}',
+  'money.sheet.refund.shortfall': 'Не хватает {amount} — нужно пополнить кассу',
+
+  // Bottomsheet «Покупка инвентаря» (v0.5, итерация 53). Расход без игрока.
+  // Тип покупки выбирается из трёх вариантов; на этапе MVP без свободного
+  // описания — название типа пишется в `description` транзакции и становится
+  // заголовком в ленте операций.
+  'money.sheet.inventory.createTitle': 'Покупка инвентаря',
+  'money.sheet.inventory.editTitle': 'Покупка',
+  'money.sheet.inventory.itemLabel': 'Что покупаем',
+  'money.sheet.inventory.item.sticks': 'Клюшки',
+  'money.sheet.inventory.item.pucks': 'Шайбы',
+  'money.sheet.inventory.item.other': 'Прочее',
+  'money.sheet.inventory.amountLabel': 'Сумма',
+  'money.sheet.inventory.dateLabel': 'Дата',
+  'money.sheet.inventory.save': 'Сохранить',
+  'money.sheet.inventory.saving': 'Сохраняем…',
+  'money.sheet.inventory.cancel': 'Отмена',
+  'money.sheet.inventory.delete': 'Удалить покупку',
+  'money.sheet.inventory.deleting': 'Удаляем…',
+  'money.sheet.inventory.deleteConfirmTitle': 'Удалить покупку?',
+  'money.sheet.inventory.deleteConfirmBody': 'Действие необратимо. Покупка будет удалена, баланс пересчитается.',
+  'money.sheet.inventory.deleteConfirmCta': 'Удалить',
+  'money.sheet.inventory.errorEmptyAmount': 'Укажите сумму больше нуля',
+  'money.sheet.inventory.errorBadDate': 'Укажите корректную дату',
+  'money.sheet.inventory.errorInsufficient': 'В кассе только {available} — пополните счёт перед покупкой',
+  'money.sheet.inventory.availableOnHand': 'На руках: {amount}',
+  'money.sheet.inventory.shortfall': 'Не хватает {amount} — нужно пополнить кассу',
+
   // Блок «Аренда события» на странице события (v0.5, итерации 51 + 51.1).
   // Три состояния: не оплачено / частично / оплачено.
   'eventDetail.arena.title': 'Аренда события',

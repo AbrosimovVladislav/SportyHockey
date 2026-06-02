@@ -17,6 +17,8 @@ import {
 } from '@/components/icons';
 import { DepositSheet, type DepositFormValue } from '@/components/finance-sheet/deposit-sheet';
 import { ArenaSheet, type ArenaFormValue } from '@/components/finance-sheet/arena-sheet';
+import { RefundSheet, type RefundFormValue } from '@/components/finance-sheet/refund-sheet';
+import { InventorySheet, type InventoryFormValue } from '@/components/finance-sheet/inventory-sheet';
 import { useMe } from '@/hooks/use-me';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
@@ -55,6 +57,10 @@ export default function MoneyPage() {
   const [depositError, setDepositError] = useState<string | null>(null);
   const [arenaOpen, setArenaOpen] = useState(false);
   const [arenaError, setArenaError] = useState<string | null>(null);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundError, setRefundError] = useState<string | null>(null);
+  const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [inventoryError, setInventoryError] = useState<string | null>(null);
 
   const handleDepositSubmit = (v: DepositFormValue) => {
     setDepositError(null);
@@ -87,6 +93,40 @@ export default function MoneyPage() {
       {
         onSuccess: () => setArenaOpen(false),
         onError: (e) => setArenaError(e.message),
+      },
+    );
+  };
+
+  const handleRefundSubmit = (v: RefundFormValue) => {
+    setRefundError(null);
+    createFinance.mutate(
+      {
+        type: 'refund',
+        amount: v.amount,
+        user_id: v.user_id,
+        occurred_on: v.occurred_on,
+        description: v.description,
+      },
+      {
+        onSuccess: () => setRefundOpen(false),
+        onError: (e) => setRefundError(e.message),
+      },
+    );
+  };
+
+  const handleInventorySubmit = (v: InventoryFormValue) => {
+    setInventoryError(null);
+    createFinance.mutate(
+      {
+        type: 'expense',
+        category: v.category,
+        amount: v.amount,
+        occurred_on: v.occurred_on,
+        description: v.description,
+      },
+      {
+        onSuccess: () => setInventoryOpen(false),
+        onError: (e) => setInventoryError(e.message),
       },
     );
   };
@@ -162,13 +202,19 @@ export default function MoneyPage() {
                   tone="negative"
                   icon={<IconReturn size={22} color={quickActionForeground('negative')} />}
                   label={t('money.actions.refund')}
-                  onClick={() => router.push('/money/soon?title=money.actions.refund')}
+                  onClick={() => {
+                    setRefundError(null);
+                    setRefundOpen(true);
+                  }}
                 />
                 <QuickActionTile
                   tone="negative"
                   icon={<IconBox size={22} color={quickActionForeground('negative')} />}
                   label={t('money.actions.inventory')}
-                  onClick={() => router.push('/money/soon?title=money.actions.inventory')}
+                  onClick={() => {
+                    setInventoryError(null);
+                    setInventoryOpen(true);
+                  }}
                 />
               </div>
             </SectionBlock>
@@ -231,6 +277,29 @@ export default function MoneyPage() {
         onSubmit={handleArenaSubmit}
         isSaving={createFinance.isPending}
         error={arenaError}
+      />
+
+      <RefundSheet
+        open={refundOpen}
+        onClose={() => setRefundOpen(false)}
+        mode="create"
+        initial={null}
+        members={membersQ.data?.members ?? []}
+        availableOnHand={balanceQ.data?.breakdown.on_hand ?? null}
+        onSubmit={handleRefundSubmit}
+        isSaving={createFinance.isPending}
+        error={refundError}
+      />
+
+      <InventorySheet
+        open={inventoryOpen}
+        onClose={() => setInventoryOpen(false)}
+        mode="create"
+        initial={null}
+        availableOnHand={balanceQ.data?.breakdown.on_hand ?? null}
+        onSubmit={handleInventorySubmit}
+        isSaving={createFinance.isPending}
+        error={inventoryError}
       />
     </div>
   );

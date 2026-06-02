@@ -15,6 +15,8 @@ import {
 } from '@/components/finance-filter-bar';
 import { DepositSheet, type DepositFormValue, type DepositInitial } from '@/components/finance-sheet/deposit-sheet';
 import { ArenaSheet, type ArenaFormValue, type ArenaInitial } from '@/components/finance-sheet/arena-sheet';
+import { RefundSheet, type RefundFormValue, type RefundInitial } from '@/components/finance-sheet/refund-sheet';
+import { InventorySheet, type InventoryFormValue, type InventoryInitial } from '@/components/finance-sheet/inventory-sheet';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { useMe } from '@/hooks/use-me';
@@ -44,6 +46,17 @@ function isArenaExpense(tx: FinanceTransaction): boolean {
   return tx.type === 'expense' && tx.category === 'arena';
 }
 
+// Возврат — финансовая операция type='refund'. Открывает RefundSheet.
+function isRefund(tx: FinanceTransaction): boolean {
+  return tx.type === 'refund';
+}
+
+// Покупка инвентаря и прочие расходы без события: всё, что осталось от
+// expense'ов после исключения аренды.
+function isInventoryExpense(tx: FinanceTransaction): boolean {
+  return tx.type === 'expense' && tx.category !== 'arena';
+}
+
 // Все транзакции активной команды. Сортировка по `occurred_on desc, created_at desc`
 // идёт с сервера. Фильтры — три плашки сверху, открывают bottomsheets:
 // период (месяц или произвольный диапазон), направление (доход/расход), тип
@@ -57,12 +70,17 @@ export default function MoneyTransactionsPage() {
 
   const [filters, setFilters] = useState<FinanceFilters>(DEFAULT_FILTERS);
 
-  // Тап по карточке-депозиту/аренде открывает соответствующий sheet в edit.
-  // Храним всю транзакцию целиком — из неё собирается initial при mount'е sheet'а.
+  // Тап по карточке-депозиту/аренде/возврату/инвентарю открывает соответствующий
+  // sheet в edit. Храним всю транзакцию целиком — из неё собирается initial при
+  // mount'е sheet'а.
   const [editingDeposit, setEditingDeposit] = useState<FinanceTransaction | null>(null);
   const [depositError, setDepositError] = useState<string | null>(null);
   const [editingArena, setEditingArena] = useState<FinanceTransaction | null>(null);
   const [arenaError, setArenaError] = useState<string | null>(null);
+  const [editingRefund, setEditingRefund] = useState<FinanceTransaction | null>(null);
+  const [refundError, setRefundError] = useState<string | null>(null);
+  const [editingInventory, setEditingInventory] = useState<FinanceTransaction | null>(null);
+  const [inventoryError, setInventoryError] = useState<string | null>(null);
 
   // На клиенте фильтруем — на PoC ленты сотни операций. Серверные фильтры в
   // /api/finance уже есть, переключим когда понадобится.
@@ -268,6 +286,97 @@ export default function MoneyTransactionsPage() {
     );
   };
 
+  // Возврат игроку (v0.5, итерация 52).
+  const refundInitial: RefundInitial | null = editingRefund
+    ? {
+        id: editingRefund.id,
+        user_id: editingRefund.user?.user_id ?? '',
+        amount: editingRefund.amount,
+        occurred_on: editingRefund.occurred_on,
+        description: editingRefund.description,
+      }
+    : null;
+
+  const handleRefundSubmit = (v: RefundFormValue) => {
+    if (!editingRefund) return;
+    setRefundError(null);
+    updateFinance.mutate(
+      {
+        id: editingRefund.id,
+        prev_user_id: editingRefund.user?.user_id ?? null,
+        patch: {
+          amount: v.amount,
+          user_id: v.user_id,
+          occurred_on: v.occurred_on,
+          description: v.description,
+        },
+      },
+      {
+        onSuccess: () => setEditingRefund(null),
+        onError: (e) => setRefundError(e.message),
+      },
+    );
+  };
+
+  const handleRefundDelete = () => {
+    if (!editingRefund) return;
+    setRefundError(null);
+    deleteFinance.mutate(
+      {
+        id: editingRefund.id,
+        user_id: editingRefund.user?.user_id ?? null,
+      },
+      {
+        onSuccess: () => setEditingRefund(null),
+        onError: (e) => setRefundError(e.message),
+      },
+    );
+  };
+
+  // Инвентарь и прочие расходы (v0.5, итерация 53). Аренда исключена — она
+  // живёт в собственной шторке с picker'ом события.
+  const inventoryInitial: InventoryInitial | null = editingInventory
+    ? {
+        id: editingInventory.id,
+        category: editingInventory.category,
+        amount: editingInventory.amount,
+        occurred_on: editingInventory.occurred_on,
+        description: editingInventory.description,
+      }
+    : null;
+
+  const handleInventorySubmit = (v: InventoryFormValue) => {
+    if (!editingInventory) return;
+    setInventoryError(null);
+    updateFinance.mutate(
+      {
+        id: editingInventory.id,
+        patch: {
+          amount: v.amount,
+          category: v.category,
+          occurred_on: v.occurred_on,
+          description: v.description,
+        },
+      },
+      {
+        onSuccess: () => setEditingInventory(null),
+        onError: (e) => setInventoryError(e.message),
+      },
+    );
+  };
+
+  const handleInventoryDelete = () => {
+    if (!editingInventory) return;
+    setInventoryError(null);
+    deleteFinance.mutate(
+      { id: editingInventory.id },
+      {
+        onSuccess: () => setEditingInventory(null),
+        onError: (e) => setInventoryError(e.message),
+      },
+    );
+  };
+
   return (
     <div style={root}>
       <LightHeader title={t('money.transactions.title')} onBack={onBack} />
@@ -313,7 +422,17 @@ export default function MoneyTransactionsPage() {
                             setArenaError(null);
                             setEditingArena(tx);
                           }
-                        : undefined
+                        : isRefund(tx)
+                          ? () => {
+                              setRefundError(null);
+                              setEditingRefund(tx);
+                            }
+                          : isInventoryExpense(tx)
+                            ? () => {
+                                setInventoryError(null);
+                                setEditingInventory(tx);
+                              }
+                            : undefined
                   }
                 />
               ))}
@@ -348,6 +467,33 @@ export default function MoneyTransactionsPage() {
         isSaving={updateFinance.isPending}
         isDeleting={deleteFinance.isPending}
         error={arenaError}
+      />
+
+      <RefundSheet
+        open={editingRefund !== null}
+        onClose={() => setEditingRefund(null)}
+        mode="edit"
+        initial={refundInitial}
+        members={membersQ.data?.members ?? []}
+        availableOnHand={balanceQ.data?.breakdown.on_hand ?? null}
+        onSubmit={handleRefundSubmit}
+        onDelete={handleRefundDelete}
+        isSaving={updateFinance.isPending}
+        isDeleting={deleteFinance.isPending}
+        error={refundError}
+      />
+
+      <InventorySheet
+        open={editingInventory !== null}
+        onClose={() => setEditingInventory(null)}
+        mode="edit"
+        initial={inventoryInitial}
+        availableOnHand={balanceQ.data?.breakdown.on_hand ?? null}
+        onSubmit={handleInventorySubmit}
+        onDelete={handleInventoryDelete}
+        isSaving={updateFinance.isPending}
+        isDeleting={deleteFinance.isPending}
+        error={inventoryError}
       />
     </div>
   );
