@@ -6,6 +6,7 @@ import { DarkHeader } from '@/components/dark-header';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ListRow } from '@/components/list-row';
 import { BalanceCard, BalanceCardSkeleton } from '@/components/balance-card';
+import { BalanceDetailsCard } from '@/components/balance-details-card';
 import { QuickActionTile, quickActionForeground } from '@/components/quick-action-tile';
 import {
   IconWallet,
@@ -159,17 +160,54 @@ export default function MoneyPage() {
             ) : balanceQ.isError || !balanceQ.data ? (
               <ErrorCard text={t('common.error')} />
             ) : (
-              <BalanceCard
-                total={balanceQ.data.total}
-                breakdown={balanceQ.data.breakdown}
-                title={t('money.balance.title')}
-                labels={{
-                  on_hand: t('money.balance.onHand'),
-                  debts: t('money.balance.debts'),
-                  overpayments: t('money.balance.overpayments'),
-                  arena_debts: t('money.balance.arenaDebts'),
-                }}
-              />
+              <>
+                <BalanceCard
+                  total={balanceQ.data.total}
+                  summary={balanceQ.data.summary}
+                  title={t('money.balance.title')}
+                  labels={{
+                    on_hand: t('money.balance.onHand'),
+                    owed_to_us: t('money.balance.owedToUs'),
+                    owed_by_us: t('money.balance.owedByUs'),
+                  }}
+                />
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: spacing['10'],
+                  }}
+                >
+                  <BalanceDetailsCard
+                    title={t('money.balance.owedByUs')}
+                    tone="negative"
+                    items={[
+                      {
+                        label: t('money.balance.details.weOweArenas'),
+                        value: balanceQ.data.details.owed_by_us.arena_debts,
+                      },
+                      {
+                        label: t('money.balance.details.weOwePlayers'),
+                        value: balanceQ.data.details.owed_by_us.players_overpayments,
+                      },
+                    ]}
+                  />
+                  <BalanceDetailsCard
+                    title={t('money.balance.owedToUs')}
+                    tone="positive"
+                    items={[
+                      {
+                        label: t('money.balance.details.theyOwePlayers'),
+                        value: balanceQ.data.details.owed_to_us.players_debts,
+                      },
+                      {
+                        label: t('money.balance.details.theyOweArenas'),
+                        value: balanceQ.data.details.owed_to_us.arena_overpayments,
+                      },
+                    ]}
+                  />
+                </div>
+              </>
             )}
 
             <SectionBlock title={t('money.actions.title')}>
@@ -239,13 +277,13 @@ export default function MoneyPage() {
                   subtitle={t('money.sections.analytics.subtitle')}
                   onClick={() => router.push('/money/analytics')}
                 />
-                {/* «Срез по месяцам» временно открыт для большого тестирования
-                    итерации 56 — по итогам решим, оставлять или мьютить обратно. */}
+                {/* «Срез по месяцам» замьючен до большого тестирования —
+                    смысл экрана пока не подтверждён, в работе. */}
                 <ListRow
                   icon={<IconChart size={22} color={colors.iconFg} />}
                   title={t('money.sections.report.title')}
                   subtitle={t('money.sections.report.subtitle')}
-                  onClick={() => router.push('/money/report')}
+                  muted
                 />
               </div>
             </SectionBlock>

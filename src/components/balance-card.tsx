@@ -7,29 +7,28 @@ import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import { Skeleton } from '@/components/skeleton';
 import { formatMoney, formatSignedMoney } from '@/lib/format-money';
-import type { TeamBalanceBreakdown } from '@/types/api';
+import type { TeamBalanceSummary } from '@/types/api';
 
-// Главная карточка хаба «Деньги» (v0.5, итерация 51.1). Сверху — расчётный
-// баланс (реальное финансовое положение команды), под ним 4 подплитки 2×2:
-//  • on_hand        — нейтральный (текущий кэш в кассе/на счёте);
-//  • debts          — зелёный (долги игроков, плюс к балансу);
-//  • overpayments   — красный (команда должна игрокам, минус);
-//  • arena_debts    — красный (команда должна площадкам, минус).
-// Формула: total = on_hand + debts − overpayments − arena_debts.
+// Главная карточка хаба «Деньги» (v0.5, итерация 57). Сверху — расчётный
+// баланс (реальное финансовое положение команды), под ним 3 плашки в ряд:
+//  • На руках   — нейтральный (текущий кэш в кассе/на счёте);
+//  • Нам должны — зелёный фон (плюс к total: долги игроков + переплаты площадкам);
+//  • Мы должны  — красный фон (минус к total: переплаты игрокам + долги площадкам).
+// Формула: total = on_hand + owed_to_us − owed_by_us.
+// Подробная разбивка по категориям — в `BalanceDetailsCard` ниже.
 
 type BalanceCardProps = {
   total: number;
-  breakdown: TeamBalanceBreakdown;
+  summary: TeamBalanceSummary;
   title: string;
   labels: {
     on_hand: string;
-    debts: string;
-    overpayments: string;
-    arena_debts: string;
+    owed_to_us: string;
+    owed_by_us: string;
   };
 };
 
-export function BalanceCard({ total, breakdown, title, labels }: BalanceCardProps) {
+export function BalanceCard({ total, summary, title, labels }: BalanceCardProps) {
   const totalColor =
     total > 0 ? colors.successDark : total < 0 ? colors.errorDark : colors.text;
 
@@ -58,8 +57,8 @@ export function BalanceCard({ total, breakdown, title, labels }: BalanceCardProp
 
   const grid: CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: spacing['10'],
+    gridTemplateColumns: '1fr 1fr 1fr',
+    gap: spacing['8'],
   };
 
   return (
@@ -69,20 +68,15 @@ export function BalanceCard({ total, breakdown, title, labels }: BalanceCardProp
         <div style={{ ...totalStyle, marginTop: spacing['8'] }}>{formatSignedMoney(total)}</div>
       </div>
       <div style={grid}>
-        <Subtile label={labels.on_hand} value={formatMoney(breakdown.on_hand)} tone="neutral" />
+        <Subtile label={labels.on_hand} value={formatMoney(summary.on_hand)} tone="neutral" />
         <Subtile
-          label={labels.debts}
-          value={formatSignedMoney(breakdown.debts)}
+          label={labels.owed_to_us}
+          value={formatSignedMoney(summary.owed_to_us)}
           tone="positive"
         />
         <Subtile
-          label={labels.overpayments}
-          value={formatSignedMoney(-breakdown.overpayments)}
-          tone="negative"
-        />
-        <Subtile
-          label={labels.arena_debts}
-          value={formatSignedMoney(-breakdown.arena_debts)}
+          label={labels.owed_by_us}
+          value={formatSignedMoney(-summary.owed_by_us)}
           tone="negative"
         />
       </div>
@@ -92,16 +86,20 @@ export function BalanceCard({ total, breakdown, title, labels }: BalanceCardProp
 
 type Tone = 'neutral' | 'positive' | 'negative';
 
-function toneColor(tone: Tone): string {
-  if (tone === 'positive') return colors.successDark;
-  if (tone === 'negative') return colors.errorDark;
-  return colors.text;
+function toneStyles(tone: Tone): { bg: string; label: string; value: string } {
+  if (tone === 'positive') {
+    return { bg: colors.successBg, label: colors.successDark, value: colors.successDark };
+  }
+  if (tone === 'negative') {
+    return { bg: colors.errorBg, label: colors.errorDark, value: colors.errorDark };
+  }
+  return { bg: colors.bgOffWhite, label: colors.textSecondary, value: colors.text };
 }
 
 function Subtile({ label, value, tone }: { label: string; value: string; tone: Tone }) {
+  const c = toneStyles(tone);
   const wrap: CSSProperties = {
-    background: colors.bgOffWhite,
-    border: `1px solid ${colors.line}`,
+    background: c.bg,
     borderRadius: radius.md,
     padding: `${spacing['10']}px ${spacing['12']}px`,
     display: 'flex',
@@ -111,14 +109,14 @@ function Subtile({ label, value, tone }: { label: string; value: string; tone: T
   };
   const labelStyle: CSSProperties = {
     ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: 500,
+    color: c.label,
+    fontWeight: 600,
   };
   const valueStyle: CSSProperties = {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: 700,
     lineHeight: 1.2,
-    color: toneColor(tone),
+    color: c.value,
     fontVariantNumeric: 'tabular-nums',
     letterSpacing: '-0.01em',
   };
@@ -143,8 +141,8 @@ export function BalanceCardSkeleton() {
   };
   const grid: CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: spacing['10'],
+    gridTemplateColumns: '1fr 1fr 1fr',
+    gap: spacing['8'],
   };
   return (
     <div style={card} aria-hidden>
@@ -153,7 +151,7 @@ export function BalanceCardSkeleton() {
         <Skeleton width={200} height={40} borderRadius={8} />
       </div>
       <div style={grid}>
-        {[0, 1, 2, 3].map((i) => (
+        {[0, 1, 2].map((i) => (
           <Skeleton key={i} height={64} borderRadius={radius.md} />
         ))}
       </div>

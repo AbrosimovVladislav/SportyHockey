@@ -75,7 +75,12 @@ export async function GET(req: Request): Promise<Response> {
     const body: FinanceAnalyticsResponse = {
       from,
       to,
-      balance: { total: currentBalance.total, breakdown: currentBalance.breakdown },
+      balance: {
+        total: currentBalance.total,
+        breakdown: currentBalance.breakdown,
+        summary: currentBalance.summary,
+        details: currentBalance.details,
+      },
       monthly,
       trends,
       forecast,

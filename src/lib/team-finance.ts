@@ -1,20 +1,31 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/db';
-import type { TeamBalance, TeamBalanceBreakdown, PlayerBalance } from '@/types/api';
+import type {
+  TeamBalance,
+  TeamBalanceBreakdown,
+  TeamBalanceSummary,
+  TeamBalanceDetails,
+  PlayerBalance,
+} from '@/types/api';
 
 type SB = SupabaseClient<Database>;
 
-// Разбивка баланса команды для карточки на `/money` (v0.5, итерация 51.1).
-// Четыре подплитки = четыре независимых среза состояния:
-//  • on_hand        — текущий баланс: ∑ player_payment − ∑ expense (occurred_on ≤ today)
-//  • debts          — долги игроков (плюс к балансу, будущие поступления)
-//  • overpayments   — переплаты игрокам (минус к балансу, команда должна вернуть)
-//  • arena_debts    — долги перед площадками: ∑ max(0, arena_cost − arena_paid_amount)
-//                     по всем не отменённым событиям (минус к балансу)
+// Разбивка баланса команды для карточки на `/money` (v0.5, итерации 51.1 + 57).
+// Четыре независимых среза + два агрегата + переплаты площадкам:
+//  • on_hand              — текущий баланс: ∑ player_payment − ∑ expense − ∑ refund
+//  • players_debts        — долги игроков (плюс)
+//  • players_overpayments — переплаты игроков (минус, команда должна им вернуть)
+//  • arena_debts          — долги площадкам: ∑ max(0, arena_cost − arena_paid) по активным событиям
+//  • arena_overpayments   — переплаты площадкам: ∑ max(0, arena_paid − arena_cost) по активным событиям
 //
-// Расчётный баланс — реальное финансовое положение:
-//   total = on_hand + debts − overpayments − arena_debts
+// Агрегаты для нового layout `/money`:
+//   owed_to_us = players_debts + arena_overpayments   (плюс к балансу)
+//   owed_by_us = players_overpayments + arena_debts   (минус к балансу)
+//
+// Расчётный баланс:
+//   total = on_hand + owed_to_us − owed_by_us
+//         = on_hand + players_debts + arena_overpayments − players_overpayments − arena_debts
 //
 // Баланс игрока = ∑ cost_per_player × showed_up по прошедшим событиям
 //               − ∑ player_payment − ∑ adjustment + ∑ refund этого игрока.
@@ -122,14 +133,17 @@ export async function computeTeamBalance(
     }
   }
 
-  // Долги перед площадками: сумма недоплаты по всем активным событиям
-  // на дату `asOf` (используем пересчитанный arenaPaidByEvent).
+  // Долги и переплаты по площадкам на дату `asOf`. Считаем симметрично:
+  // недоплата уходит в arena_debts (минус к балансу), переплата — в
+  // arena_overpayments (плюс, у площадки наш «депозит»).
   let arenaDebts = 0;
+  let arenaOverpayments = 0;
   for (const e of (evRes.data ?? []) as EventArenaRow[]) {
     const cost = e.arena_cost != null ? Number(e.arena_cost) : 0;
     const paidAmt = arenaPaidByEvent.get(e.id) ?? 0;
-    const unpaid = cost - paidAmt;
-    if (unpaid > 0) arenaDebts += unpaid;
+    const diff = paidAmt - cost;
+    if (diff < 0) arenaDebts += -diff;
+    else if (diff > 0) arenaOverpayments += diff;
   }
 
   // Балансы игроков и агрегаты долгов/переплат.
@@ -152,8 +166,29 @@ export async function computeTeamBalance(
     overpayments,
     arena_debts: arenaDebts,
   };
-  // Расчётный баланс: реальное положение с учётом всех обязательств в обе стороны.
-  const total = onHand + debts - overpayments - arenaDebts;
 
-  return { total, breakdown, players };
+  const owedToUs = debts + arenaOverpayments;
+  const owedByUs = overpayments + arenaDebts;
+
+  const summary: TeamBalanceSummary = {
+    on_hand: onHand,
+    owed_to_us: owedToUs,
+    owed_by_us: owedByUs,
+  };
+
+  const details: TeamBalanceDetails = {
+    owed_to_us: {
+      players_debts: debts,
+      arena_overpayments: arenaOverpayments,
+    },
+    owed_by_us: {
+      arena_debts: arenaDebts,
+      players_overpayments: overpayments,
+    },
+  };
+
+  // Расчётный баланс: реальное положение с учётом обязательств в обе стороны.
+  const total = onHand + owedToUs - owedByUs;
+
+  return { total, breakdown, summary, details, players };
 }

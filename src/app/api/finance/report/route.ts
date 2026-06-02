@@ -196,7 +196,12 @@ export async function GET(req: Request): Promise<Response> {
     const body: FinanceReportResponse = {
       from,
       to,
-      balance: { total: balance.total, breakdown: balance.breakdown },
+      balance: {
+        total: balance.total,
+        breakdown: balance.breakdown,
+        summary: balance.summary,
+        details: balance.details,
+      },
       timeseries,
       cash_flow: cash,
       events,

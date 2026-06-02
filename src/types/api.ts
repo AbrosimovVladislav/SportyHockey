@@ -888,11 +888,36 @@ export type TeamBalanceBreakdown = {
   arena_debts: number;
 };
 
+// Тройка для нового макета карточки `/money` (итерация 57): on_hand +
+// «нам должны» (плюс к total) и «мы должны» (минус к total).
+export type TeamBalanceSummary = {
+  on_hand: number;
+  owed_to_us: number;
+  owed_by_us: number;
+};
+
+// Детализация двух нижних карточек под расчётным балансом (итерация 57).
+// Сумма строк в `owed_to_us` равна `summary.owed_to_us`, в `owed_by_us` —
+// `summary.owed_by_us`. Это инвариант: подписи могут меняться, но контроль
+// `Σдетализация = summary` обязателен.
+export type TeamBalanceDetails = {
+  owed_to_us: {
+    players_debts: number;
+    arena_overpayments: number;
+  };
+  owed_by_us: {
+    arena_debts: number;
+    players_overpayments: number;
+  };
+};
+
 export type TeamBalance = {
   // Расчётный баланс — реальное финансовое положение команды:
-  // total = on_hand + debts − overpayments − arena_debts.
+  // total = on_hand + owed_to_us − owed_by_us.
   total: number;
   breakdown: TeamBalanceBreakdown;
+  summary: TeamBalanceSummary;
+  details: TeamBalanceDetails;
   players: PlayerBalance[];
 };
 // На хабе нужен только агрегат — players[] на этом эндпоинте не отдаём.

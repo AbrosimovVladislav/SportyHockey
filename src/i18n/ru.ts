@@ -840,6 +840,14 @@ export const ru = {
   // Баланс-карточка
   'money.balance.title': 'Расчётный баланс',
   'money.balance.onHand': 'На руках',
+  'money.balance.owedToUs': 'Нам должны',
+  'money.balance.owedByUs': 'Мы должны',
+  'money.balance.details.weOweArenas': 'Площадке',
+  'money.balance.details.weOwePlayers': 'Игрокам',
+  'money.balance.details.theyOwePlayers': 'Игроки',
+  'money.balance.details.theyOweArenas': 'Переплаты площадкам',
+  // Старые лейблы — пока используются в `/money/report` (замьюченный экран).
+  // Удалить после редизайна или окончательного отказа от среза.
   'money.balance.debts': 'Долги игроков',
   'money.balance.overpayments': 'Переплаты игрокам',
   'money.balance.arenaDebts': 'Долги аренам',
@@ -855,7 +863,7 @@ export const ru = {
   // Список разделов
   'money.sections.title': 'Разделы',
   'money.sections.report.title': 'Срез по месяцам',
-  'money.sections.report.subtitle': 'Показатели за выбранный месяц',
+  'money.sections.report.subtitle': 'Раздел в разработке',
   'money.sections.players.title': 'Балансы игроков',
   'money.sections.players.subtitle': 'Долги, переплаты и нулевые балансы',
   'money.sections.transactions.title': 'Операции',

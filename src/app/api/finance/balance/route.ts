@@ -19,7 +19,12 @@ export async function GET(req: Request): Promise<Response> {
     }
     const sb = supabaseServer();
     const balance = await computeTeamBalance(sb, teamId);
-    const body: TeamBalanceResponse = { total: balance.total, breakdown: balance.breakdown };
+    const body: TeamBalanceResponse = {
+      total: balance.total,
+      breakdown: balance.breakdown,
+      summary: balance.summary,
+      details: balance.details,
+    };
     return NextResponse.json(body);
   } catch (e) {
     return handleRouteError(e);
