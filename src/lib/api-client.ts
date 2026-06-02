@@ -40,10 +40,27 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new ApiError(res.status, text || res.statusText);
+    throw new ApiError(res.status, extractErrorMessage(text, res.statusText));
   }
 
   return (await res.json()) as T;
+}
+
+// Сервер всегда отдаёт ошибки как `{ error: '…' }`. Старый код возвращал
+// клиенту сырое тело — пользователю в bottomsheet попадала строка вида
+// `{"error":"…"}`. Парсим JSON и достаём поле; на не-JSON остаёмся на тексте.
+function extractErrorMessage(text: string, fallback: string): string {
+  if (!text) return fallback;
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+      const err = (parsed as { error: unknown }).error;
+      if (typeof err === 'string' && err) return err;
+    }
+  } catch {
+    // не-JSON ответ — оставляем как есть.
+  }
+  return text;
 }
 
 export async function apiFetchBlob(path: string, init?: RequestInit): Promise<Blob> {
@@ -70,7 +87,7 @@ export async function apiFetchBlob(path: string, init?: RequestInit): Promise<Bl
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new ApiError(res.status, text || res.statusText);
+    throw new ApiError(res.status, extractErrorMessage(text, res.statusText));
   }
 
   return await res.blob();

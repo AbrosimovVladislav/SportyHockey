@@ -1020,6 +1020,9 @@ export const ru = {
   'money.sheet.arena.errorEmptyVenue': 'Выберите площадку из списка',
   'money.sheet.arena.errorEmptyAmount': 'Укажите сумму больше нуля',
   'money.sheet.arena.errorBadDate': 'Укажите корректную дату',
+  'money.sheet.arena.errorInsufficient': 'В кассе только {available} — пополните счёт перед оплатой',
+  'money.sheet.arena.availableOnHand': 'На руках: {amount}',
+  'money.sheet.arena.shortfall': 'Не хватает {amount} — нужно пополнить кассу',
   'money.sheet.arena.eventStatus.paid': 'Оплачено',
   'money.sheet.arena.eventStatus.unpaid': 'Не оплачено',
 

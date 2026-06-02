@@ -9,6 +9,7 @@ import { IconSearch, IconCalendar, IconLocation } from '@/components/icons';
 import { useT } from '@/hooks/use-t';
 import { eventLabel } from '@/lib/event-label';
 import { formatEventDateRange } from '@/lib/event-format';
+import { formatMoney } from '@/lib/format-money';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
@@ -49,6 +50,10 @@ type Props = {
   initial: ArenaInitial | null;
   events: EventDto[];
   venues: VenueDto[];
+  // Текущая касса команды (on_hand). Используем для подсказки и блокировки
+  // сохранения, если сумма аренды превышает доступный остаток. Если не
+  // передано — подсказку не показываем (например, баланс ещё грузится).
+  availableOnHand?: number | null;
   onSubmit: (value: ArenaFormValue) => void;
   onDelete?: () => void;
   isSaving?: boolean;
@@ -63,6 +68,7 @@ export function ArenaSheet({
   initial,
   events,
   venues,
+  availableOnHand,
   onSubmit,
   onDelete,
   isSaving,
@@ -114,8 +120,9 @@ export function ArenaSheet({
     [venueId, venues],
   );
 
-  // При смене события в picker'е перезаполняем venue/amount/date из нового.
-  // Простой паттерн: overwrite — пользователь может откорректировать руками.
+  // При смене события в picker'е перезаполняем venue/amount из нового. Дату
+  // оплаты НЕ трогаем: занимающийся бухгалтерией пользователь ставит «дату
+  // оплаты», а не «дату события» — это сегодняшний день, а не дата матча.
   const handlePickEvent = (id: string) => {
     setEventPickerOpen(false);
     setEventId(id);
@@ -123,8 +130,26 @@ export function ArenaSheet({
     if (!e) return;
     setVenueId(e.venue?.id ?? null);
     setAmount(e.arena_cost != null ? String(e.arena_cost) : '');
-    setDate(isoFromDateTime(e.starts_at));
   };
+
+  // Максимальная сумма аренды с учётом текущей кассы. Расход уменьшает кассу
+  // только если дата ≤ сегодня (будущие платежи в on_hand не лезут). При
+  // редактировании старый вклад этой же транзакции уже «сидит» в кассе — после
+  // правки он откатывается и заменяется новым, поэтому к лимиту добавляем
+  // старую сумму, если она тоже была сегодняшней или прошлой.
+  const today = todayIso();
+  const oldImpact =
+    isEdit && initial?.id && initial.amount != null && initial.occurred_on <= today
+      ? Number(initial.amount)
+      : 0;
+  const counts = date <= today;
+  const maxAmount =
+    availableOnHand != null && counts ? availableOnHand + oldImpact : null;
+
+  const parsedAmount = Number(amount);
+  const validAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
+  const overLimit = maxAmount != null && validAmount && parsedAmount > maxAmount;
+  const shortfall = overLimit && maxAmount != null ? parsedAmount - maxAmount : 0;
 
   const submit = () => {
     setLocalError(null);
@@ -136,8 +161,7 @@ export function ArenaSheet({
       setLocalError(t('money.sheet.arena.errorEmptyVenue'));
       return;
     }
-    const n = Number(amount);
-    if (!Number.isFinite(n) || n <= 0) {
+    if (!validAmount) {
       setLocalError(t('money.sheet.arena.errorEmptyAmount'));
       return;
     }
@@ -145,9 +169,18 @@ export function ArenaSheet({
       setLocalError(t('money.sheet.arena.errorBadDate'));
       return;
     }
+    if (overLimit && maxAmount != null) {
+      setLocalError(
+        t('money.sheet.arena.errorInsufficient').replace(
+          '{available}',
+          formatMoney(Math.max(0, maxAmount)),
+        ),
+      );
+      return;
+    }
     onSubmit({
       event_id: eventId,
-      amount: n,
+      amount: parsedAmount,
       occurred_on: date,
       description: selectedVenue.name,
     });
@@ -326,6 +359,26 @@ export function ArenaSheet({
                 ₽
               </span>
             </div>
+            {maxAmount != null ? (
+              <div
+                style={{
+                  marginTop: spacing['6'],
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: overLimit ? colors.error : colors.textSecondary,
+                }}
+              >
+                {overLimit
+                  ? t('money.sheet.arena.shortfall').replace(
+                      '{amount}',
+                      formatMoney(shortfall),
+                    )
+                  : t('money.sheet.arena.availableOnHand').replace(
+                      '{amount}',
+                      formatMoney(Math.max(0, maxAmount)),
+                    )}
+              </div>
+            ) : null}
           </div>
 
           {/* Дата */}
@@ -653,15 +706,6 @@ function matchVenueByName(name: string | null, venues: VenueDto[]): string | nul
 
 function todayIso(): string {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-// Из ISO-строки события достаём день в локальном времени (YYYY-MM-DD).
-function isoFromDateTime(iso: string): string {
-  const d = new Date(iso);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');

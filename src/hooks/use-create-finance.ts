@@ -23,6 +23,11 @@ export function useCreateFinance(): UseMutationResult<
       qc.invalidateQueries({ queryKey: ['team-balance'] });
       qc.invalidateQueries({ queryKey: ['finance-list'] });
       qc.invalidateQueries({ queryKey: ['players-balance'] });
+      // Events содержат arena_paid_amount — после любой finance-мутации список
+      // событий и каждая карточка события могут потерять актуальность статуса
+      // оплаты аренды. Инвалидируем безусловно (предикат по типу был бы хрупким).
+      qc.invalidateQueries({ queryKey: ['events'] });
+      qc.invalidateQueries({ queryKey: ['event'] });
       if (vars.user_id) invalidatePlayer(qc, vars.user_id);
     },
   });

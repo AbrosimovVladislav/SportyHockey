@@ -16,7 +16,7 @@ import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import { formatSignedMoney } from '@/lib/format-money';
-import { formatTime } from '@/lib/event-format';
+import { formatTime, formatEventDateRange } from '@/lib/event-format';
 import { eventLabel } from '@/lib/event-label';
 import type { FinancePartyUser, FinanceTransaction, FinanceTxType } from '@/types/api';
 
@@ -268,6 +268,14 @@ function headForTx(
         : tx.category === 'uniform'
           ? labels.sub.uniform
           : labels.sub.otherExpense;
+  // Для аренды дописываем в подпись событие + дату/время, чтобы было видно,
+  // за какой матч/тренировку платили. Если события нет (legacy-запись) —
+  // оставляем чистую «Аренда».
+  if (tx.category === 'arena' && tx.event) {
+    const ev = eventLabel(tx.event);
+    const when = formatEventDateRange(tx.event.starts_at, null);
+    return { title: tx.description ?? catSub, subtitle: `${catSub} · ${ev} · ${when}` };
+  }
   return { title: tx.description ?? catSub, subtitle: catSub };
 }
 

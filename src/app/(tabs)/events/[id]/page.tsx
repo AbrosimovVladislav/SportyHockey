@@ -35,6 +35,7 @@ import { useMe } from '@/hooks/use-me';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useVenues } from '@/hooks/use-venues';
 import { useCreateFinance } from '@/hooks/use-create-finance';
+import { useTeamBalance } from '@/hooks/use-team-balance';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { formatEventDateRange } from '@/lib/event-format';
@@ -58,6 +59,7 @@ export default function EventDetailPage() {
   const vote = useVoteEvent(id, me.data?.user.id);
   const eventsQ = useEvents();
   const venuesQ = useVenues();
+  const balanceQ = useTeamBalance();
   const createFinance = useCreateFinance();
   const [menuOpen, setMenuOpen] = useState(false);
   const [arenaOpen, setArenaOpen] = useState(false);
@@ -412,11 +414,11 @@ export default function EventDetailPage() {
             event_id: data.id,
             arena_cost: data.arena_cost,
             arena_paid_amount: data.arena_paid_amount,
-            starts_at: data.starts_at,
             venue_name: data.venue?.name ?? null,
           })}
           events={eventsQ.data?.events ?? []}
           venues={venuesQ.data?.venues ?? []}
+          availableOnHand={balanceQ.data?.breakdown.on_hand ?? null}
           onSubmit={(v: ArenaFormValue) => {
             setArenaError(null);
             createFinance.mutate(
@@ -445,18 +447,19 @@ export default function EventDetailPage() {
 // Собираем ArenaInitial из полей события для предзаполнения sheet'а.
 // Без id транзакции — sheet работает в create-режиме (новая запись).
 // Сумма по умолчанию — оставшийся долг (arena_cost − arena_paid_amount),
-// чтобы для доплаты сразу подставлялась нужная сумма.
+// чтобы для доплаты сразу подставлялась нужная сумма. Дата платежа —
+// сегодняшний день (это «когда заплатили», а не «дата события»: организатор
+// может оплатить аренду заранее за матч, который только будет завтра).
 function makeArenaInitialFromEvent(args: {
   event_id: string;
   arena_cost: number | null;
   arena_paid_amount: number;
-  starts_at: string;
   venue_name: string | null;
 }): ArenaInitial {
-  const d = new Date(args.starts_at);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
   const remaining =
     args.arena_cost != null ? args.arena_cost - args.arena_paid_amount : null;
   return {

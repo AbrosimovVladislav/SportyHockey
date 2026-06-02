@@ -9,6 +9,12 @@ import {
   type RawFinanceRow,
 } from '@/lib/finance-mapper';
 import { syncArenaPaidAmount } from '@/lib/sync-arena-paid';
+import {
+  currentOnHand,
+  insufficientOnHandMessage,
+  onHandDelta,
+  todayIso,
+} from '@/lib/on-hand-guard';
 import type {
   CreateFinanceResponse,
   FinanceListResponse,
@@ -160,6 +166,25 @@ export async function POST(req: Request): Promise<Response> {
       if (evErr) return NextResponse.json({ error: evErr.message }, { status: 500 });
       if (!ev || ev.team_id !== teamId) {
         return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
+      }
+    }
+
+    // Проверяем кассу: если транзакция уменьшает on_hand и денег не хватает —
+    // отказ. Расходы и возвраты со вчерашней/сегодняшней датой считаются;
+    // будущие даты в кассу не лезут, поэтому их пропускаем.
+    const today = todayIso();
+    const occurredOn = d.occurred_on ?? today;
+    const delta = onHandDelta(
+      { type: d.type, amount: d.amount, occurred_on: occurredOn },
+      today,
+    );
+    if (delta < 0) {
+      const onHand = await currentOnHand(sb, teamId);
+      if (onHand + delta < 0) {
+        return NextResponse.json(
+          { error: insufficientOnHandMessage(onHand) },
+          { status: 400 },
+        );
       }
     }
 

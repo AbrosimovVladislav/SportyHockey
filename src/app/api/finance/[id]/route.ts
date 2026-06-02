@@ -9,6 +9,12 @@ import {
   type RawFinanceRow,
 } from '@/lib/finance-mapper';
 import { syncArenaPaidAmount, syncArenaPaidAmountForChange } from '@/lib/sync-arena-paid';
+import {
+  currentOnHand,
+  insufficientOnHandMessage,
+  onHandDelta,
+  todayIso,
+} from '@/lib/on-hand-guard';
 import type {
   UpdateFinanceResponse,
   DeleteFinanceResponse,
@@ -49,7 +55,7 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     // Достаём существующую запись и проверяем принадлежность команде.
     const { data: existing, error: exErr } = await sb
       .from('finance_transactions')
-      .select('id, team_id, type, category, user_id, event_id')
+      .select('id, team_id, type, category, user_id, event_id, amount, occurred_on')
       .eq('id', id)
       .maybeSingle();
     if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 });
@@ -107,6 +113,34 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       }
     }
 
+    // Проверка кассы: считаем чистое изменение on_hand после применения патча
+    // и отказываем, если это уведёт on_hand в минус. Дельта = новый вклад −
+    // старый вклад (текущая касса уже учитывает старый вклад).
+    const today = todayIso();
+    const newAmount = d.amount ?? Number(existing.amount);
+    const newOccurredOn =
+      d.occurred_on !== undefined && d.occurred_on !== null
+        ? d.occurred_on
+        : existing.occurred_on;
+    const oldDelta = onHandDelta(
+      { type: existing.type, amount: existing.amount, occurred_on: existing.occurred_on },
+      today,
+    );
+    const newDelta = onHandDelta(
+      { type: existing.type, amount: newAmount, occurred_on: newOccurredOn },
+      today,
+    );
+    const netChange = newDelta - oldDelta;
+    if (netChange < 0) {
+      const onHand = await currentOnHand(sb, teamId);
+      if (onHand + netChange < 0) {
+        return NextResponse.json(
+          { error: insufficientOnHandMessage(onHand) },
+          { status: 400 },
+        );
+      }
+    }
+
     const update: TablesUpdate<'finance_transactions'> = {};
     if (d.amount !== undefined) update.amount = d.amount;
     if (d.occurred_on !== undefined && d.occurred_on !== null) update.occurred_on = d.occurred_on;
@@ -159,12 +193,31 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
 
     const { data: existing, error: exErr } = await sb
       .from('finance_transactions')
-      .select('id, team_id, type, category, event_id')
+      .select('id, team_id, type, category, event_id, amount, occurred_on')
       .eq('id', id)
       .maybeSingle();
     if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 });
     if (!existing || existing.team_id !== teamId) {
       return NextResponse.json({ error: 'Операция не найдена' }, { status: 404 });
+    }
+
+    // Удаление транзакции откатывает её вклад в on_hand. Если запись пополняла
+    // кассу (например, депозит) — после удаления касса уменьшится; отказываем,
+    // если результат отрицательный. Удаление расхода всегда только увеличивает
+    // кассу, поэтому проверка тривиально не сработает.
+    const today = todayIso();
+    const oldDelta = onHandDelta(
+      { type: existing.type, amount: existing.amount, occurred_on: existing.occurred_on },
+      today,
+    );
+    if (oldDelta > 0) {
+      const onHand = await currentOnHand(sb, teamId);
+      if (onHand - oldDelta < 0) {
+        return NextResponse.json(
+          { error: insufficientOnHandMessage(onHand) },
+          { status: 400 },
+        );
+      }
     }
 
     const { error: delErr } = await sb

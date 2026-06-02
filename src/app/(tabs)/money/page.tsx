@@ -227,6 +227,7 @@ export default function MoneyPage() {
         initial={null}
         events={eventsQ.data?.events ?? []}
         venues={venuesQ.data?.venues ?? []}
+        availableOnHand={balanceQ.data?.breakdown.on_hand ?? null}
         onSubmit={handleArenaSubmit}
         isSaving={createFinance.isPending}
         error={arenaError}

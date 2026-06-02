@@ -22,6 +22,7 @@ import { useFinanceList } from '@/hooks/use-finance-list';
 import { useTeamMembers } from '@/hooks/use-team-members';
 import { useEvents } from '@/hooks/use-events';
 import { useVenues } from '@/hooks/use-venues';
+import { useTeamBalance } from '@/hooks/use-team-balance';
 import { useUpdateFinance } from '@/hooks/use-update-finance';
 import { useDeleteFinance } from '@/hooks/use-delete-finance';
 import { colors } from '@/theme/colors';
@@ -69,6 +70,7 @@ export default function MoneyTransactionsPage() {
   const membersQ = useTeamMembers();
   const eventsQ = useEvents();
   const venuesQ = useVenues();
+  const balanceQ = useTeamBalance(hasTeam);
   const updateFinance = useUpdateFinance();
   const deleteFinance = useDeleteFinance();
 
@@ -340,6 +342,7 @@ export default function MoneyTransactionsPage() {
         initial={arenaInitial}
         events={eventsQ.data?.events ?? []}
         venues={venuesQ.data?.venues ?? []}
+        availableOnHand={balanceQ.data?.breakdown.on_hand ?? null}
         onSubmit={handleArenaSubmit}
         onDelete={handleArenaDelete}
         isSaving={updateFinance.isPending}

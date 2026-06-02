@@ -27,6 +27,8 @@ export function useDeleteFinance(): UseMutationResult<
       qc.invalidateQueries({ queryKey: ['team-balance'] });
       qc.invalidateQueries({ queryKey: ['finance-list'] });
       qc.invalidateQueries({ queryKey: ['players-balance'] });
+      qc.invalidateQueries({ queryKey: ['events'] });
+      qc.invalidateQueries({ queryKey: ['event'] });
       if (vars.user_id) invalidatePlayer(qc, vars.user_id);
     },
   });
