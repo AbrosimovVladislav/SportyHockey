@@ -54,8 +54,11 @@ export async function GET(req: Request): Promise<Response> {
 
     // Все три запроса — независимые, гоним параллельно.
     const [balance, txAllRes, eventsRes, recentRes] = await Promise.all([
-      // Разбивка текущего баланса — те же 4 плитки, что и на хабе.
-      computeTeamBalance(sb, teamId),
+      // Разбивка баланса на конец периода — те же 4 плитки и расчётный баланс,
+      // что на хабе, но «как будто прошёл день `to`». Для прошлого месяца
+      // — историческое состояние, для текущего — прогноз на конец месяца,
+      // для будущего — прогноз с учётом запланированных трат.
+      computeTeamBalance(sb, teamId, to),
       // Все транзакции до конца периода — нужны для нарастающего on_hand на каждый день.
       sb
         .from('finance_transactions')
@@ -105,14 +108,17 @@ export async function GET(req: Request): Promise<Response> {
     // 1) Timeseries on_hand по дням периода.
     // Базовое значение — on_hand на день перед `from`. Затем по каждому дню
     // периода прибавляем дельту дня (player_payment − expense − refund).
-    const todayStr = todayIso();
+    // Дельта считается без оглядки на today: для среза график показывает
+    // «как изменится касса, если день закончился». Это согласовано с
+    // computeTeamBalance(asOf=to) и даёт прогнозную картинку для будущих
+    // месяцев тоже.
     const dayDelta = new Map<string, number>(); // day → net delta of on_hand
     let baseOnHand = 0;
     for (const tx of txAll) {
       const amt = Number(tx.amount);
       if (!Number.isFinite(amt)) continue;
       const d = tx.occurred_on;
-      const delta = onHandDelta(tx.type, amt, d, todayStr);
+      const delta = onHandDelta(tx.type, amt);
       if (delta === 0) continue;
       if (d < from) {
         baseOnHand += delta;
@@ -202,28 +208,14 @@ export async function GET(req: Request): Promise<Response> {
   }
 }
 
-// Дельта on_hand от одной транзакции. Совпадает с логикой
-// `computeTeamBalance` и `onHandDelta` из `on-hand-guard`: будущие расходы
-// и возвраты в кассу не входят.
-function onHandDelta(
-  type: string,
-  amount: number,
-  day: string,
-  today: string,
-): number {
+// Дельта on_hand от одной транзакции для графика среза. На срезе будущие
+// расходы и возвраты тоже учитываются — иначе картинка перестаёт быть
+// прогнозной. В runtime-API (`/api/finance/balance`) и в `on-hand-guard`
+// логика другая: там будущие даты в кассу не входят.
+function onHandDelta(type: string, amount: number): number {
   if (type === 'player_payment') return amount;
-  if (type === 'expense' || type === 'refund') {
-    return day <= today ? -amount : 0;
-  }
+  if (type === 'expense' || type === 'refund') return -amount;
   return 0;
-}
-
-function todayIso(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
 }
 
 function dateRange(from: string, to: string): string[] {

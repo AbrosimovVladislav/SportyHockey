@@ -71,7 +71,7 @@ export function MetricTile({ icon, tone, label, amount, sign }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <span style={{ fontSize: 12, color: colors.textSecondary }}>{label}</span>
         <span style={{ fontSize: 16, fontWeight: 700, color: valueColor }}>
-          {formatted} ₽
+          {formatted}
         </span>
       </div>
     </div>

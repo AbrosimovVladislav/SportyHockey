@@ -27,18 +27,36 @@ type TxRow = {
   amount: number;
   occurred_on: string;
   type: string;
+  category: string | null;
   user_id: string | null;
+  event_id: string | null;
 };
 
 type EventArenaRow = {
+  id: string;
   arena_cost: number | null;
-  arena_paid_amount: number;
 };
 
-export async function computeTeamBalance(sb: SB, teamId: string): Promise<TeamBalance> {
+// `asOf` (YYYY-MM-DD) — день, на конец которого считаем срез. По умолчанию —
+// сегодня. Для финансового среза `/money/report` сюда передаётся последний
+// день выбранного месяца, и все 4 плитки + расчётный баланс пересчитываются
+// «как будто этот день закончился»:
+//   • on_hand     = ∑ player_payment(o ≤ asOf) − ∑ expense/refund(o ≤ asOf)
+//   • charged     = ∑ cost_per_player по showed_up на событиях starts_at ≤ asOf
+//   • paid        = ∑ player_payment(o ≤ asOf) + ∑ adjustment(o ≤ asOf) по игроку
+//   • arena_debts = ∑ max(0, arena_cost − arena_paid_at_asOf) по событиям ≠ cancelled,
+//                   где arena_paid_at_asOf считается из expense-категории 'arena'
+//                   с occurred_on ≤ asOf (а не из денормализованной колонки).
+export async function computeTeamBalance(
+  sb: SB,
+  teamId: string,
+  asOf?: string,
+): Promise<TeamBalance> {
   const today = new Date();
-  const todayIso = today.toISOString().slice(0, 10);
-  const nowIso = today.toISOString();
+  const effectiveAsOf = asOf ?? today.toISOString().slice(0, 10);
+  // Для starts_at сравнения берём конец дня asOf в UTC — событие, которое
+  // началось 31 мая в любой час, должно попасть в срез за май.
+  const cutoffIso = `${effectiveAsOf}T23:59:59.999Z`;
 
   const [attRes, txRes, evRes] = await Promise.all([
     sb
@@ -47,14 +65,15 @@ export async function computeTeamBalance(sb: SB, teamId: string): Promise<TeamBa
       .eq('showed_up', true)
       .eq('events.team_id', teamId)
       .neq('events.status', 'cancelled')
-      .lt('events.starts_at', nowIso),
+      .lt('events.starts_at', cutoffIso),
     sb
       .from('finance_transactions')
-      .select('amount, occurred_on, type, user_id')
-      .eq('team_id', teamId),
+      .select('amount, occurred_on, type, category, user_id, event_id')
+      .eq('team_id', teamId)
+      .lte('occurred_on', effectiveAsOf),
     sb
       .from('events')
-      .select('arena_cost, arena_paid_amount')
+      .select('id, arena_cost')
       .eq('team_id', teamId)
       .neq('status', 'cancelled'),
   ]);
@@ -71,34 +90,44 @@ export async function computeTeamBalance(sb: SB, teamId: string): Promise<TeamBa
     charged.set(r.user_id, (charged.get(r.user_id) ?? 0) + cost);
   }
 
-  // Оплаты и расходы. on_hand учитывает только occurred_on ≤ today.
+  // Оплаты и расходы. SQL уже отфильтровал occurred_on ≤ asOf, поэтому
+  // здесь просто суммируем.
   const paid = new Map<string, number>();
   let onHand = 0;
+  // arena_paid по каждому событию — считаем из транзакций, а не из колонки
+  // events.arena_paid_amount: денормализованная колонка хранит «сегодняшнее»
+  // состояние, а для среза на прошлый/будущий месяц нужно «состояние на asOf».
+  const arenaPaidByEvent = new Map<string, number>();
 
   for (const tx of (txRes.data ?? []) as TxRow[]) {
     const amt = Number(tx.amount);
     if (!Number.isFinite(amt)) continue;
-    const day = tx.occurred_on;
 
     if (tx.type === 'player_payment') {
       onHand += amt;
       if (tx.user_id) paid.set(tx.user_id, (paid.get(tx.user_id) ?? 0) + amt);
     } else if (tx.type === 'expense') {
-      // В кассу не входит только то, что ещё не наступило.
-      if (day <= todayIso) onHand -= amt;
+      onHand -= amt;
+      if (tx.category === 'arena' && tx.event_id) {
+        arenaPaidByEvent.set(
+          tx.event_id,
+          (arenaPaidByEvent.get(tx.event_id) ?? 0) + amt,
+        );
+      }
     } else if (tx.type === 'refund') {
-      if (day <= todayIso) onHand -= amt;
+      onHand -= amt;
       if (tx.user_id) charged.set(tx.user_id, (charged.get(tx.user_id) ?? 0) + amt);
     } else if (tx.type === 'adjustment') {
       if (tx.user_id) paid.set(tx.user_id, (paid.get(tx.user_id) ?? 0) + amt);
     }
   }
 
-  // Долги перед площадками: сумма недоплаты по всем активным событиям.
+  // Долги перед площадками: сумма недоплаты по всем активным событиям
+  // на дату `asOf` (используем пересчитанный arenaPaidByEvent).
   let arenaDebts = 0;
   for (const e of (evRes.data ?? []) as EventArenaRow[]) {
     const cost = e.arena_cost != null ? Number(e.arena_cost) : 0;
-    const paidAmt = Number(e.arena_paid_amount) || 0;
+    const paidAmt = arenaPaidByEvent.get(e.id) ?? 0;
     const unpaid = cost - paidAmt;
     if (unpaid > 0) arenaDebts += unpaid;
   }

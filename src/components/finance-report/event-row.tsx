@@ -82,8 +82,8 @@ export function EventRow({ ev, collectedLabel, arenaLabel }: Props) {
             textOverflow: 'ellipsis',
           }}
         >
-          {collectedLabel} {formatMoney(ev.collected)} ₽ · {arenaLabel}{' '}
-          {formatMoney(ev.arena_cost)} ₽
+          {collectedLabel} {formatMoney(ev.collected)} · {arenaLabel}{' '}
+          {formatMoney(ev.arena_cost)}
         </div>
       </div>
       <div
@@ -95,7 +95,7 @@ export function EventRow({ ev, collectedLabel, arenaLabel }: Props) {
         }}
       >
         <span style={{ fontSize: 15, fontWeight: 700, color: netColor }}>
-          {netText} ₽
+          {netText}
         </span>
         <IconChevronRight size={14} color={colors.iconMuted} />
       </div>

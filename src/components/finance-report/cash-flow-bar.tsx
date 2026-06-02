@@ -93,7 +93,7 @@ export function CashFlowBar({
             color: net > 0 ? colors.success : net < 0 ? colors.error : colors.text,
           }}
         >
-          {formatNet(net)} ₽
+          {formatNet(net)}
         </span>
       </div>
     </div>
@@ -123,7 +123,7 @@ function LegendItem({ color, label, value }: LegendItemProps) {
         <span style={{ fontSize: 12, color: colors.textSecondary }}>{label}</span>
       </div>
       <span style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>
-        {formatMoney(value)} ₽
+        {formatMoney(value)}
       </span>
     </div>
   );

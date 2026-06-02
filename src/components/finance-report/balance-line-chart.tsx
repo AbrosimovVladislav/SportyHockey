@@ -63,7 +63,7 @@ export function BalanceLineChart({ data }: Props) {
                 padding: '6px 10px',
               }}
               labelFormatter={(v) => formatDate(String(v ?? ''))}
-              formatter={(v) => [formatMoney(Number(v) || 0) + ' ₽', 'На руках']}
+              formatter={(v) => [formatMoney(Number(v) || 0), 'На руках']}
             />
             <Area
               type="monotone"

@@ -184,7 +184,7 @@ export default function MoneyReportPage() {
                 }}
               >
                 {total >= 0 ? '+' : '−'}
-                {formatMoney(Math.abs(total))} ₽
+                {formatMoney(Math.abs(total))}
               </div>
               <div
                 style={{ fontSize: 13, color: colors.textSecondary, marginTop: spacing['4'] }}
@@ -279,7 +279,7 @@ export default function MoneyReportPage() {
                   {t('money.report.events.empty')}
                 </div>
               ) : (
-                ev.map((e) => (
+                ev.slice(0, 3).map((e) => (
                   <EventRow
                     key={e.id}
                     ev={e}
@@ -321,7 +321,7 @@ export default function MoneyReportPage() {
                 </div>
               ) : (
                 ops
-                  .slice(0, 5)
+                  .slice(0, 3)
                   .map((tx) => <TransactionCard key={tx.id} tx={tx} labels={labels} />)
               )}
             </div>
