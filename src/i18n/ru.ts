@@ -855,7 +855,7 @@ export const ru = {
   // Список разделов
   'money.sections.title': 'Разделы',
   'money.sections.report.title': 'Срез по месяцам',
-  'money.sections.report.subtitle': 'Раздел в разработке',
+  'money.sections.report.subtitle': 'Показатели за выбранный месяц',
   'money.sections.players.title': 'Балансы игроков',
   'money.sections.players.subtitle': 'Долги, переплаты и нулевые балансы',
   'money.sections.transactions.title': 'Операции',

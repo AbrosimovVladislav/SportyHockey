@@ -239,13 +239,13 @@ export default function MoneyPage() {
                   subtitle={t('money.sections.analytics.subtitle')}
                   onClick={() => router.push('/money/analytics')}
                 />
-                {/* «Срез по месяцам» замьючен до большого тестирования —
-                    смысл экрана пока не подтверждён, в работе. */}
+                {/* «Срез по месяцам» временно открыт для большого тестирования
+                    итерации 56 — по итогам решим, оставлять или мьютить обратно. */}
                 <ListRow
                   icon={<IconChart size={22} color={colors.iconFg} />}
                   title={t('money.sections.report.title')}
                   subtitle={t('money.sections.report.subtitle')}
-                  muted
+                  onClick={() => router.push('/money/report')}
                 />
               </div>
             </SectionBlock>
