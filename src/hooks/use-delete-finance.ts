@@ -29,6 +29,7 @@ export function useDeleteFinance(): UseMutationResult<
       qc.invalidateQueries({ queryKey: ['players-balance'] });
       qc.invalidateQueries({ queryKey: ['events'] });
       qc.invalidateQueries({ queryKey: ['event'] });
+      qc.invalidateQueries({ queryKey: ['finance-report'] });
       if (vars.user_id) invalidatePlayer(qc, vars.user_id);
     },
   });

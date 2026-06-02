@@ -19,6 +19,7 @@ import {
   LuAtSign,
   LuHeadphones,
   LuFileText,
+  LuLandmark,
 } from 'react-icons/lu';
 import { SiTelegram, SiWhatsapp } from 'react-icons/si';
 import { MdSportsHockey, MdSports } from 'react-icons/md';
@@ -500,4 +501,7 @@ export const IconHeadphones = ({ size = 24, color = 'currentColor' }: IconProps)
 );
 export const IconFileText = ({ size = 24, color = 'currentColor' }: IconProps) => (
   <LuFileText size={size} color={color} />
+);
+export const IconBuilding = ({ size = 24, color = 'currentColor' }: IconProps) => (
+  <LuLandmark size={size} color={color} />
 );

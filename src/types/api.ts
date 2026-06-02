@@ -946,3 +946,53 @@ export type UpdateFinanceRequest = {
 export type UpdateFinanceResponse = { transaction: FinanceTransaction };
 export type DeleteFinanceResponse = { ok: true };
 
+// Финансовый срез `/money/report` (итерация 54). Один эндпоинт собирает всё,
+// что нужно экрану: текущий баланс (не зависит от периода), временной ряд
+// `on_hand` по дням периода, агрегаты движения денег за период, события
+// периода с «собрано/арена/нетто» и последние операции периода.
+// Период задаётся [from, to] в YYYY-MM-DD включительно.
+export type FinanceReportEvent = {
+  id: string;
+  type: string;
+  title: string | null;
+  opponent_name: string | null;
+  starts_at: string;
+  // ∑ player_payment с этим event_id (за всё время — нужны для подписи
+  // «собрано N ₽» под названием события).
+  collected: number;
+  arena_cost: number;
+  arena_paid: number;
+  // Нетто по событию = collected − arena_cost. Знак показывается на карточке.
+  net: number;
+};
+
+export type FinanceReportTimeseriesPoint = {
+  date: string;
+  on_hand: number;
+};
+
+export type FinanceReportCashFlow = {
+  // ∑ player_payment за период.
+  income: number;
+  // ∑ expense с category='arena' за период.
+  arenas: number;
+  // ∑ expense с category!='arena' за период + ∑ refund за период.
+  expenses: number;
+  // income − arenas − expenses.
+  net: number;
+};
+
+export type FinanceReportResponse = {
+  from: string;
+  to: string;
+  // Текущий баланс — не зависит от периода. Дублирует /api/finance/balance,
+  // чтобы экрану хватило одного запроса.
+  balance: TeamBalanceResponse;
+  timeseries: FinanceReportTimeseriesPoint[];
+  cash_flow: FinanceReportCashFlow;
+  // События, у которых starts_at попадает в период (по дате; по времени — UTC).
+  events: FinanceReportEvent[];
+  // Последние транзакции периода. Лимит 20 (новейшие сверху).
+  recent_operations: FinanceTransaction[];
+};
+

@@ -1078,6 +1078,25 @@ export const ru = {
   'money.sheet.inventory.availableOnHand': 'На руках: {amount}',
   'money.sheet.inventory.shortfall': 'Не хватает {amount} — нужно пополнить кассу',
 
+  // Финансовый срез `/money/report` (v0.5, итерация 54).
+  'money.report.title': 'Финансовый срез',
+  'money.report.todayAria': 'К текущему месяцу',
+  'money.report.balance.title': 'Расчётный баланс',
+  'money.report.balance.subtitle': 'после обязательств',
+  'money.report.chart.title': 'Баланс в течение месяца',
+  'money.report.cashflow.title': 'Движение денег за {month}',
+  'money.report.cashflow.income': 'Поступления',
+  'money.report.cashflow.arenas': 'Аренды',
+  'money.report.cashflow.expenses': 'Расходы',
+  'money.report.cashflow.net': 'Чистое движение',
+  'money.report.events.title': 'События за {month}',
+  'money.report.events.empty': 'В этом месяце событий нет.',
+  'money.report.events.collected': 'собрано',
+  'money.report.events.arena': 'арена',
+  'money.report.recent.title': 'Последние операции',
+  'money.report.recent.empty': 'Операций за этот месяц нет.',
+  'money.report.all': 'Все',
+
   // Блок «Аренда события» на странице события (v0.5, итерации 51 + 51.1).
   // Три состояния: не оплачено / частично / оплачено.
   'eventDetail.arena.title': 'Аренда события',

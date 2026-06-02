@@ -32,6 +32,7 @@ export function useUpdateFinance(): UseMutationResult<
       qc.invalidateQueries({ queryKey: ['players-balance'] });
       qc.invalidateQueries({ queryKey: ['events'] });
       qc.invalidateQueries({ queryKey: ['event'] });
+      qc.invalidateQueries({ queryKey: ['finance-report'] });
       // Профиль старого игрока (если user_id сменился) + нового — оба.
       if (vars.prev_user_id) invalidatePlayer(qc, vars.prev_user_id);
       if (vars.patch.user_id) invalidatePlayer(qc, vars.patch.user_id);

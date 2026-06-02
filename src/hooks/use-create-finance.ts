@@ -28,6 +28,7 @@ export function useCreateFinance(): UseMutationResult<
       // оплаты аренды. Инвалидируем безусловно (предикат по типу был бы хрупким).
       qc.invalidateQueries({ queryKey: ['events'] });
       qc.invalidateQueries({ queryKey: ['event'] });
+      qc.invalidateQueries({ queryKey: ['finance-report'] });
       if (vars.user_id) invalidatePlayer(qc, vars.user_id);
     },
   });
