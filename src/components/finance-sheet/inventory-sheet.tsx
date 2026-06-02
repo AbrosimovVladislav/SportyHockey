@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
@@ -76,6 +76,12 @@ export function InventorySheet({
   const t = useT();
   const isEdit = mode === 'edit';
 
+  // useT() возвращает новую функцию на каждом рендере, поэтому держим
+  // её в ref — иначе useEffect ниже срабатывал бы на каждом клике и
+  // сбрасывал выбранный itemKey обратно в 'sticks'.
+  const tRef = useRef(t);
+  tRef.current = t;
+
   const [itemKey, setItemKey] = useState<ItemKey>('sticks');
   const [amount, setAmount] = useState<string>('');
   const [date, setDate] = useState<string>(todayIso());
@@ -89,7 +95,7 @@ export function InventorySheet({
       // матч по локализованному названию, затем fallback по категории.
       const desc = initial.description?.trim().toLowerCase() ?? '';
       const matched = desc
-        ? ITEMS.find((item) => t(item.labelKey).toLowerCase() === desc)
+        ? ITEMS.find((item) => tRef.current(item.labelKey).toLowerCase() === desc)
         : null;
       setItemKey(matched?.key ?? (initial.category === 'other' ? 'other' : 'sticks'));
       setAmount(String(initial.amount));
@@ -101,7 +107,7 @@ export function InventorySheet({
     }
     setConfirmOpen(false);
     setLocalError(null);
-  }, [open, initial, t]);
+  }, [open, initial]);
 
   // Лимит кассы такой же, как у аренды: расход уменьшает on_hand, если дата
   // ≤ сегодня. При правке существующего расхода — добавляем oldAmount в лимит.
