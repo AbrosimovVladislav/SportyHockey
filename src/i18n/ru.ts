@@ -1089,13 +1089,16 @@ export const ru = {
   'money.report.cashflow.arenas': 'Аренды',
   'money.report.cashflow.expenses': 'Расходы',
   'money.report.cashflow.net': 'Чистое движение',
-  'money.report.events.title': 'События за {month}',
+  'money.report.events.title': 'Последние события',
   'money.report.events.empty': 'В этом месяце событий нет.',
   'money.report.events.collected': 'собрано',
   'money.report.events.arena': 'арена',
   'money.report.recent.title': 'Последние операции',
   'money.report.recent.empty': 'Операций за этот месяц нет.',
   'money.report.all': 'Все',
+  'money.report.soon.title': 'Скоро будет',
+  'money.report.soon.body': 'Полный список событий месяца с финансовыми итогами появится позже — пока экран в разработке.',
+  'money.report.soon.close': 'Понятно',
 
   // Блок «Аренда события» на странице события (v0.5, итерации 51 + 51.1).
   // Три состояния: не оплачено / частично / оплачено.

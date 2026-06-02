@@ -6,6 +6,8 @@ import { LightHeader } from '@/components/light-header';
 import { Skeleton } from '@/components/skeleton';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { TransactionCard, type TransactionCardLabels } from '@/components/transaction-card';
+import { BottomSheet } from '@/components/bottom-sheet';
+import { Button } from '@/components/button';
 import {
   IconWallet,
   IconPeople,
@@ -51,6 +53,7 @@ export default function MoneyReportPage() {
   const [ym, setYm] = useState<YearMonth>(currentYearMonth());
   const period = useMemo(() => periodFromYearMonth(ym), [ym]);
   const report = useFinanceReport(period, hasTeam);
+  const [eventsSoonOpen, setEventsSoonOpen] = useState(false);
 
   const labels: TransactionCardLabels = useMemo(
     () => ({
@@ -264,12 +267,12 @@ export default function MoneyReportPage() {
                 }}
               >
                 <div style={{ fontSize: 15, fontWeight: 700, color: colors.text }}>
-                  {t('money.report.events.title').replace('{month}', monthLabel(ym))}
+                  {t('money.report.events.title')}
                 </div>
                 <button
                   type="button"
                   style={linkRight}
-                  onClick={() => router.push('/events')}
+                  onClick={() => setEventsSoonOpen(true)}
                 >
                   {t('money.report.all')}
                 </button>
@@ -322,12 +325,38 @@ export default function MoneyReportPage() {
               ) : (
                 ops
                   .slice(0, 3)
-                  .map((tx) => <TransactionCard key={tx.id} tx={tx} labels={labels} />)
+                  .map((tx) => (
+                    <TransactionCard key={tx.id} tx={tx} labels={labels} showDate />
+                  ))
               )}
             </div>
           </>
         )}
       </div>
+
+      <BottomSheet
+        open={eventsSoonOpen}
+        onClose={() => setEventsSoonOpen(false)}
+        title={t('money.report.soon.title')}
+      >
+        <div
+          style={{
+            fontSize: 14,
+            color: colors.textSecondary,
+            marginBottom: spacing['16'],
+          }}
+        >
+          {t('money.report.soon.body')}
+        </div>
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          onClick={() => setEventsSoonOpen(false)}
+        >
+          {t('money.report.soon.close')}
+        </Button>
+      </BottomSheet>
     </div>
   );
 }

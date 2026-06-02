@@ -49,15 +49,20 @@ type Props = {
   tx: FinanceTransaction;
   labels: TransactionCardLabels;
   onClick?: () => void;
+  // На `/money/report` карточки не группируются по дате (показываем только
+  // 3 последние), поэтому над временем дополнительно выводим дату операции.
+  // На `/money/transactions` группировка делает дату избыточной — не включаем.
+  showDate?: boolean;
 };
 
-export function TransactionCard({ tx, labels, onClick }: Props) {
+export function TransactionCard({ tx, labels, onClick, showDate }: Props) {
   const direction = directionOf(tx.type);
   const amountColor = direction === 'income' ? colors.successDark : colors.errorDark;
   const signed = direction === 'income' ? tx.amount : -tx.amount;
 
   const { title, subtitle } = headForTx(tx, labels);
   const timeText = tx.created_at ? formatTime(tx.created_at) : '';
+  const dateText = showDate ? formatDateShort(tx.occurred_on) : '';
 
   const wrap: CSSProperties = {
     background: colors.bg,
@@ -126,7 +131,12 @@ export function TransactionCard({ tx, labels, onClick }: Props) {
         <div style={titleStyle}>{title}</div>
         {subtitle ? <div style={subtitleStyle}>{subtitle}</div> : null}
       </div>
-      <span style={timeColumn}>{timeText}</span>
+      <div style={timeColumn}>
+        {dateText ? (
+          <div style={{ color: colors.text, marginBottom: 2 }}>{dateText}</div>
+        ) : null}
+        <div>{timeText}</div>
+      </div>
     </>
   );
 
@@ -281,4 +291,28 @@ function headForTx(
 
 function nameOf(u: FinancePartyUser): string {
   return [u.first_name, u.last_name].filter((s): s is string => Boolean(s)).join(' ').trim();
+}
+
+const MONTHS_SHORT = [
+  'янв',
+  'фев',
+  'мар',
+  'апр',
+  'мая',
+  'июн',
+  'июл',
+  'авг',
+  'сен',
+  'окт',
+  'ноя',
+  'дек',
+];
+
+// «1 июн» / «12 мая» — берём из occurred_on (YYYY-MM-DD, без TZ-сюрпризов).
+function formatDateShort(occurredOn: string): string {
+  if (!occurredOn) return '';
+  const [, m, d] = occurredOn.split('-');
+  const day = Number.parseInt(d, 10);
+  const month = MONTHS_SHORT[Number.parseInt(m, 10) - 1] ?? '';
+  return `${day} ${month}`;
 }
