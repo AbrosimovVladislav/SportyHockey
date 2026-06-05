@@ -8,16 +8,18 @@ import { typography } from '@/theme/typography';
 import { formatMoney } from '@/lib/format-money';
 
 // Карточка детализации с bar-chart внутри (v0.5, итерация 59).
-// Используется парой в гриде 1fr 1fr: слева «Нам должны» (positive),
-// справа «Мы должны» (negative). В каждой карточке три строки, отсортированные
-// по сумме убыванию; ширина столбца пропорциональна значению относительно
-// максимального в карточке, цвет — насыщеннее у большего значения. Сумма по
-// всем строкам = `TeamBalanceSummary.owed_by_us` / `owed_to_us`.
+// На `/money` карточки рендерятся в одну колонку (одна под другой), что даёт
+// каждой полную ширину. В каждой — три строки, отсортированные по сумме
+// убыванию. Каждая строка состоит из двух уровней:
+//   • header: название категории слева, сумма справа — всегда виден;
+//   • track: тонкий прогресс-bar шириной пропорционально значению,
+//     цвет насыщеннее у большего значения.
+// Сумма по всем строкам = `TeamBalanceSummary.owed_by_us` / `owed_to_us`.
 //
 // Дизайн-логика «насыщенности»: первое место — базовый цвет (`success` /
-// `error`), второе — alpha 0.65, третье — 0.35. Нулевые строки рендерятся
-// как тонкая бледная плашка (alpha 0.15) без label, чтобы строка занимала
-// фиксированное место и карточки не дрожали при обнулении категории.
+// `error`), второе — alpha 0.65, третье — 0.35. Нулевая строка — alpha 0.15
+// и нулевая ширина (трек остаётся пустым), чтобы строки не «дрожали» при
+// обнулении категории.
 
 type Tone = 'positive' | 'negative';
 
@@ -34,12 +36,8 @@ type Props = {
 
 const ALPHAS = [1.0, 0.65, 0.35];
 const ZERO_ALPHA = 0.15;
-// Минимальная ширина непустого столбца — чтобы label умещался читаемо даже
-// когда значение многократно меньше максимума.
-const MIN_WIDTH_PCT = 28;
-// Ширина нулевого столбца — узкая «пилл-намёк», просто чтобы строка не была
-// пустой.
-const ZERO_WIDTH_PCT = 14;
+const BAR_HEIGHT = 8;
+const TRACK_BG_ALPHA = 0.08;
 
 export function BalanceBars({ title, tone, items }: Props) {
   if (items.length === 0) return null;
@@ -72,23 +70,21 @@ export function BalanceBars({ title, tone, items }: Props) {
   return (
     <div style={card}>
       <div style={titleStyle}>{title}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['6'] }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['12'] }}>
         {sorted.map((it, i) => {
           const isZero = !(it.value > 0);
           const alpha = isZero ? ZERO_ALPHA : ALPHAS[i] ?? ZERO_ALPHA;
-          const widthPct = isZero
-            ? ZERO_WIDTH_PCT
-            : maxValue > 0
-              ? Math.max(MIN_WIDTH_PCT, (it.value / maxValue) * 100)
-              : MIN_WIDTH_PCT;
+          const widthPct =
+            isZero || maxValue <= 0 ? 0 : (it.value / maxValue) * 100;
           return (
             <Row
               key={i}
               label={it.label}
               value={it.value}
               widthPct={widthPct}
-              color={rgba(base, alpha)}
-              showLabel={!isZero}
+              barColor={rgba(base, alpha)}
+              trackBg={rgba(base, TRACK_BG_ALPHA)}
+              dim={isZero}
             />
           );
         })}
@@ -101,39 +97,30 @@ type RowProps = {
   label: string;
   value: number;
   widthPct: number;
-  color: string;
-  showLabel: boolean;
+  barColor: string;
+  trackBg: string;
+  dim: boolean;
 };
 
-function Row({ label, value, widthPct, color, showLabel }: RowProps) {
-  const row: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) auto',
-    gap: spacing['10'],
-    alignItems: 'center',
+function Row({ label, value, widthPct, barColor, trackBg, dim }: RowProps) {
+  const wrap: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing['6'],
+    minWidth: 0,
+    opacity: dim ? 0.55 : 1,
   };
-  // Track — невидимая дорожка во всю доступную ширину; в ней лежит сам bar
-  // на широту widthPct%.
-  const track: CSSProperties = {
-    height: 28,
+  const header: CSSProperties = {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: spacing['8'],
     minWidth: 0,
   };
-  const bar: CSSProperties = {
-    width: `${widthPct}%`,
-    height: '100%',
-    background: color,
-    color: colors.textInverse,
-    borderRadius: radius.sm,
-    padding: `0 ${spacing['10']}px`,
-    fontSize: 12,
+  const labelStyle: CSSProperties = {
+    fontSize: 13,
     fontWeight: 600,
-    lineHeight: 1,
-    display: 'flex',
-    alignItems: 'center',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-  };
-  const labelSpan: CSSProperties = {
+    color: colors.text,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -146,12 +133,28 @@ function Row({ label, value, widthPct, color, showLabel }: RowProps) {
     fontVariantNumeric: 'tabular-nums',
     flexShrink: 0,
   };
+  const track: CSSProperties = {
+    height: BAR_HEIGHT,
+    background: trackBg,
+    borderRadius: BAR_HEIGHT / 2,
+    overflow: 'hidden',
+  };
+  const bar: CSSProperties = {
+    width: `${widthPct}%`,
+    height: '100%',
+    background: barColor,
+    borderRadius: BAR_HEIGHT / 2,
+    transition: 'width 200ms ease-out',
+  };
   return (
-    <div style={row}>
-      <div style={track}>
-        <div style={bar}>{showLabel ? <span style={labelSpan}>{label}</span> : null}</div>
+    <div style={wrap}>
+      <div style={header}>
+        <span style={labelStyle}>{label}</span>
+        <span style={valueStyle}>{formatMoney(value)}</span>
       </div>
-      <span style={valueStyle}>{formatMoney(value)}</span>
+      <div style={track}>
+        <div style={bar} />
+      </div>
     </div>
   );
 }
