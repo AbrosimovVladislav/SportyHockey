@@ -846,7 +846,7 @@ export const ru = {
   'money.balance.details.weOwePlayers': 'Игрокам',
   'money.balance.details.weOweOther': 'Прочее',
   'money.balance.details.theyOwePlayers': 'Игроки',
-  'money.balance.details.theyOweArenas': 'Переплаты площадкам',
+  'money.balance.details.theyOweArenas': 'Площадки',
   'money.balance.details.theyOweOther': 'Прочее',
   // Старые лейблы — пока используются в `/money/report` (замьюченный экран).
   // Удалить после редизайна или окончательного отказа от среза.

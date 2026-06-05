@@ -15,7 +15,7 @@ import type { TeamBalanceSummary } from '@/types/api';
 //  • Нам должны — зелёный фон (плюс к total: долги игроков + переплаты площадкам);
 //  • Мы должны  — красный фон (минус к total: переплаты игрокам + долги площадкам).
 // Формула: total = on_hand + owed_to_us − owed_by_us.
-// Подробная разбивка по категориям — в `BalanceDetailsCard` ниже.
+// Подробная разбивка по категориям — в `BalanceBars` ниже.
 
 type BalanceCardProps = {
   total: number;

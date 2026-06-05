@@ -6,7 +6,7 @@ import { DarkHeader } from '@/components/dark-header';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { ListRow } from '@/components/list-row';
 import { BalanceCard, BalanceCardSkeleton } from '@/components/balance-card';
-import { BalanceDetailsCard } from '@/components/balance-details-card';
+import { BalanceBars } from '@/components/balance-bars';
 import { QuickActionTile, quickActionForeground } from '@/components/quick-action-tile';
 import {
   IconWallet,
@@ -179,7 +179,25 @@ export default function MoneyPage() {
                     gap: spacing['10'],
                   }}
                 >
-                  <BalanceDetailsCard
+                  <BalanceBars
+                    title={t('money.balance.owedToUs')}
+                    tone="positive"
+                    items={[
+                      {
+                        label: t('money.balance.details.theyOweArenas'),
+                        value: balanceQ.data.details.owed_to_us.arena_overpayments,
+                      },
+                      {
+                        label: t('money.balance.details.theyOwePlayers'),
+                        value: balanceQ.data.details.owed_to_us.players_debts,
+                      },
+                      {
+                        label: t('money.balance.details.theyOweOther'),
+                        value: balanceQ.data.details.owed_to_us.external_receivables,
+                      },
+                    ]}
+                  />
+                  <BalanceBars
                     title={t('money.balance.owedByUs')}
                     tone="negative"
                     items={[
@@ -194,24 +212,6 @@ export default function MoneyPage() {
                       {
                         label: t('money.balance.details.weOweOther'),
                         value: balanceQ.data.details.owed_by_us.external_overpayments,
-                      },
-                    ]}
-                  />
-                  <BalanceDetailsCard
-                    title={t('money.balance.owedToUs')}
-                    tone="positive"
-                    items={[
-                      {
-                        label: t('money.balance.details.theyOwePlayers'),
-                        value: balanceQ.data.details.owed_to_us.players_debts,
-                      },
-                      {
-                        label: t('money.balance.details.theyOweArenas'),
-                        value: balanceQ.data.details.owed_to_us.arena_overpayments,
-                      },
-                      {
-                        label: t('money.balance.details.theyOweOther'),
-                        value: balanceQ.data.details.owed_to_us.external_receivables,
                       },
                     ]}
                   />
