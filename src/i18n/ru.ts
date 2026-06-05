@@ -26,6 +26,16 @@ export const ru = {
   'home.noTeam.title': 'Ты пока не в команде',
   'home.noTeam.body': 'Создай команду или прими приглашение, чтобы увидеть главный экран.',
 
+  // Quick-actions организатора на главной (v0.6, итерация 63).
+  // Каждая ведёт в конкретное действие, а не в раздел: «Создать событие»
+  // открывает форму, «Отметить оплаты» — последнее прошедшее событие,
+  // «Записать результат» — последнюю прошедшую игру, «Заявки» —
+  // /squad/requests (на плитке счётчик pending, если есть).
+  'home.actions.organizer.createEvent': 'Создать событие',
+  'home.actions.organizer.markPayments': 'Отметить оплаты',
+  'home.actions.organizer.recordResult': 'Записать результат',
+  'home.actions.organizer.requests': 'Заявки',
+
   // Раздел «Команда» — главная (хаб)
   'team.title': 'Команда',
   'team.stat.players': 'игроков',

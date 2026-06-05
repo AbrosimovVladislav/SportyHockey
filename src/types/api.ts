@@ -1127,3 +1127,14 @@ export type HomeNextEventResponse = {
   event: HomeNextEvent | null;
 };
 
+// Контекст для quick-actions на главной (v0.6, итерация 63):
+//   `last_past_event_id` — цель плитки «Отметить оплаты».
+//   `last_past_game_id`  — цель плитки «Записать результат».
+//   `pending_requests_count` — счётчик на плитке «Заявки».
+// NULL/0 → соответствующая плитка disabled.
+export type HomeActionsResponse = {
+  last_past_event_id: string | null;
+  last_past_game_id: string | null;
+  pending_requests_count: number;
+};
+

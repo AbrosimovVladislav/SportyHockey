@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { HomeHeader } from '@/components/home/home-header';
+import { HomeQuickActions } from '@/components/home/home-quick-actions';
 import { NextEventCard } from '@/components/home/next-event-card';
 import { NextEventEmpty } from '@/components/home/next-event-empty';
 import { NextEventSkeleton } from '@/components/home/next-event-skeleton';
@@ -95,6 +96,8 @@ export default function HomePage() {
             onCta={isOrganizer ? handleCreateEvent : handleOpenCalendar}
           />
         )}
+
+        {isOrganizer ? <HomeQuickActions /> : null}
       </div>
     </div>
   );
