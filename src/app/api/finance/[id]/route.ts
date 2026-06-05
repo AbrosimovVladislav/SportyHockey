@@ -5,11 +5,16 @@ import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import {
   FINANCE_SELECT,
-  mapFinanceTransaction,
+  mapFinanceTransactionsBatch,
   type RawFinanceRow,
 } from '@/lib/finance-mapper';
 import { syncArenaPaidAmount, syncArenaPaidAmountForChange } from '@/lib/sync-arena-paid';
-import { legacyToLedger } from '@/lib/finance-ledger';
+import {
+  legacyToLedger,
+  ledgerToLegacyType,
+  ledgerToLegacyCategory,
+  ledgerToLegacyUserId,
+} from '@/lib/finance-ledger';
 import {
   currentOnHand,
   insufficientOnHandMessage,
@@ -55,10 +60,11 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     await assertOrganizer(sb, user.id, teamId);
 
     // Достаём существующую запись и проверяем принадлежность команде.
+    // Старые поля type/category/user_id восстанавливаем из ledger.
     const { data: existing, error: exErr } = await sb
       .from('finance_transactions')
       .select(
-        'id, team_id, type, category, user_id, event_id, amount, occurred_on, to_venue_id',
+        'id, team_id, kind, from_kind, from_id, to_kind, to_id, external_kind, event_id, amount, occurred_on',
       )
       .eq('id', id)
       .maybeSingle();
@@ -66,6 +72,10 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     if (!existing || existing.team_id !== teamId) {
       return NextResponse.json({ error: 'Операция не найдена' }, { status: 404 });
     }
+
+    const existingLegacyType = ledgerToLegacyType(existing);
+    const existingLegacyCategory = ledgerToLegacyCategory(existing);
+    const existingLegacyUserId = ledgerToLegacyUserId(existing);
 
     const json = await req.json().catch(() => null);
     const parsed = PatchSchema.safeParse(json);
@@ -79,17 +89,13 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     const d = parsed.data;
 
     // Сливаем патч с существующей записью — валидация работает на финальном
-    // состоянии, а не только на присланных полях. Это позволяет, например,
-    // прислать только новый amount без повтора user_id и не словить «нужен игрок».
+    // состоянии. Тип не меняется.
     const merged = {
-      type: existing.type,
-      category: 'category' in d ? d.category ?? null : existing.category,
-      user_id: 'user_id' in d ? d.user_id ?? null : existing.user_id,
+      type: existingLegacyType,
+      category: 'category' in d ? d.category ?? null : existingLegacyCategory,
+      user_id: 'user_id' in d ? d.user_id ?? null : existingLegacyUserId,
       event_id: 'event_id' in d ? d.event_id ?? null : existing.event_id,
-      // venue_id явно не хранится в старой схеме — берём только если прислали,
-      // и используем как fallback для арендного депозита без события. Если
-      // event_id остаётся прежним, venue вытянется из события.
-      venue_id: 'venue_id' in d ? d.venue_id ?? null : existing.to_venue_id,
+      venue_id: 'venue_id' in d ? d.venue_id ?? null : existing.to_kind === 'venue' ? existing.to_id : null,
     };
     const validationError = validateMerged(merged);
     if (validationError) {
@@ -97,7 +103,7 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     }
 
     // Если user_id меняется на новый — игрок должен состоять в той же команде.
-    if (d.user_id && d.user_id !== existing.user_id) {
+    if (d.user_id && d.user_id !== existingLegacyUserId) {
       const { data: mem, error: memErr } = await sb
         .from('team_memberships')
         .select('id')
@@ -137,23 +143,23 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       if (!v) return NextResponse.json({ error: 'Площадка не найдена' }, { status: 404 });
     }
 
-    // Раскладываем merged в ledger-поля и пишем их в update.
+    // Раскладываем merged в ledger-поля.
     const ledger = legacyToLedger(
       {
-        type: merged.type as 'player_payment' | 'expense' | 'refund' | 'adjustment',
-        category: merged.category as 'arena' | 'inventory' | 'uniform' | 'other' | null,
+        type: merged.type,
+        category: merged.category,
         user_id: merged.user_id,
         event_id: merged.event_id,
         venue_id: merged.venue_id,
       },
+      teamId,
       eventVenueId,
     );
     if (!ledger.ok) {
       return NextResponse.json({ error: ledger.error }, { status: 400 });
     }
 
-    // Проверка переплаты события: суммарная оплата по событию (без этой
-    // транзакции) + новая сумма не должна превышать arena_cost.
+    // Проверка переплаты события.
     const newAmount = d.amount ?? Number(existing.amount);
     if (
       merged.type === 'expense' &&
@@ -185,20 +191,18 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       }
     }
 
-    // Проверка кассы: считаем чистое изменение on_hand после применения патча
-    // и отказываем, если это уведёт on_hand в минус. Дельта = новый вклад −
-    // старый вклад (текущая касса уже учитывает старый вклад).
+    // Проверка кассы.
     const today = todayIso();
     const newOccurredOn =
       d.occurred_on !== undefined && d.occurred_on !== null
         ? d.occurred_on
         : existing.occurred_on;
     const oldDelta = onHandDelta(
-      { type: existing.type, amount: existing.amount, occurred_on: existing.occurred_on },
+      { type: existingLegacyType, amount: existing.amount, occurred_on: existing.occurred_on },
       today,
     );
     const newDelta = onHandDelta(
-      { type: existing.type, amount: newAmount, occurred_on: newOccurredOn },
+      { type: merged.type, amount: newAmount, occurred_on: newOccurredOn },
       today,
     );
     const netChange = newDelta - oldDelta;
@@ -215,20 +219,17 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     const update: TablesUpdate<'finance_transactions'> = {};
     if (d.amount !== undefined) update.amount = d.amount;
     if (d.occurred_on !== undefined && d.occurred_on !== null) update.occurred_on = d.occurred_on;
-    if ('category' in d) update.category = d.category ?? null;
-    if ('user_id' in d) update.user_id = d.user_id ?? null;
     if ('event_id' in d) update.event_id = d.event_id ?? null;
     if ('description' in d) update.description = d.description ?? null;
-    // ledger-поля всегда переписываем из адаптера — это устраняет дрейф между
-    // зеркалом и ledger при частичном PATCH.
+    // ledger-поля всегда переписываем из адаптера — это устраняет дрейф при
+    // частичном PATCH (например, изменили event_id — venue, к которому привязан to_id,
+    // должен обновиться).
     update.kind = ledger.fields.kind;
     update.from_kind = ledger.fields.from_kind;
+    update.from_id = ledger.fields.from_id;
     update.to_kind = ledger.fields.to_kind;
-    update.from_user_id = ledger.fields.from_user_id;
-    update.to_user_id = ledger.fields.to_user_id;
-    update.from_venue_id = ledger.fields.from_venue_id;
-    update.to_venue_id = ledger.fields.to_venue_id;
-    update.external_label = ledger.fields.external_label;
+    update.to_id = ledger.fields.to_id;
+    update.external_kind = ledger.fields.external_kind;
 
     const { data: updated, error: updErr } = await sb
       .from('finance_transactions')
@@ -239,8 +240,9 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
 
     // Если запись затрагивает аренду (была или стала) — пересинхронизируем
-    // arena_paid_amount у обоих событий (старого и нового), если они есть.
-    const wasArena = existing.type === 'expense' && existing.category === 'arena';
+    // arena_paid_amount у обоих событий (старого и нового).
+    const wasArena =
+      existingLegacyType === 'expense' && existingLegacyCategory === 'arena';
     const isArena = merged.type === 'expense' && merged.category === 'arena';
     if (wasArena || isArena) {
       await syncArenaPaidAmountForChange(
@@ -250,9 +252,10 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       );
     }
 
-    const body: UpdateFinanceResponse = {
-      transaction: mapFinanceTransaction(updated as unknown as RawFinanceRow),
-    };
+    const [transaction] = await mapFinanceTransactionsBatch(sb, [
+      updated as unknown as RawFinanceRow,
+    ]);
+    const body: UpdateFinanceResponse = { transaction };
     return NextResponse.json(body);
   } catch (e) {
     return handleRouteError(e);
@@ -274,7 +277,9 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
 
     const { data: existing, error: exErr } = await sb
       .from('finance_transactions')
-      .select('id, team_id, type, category, event_id, amount, occurred_on')
+      .select(
+        'id, team_id, kind, from_kind, from_id, to_kind, to_id, external_kind, event_id, amount, occurred_on',
+      )
       .eq('id', id)
       .maybeSingle();
     if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 });
@@ -282,13 +287,13 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
       return NextResponse.json({ error: 'Операция не найдена' }, { status: 404 });
     }
 
-    // Удаление транзакции откатывает её вклад в on_hand. Если запись пополняла
-    // кассу (например, депозит) — после удаления касса уменьшится; отказываем,
-    // если результат отрицательный. Удаление расхода всегда только увеличивает
-    // кассу, поэтому проверка тривиально не сработает.
+    const existingLegacyType = ledgerToLegacyType(existing);
+    const existingLegacyCategory = ledgerToLegacyCategory(existing);
+
+    // Удаление транзакции откатывает её вклад в on_hand.
     const today = todayIso();
     const oldDelta = onHandDelta(
-      { type: existing.type, amount: existing.amount, occurred_on: existing.occurred_on },
+      { type: existingLegacyType, amount: existing.amount, occurred_on: existing.occurred_on },
       today,
     );
     if (oldDelta > 0) {
@@ -308,7 +313,11 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
     if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
 
     // Если удалили аренду события — пересинхронизируем arena_paid_amount.
-    if (existing.type === 'expense' && existing.category === 'arena' && existing.event_id) {
+    if (
+      existingLegacyType === 'expense' &&
+      existingLegacyCategory === 'arena' &&
+      existing.event_id
+    ) {
       await syncArenaPaidAmount(sb, existing.event_id);
     }
 

@@ -32,14 +32,17 @@ export async function computePlayerFinance(
       .eq('events.team_id', teamId)
       .neq('events.status', 'cancelled')
       .lt('events.starts_at', nowIso),
+    // Оплаты игрока за события (transfer user→team). Сюда же попадают
+    // депозиты без привязки (event_id IS NULL) — это «оплата вперёд».
     sb
       .from('finance_transactions')
       .select(
         'id, amount, description, created_at, event_id, events(id, type, title, opponent_name, starts_at)',
       )
       .eq('team_id', teamId)
-      .eq('user_id', userId)
-      .eq('type', 'player_payment'),
+      .eq('from_kind', 'user')
+      .eq('from_id', userId)
+      .eq('to_kind', 'team'),
   ]);
 
   // Сдвоенные строки события, ключ — event_id. Начисления — из посещённых прошедших событий.

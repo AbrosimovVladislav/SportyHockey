@@ -48,12 +48,15 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
       return NextResponse.json({ error: 'Игрок не в команде' }, { status: 404 });
     }
 
+    // Удаляем существующую оплату игрока за это событие. В ledger это
+    // transfer user→team с этим event_id и from_id=user.
     const { error: delErr } = await sb
       .from('finance_transactions')
       .delete()
       .eq('event_id', event.id)
-      .eq('user_id', parsed.data.user_id)
-      .eq('type', 'player_payment');
+      .eq('from_kind', 'user')
+      .eq('to_kind', 'team')
+      .eq('from_id', parsed.data.user_id);
     if (delErr) {
       return NextResponse.json({ error: delErr.message }, { status: 500 });
     }
@@ -62,10 +65,13 @@ export async function POST(req: Request, { params }: Params): Promise<Response> 
       const { error: insErr } = await sb.from('finance_transactions').insert({
         team_id: event.team_id,
         event_id: event.id,
-        user_id: parsed.data.user_id,
-        type: 'player_payment',
         amount: parsed.data.amount,
         created_by: ctx.id,
+        kind: 'transfer',
+        from_kind: 'user',
+        from_id: parsed.data.user_id,
+        to_kind: 'team',
+        to_id: event.team_id,
       });
       if (insErr) {
         return NextResponse.json({ error: insErr.message }, { status: 500 });

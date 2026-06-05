@@ -135,17 +135,20 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       });
     }
 
+    // Оплаты по событию = transfer user→team с этим event_id. Игрок — это
+    // from_id (отправитель).
     const { data: payRows, error: payErr } = await sb
       .from('finance_transactions')
-      .select('user_id, amount')
+      .select('from_id, amount')
       .eq('event_id', event.id)
-      .eq('type', 'player_payment');
+      .eq('from_kind', 'user')
+      .eq('to_kind', 'team');
     if (payErr) {
       return NextResponse.json({ error: payErr.message }, { status: 500 });
     }
     const paidByUser = new Map<string, number>();
     for (const p of payRows ?? []) {
-      if (p.user_id) paidByUser.set(p.user_id, Number(p.amount));
+      if (p.from_id) paidByUser.set(p.from_id, Number(p.amount));
     }
 
     const { data: lineupRows, error: lineupErr } = await sb
@@ -376,11 +379,14 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       // Оплаты за отменённое событие превращаем в депозит игрока: снимаем привязку к
       // событию (event_id → null). Иначе деньги «зависают» — начисление по отменённому
       // событию не считается, и баланс уехал бы в переплату. Депозит виден на «Финансах».
+      // Оплаты игроков за отменённое событие отвязываем от события — они
+      // становятся депозитом без привязки. Это transfer user→team.
       const { error: depErr } = await sb
         .from('finance_transactions')
         .update({ event_id: null, description: 'Депозит с отменённого события' })
         .eq('event_id', id)
-        .eq('type', 'player_payment');
+        .eq('from_kind', 'user')
+        .eq('to_kind', 'team');
       if (depErr) {
         return NextResponse.json({ error: depErr.message }, { status: 500 });
       }

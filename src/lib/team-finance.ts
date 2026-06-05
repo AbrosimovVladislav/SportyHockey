@@ -11,20 +11,19 @@ import type {
 
 type SB = SupabaseClient<Database>;
 
-// Разбивка баланса команды для карточки на `/money` (v0.5, итерация 58 — ledger).
+// Разбивка баланса команды для карточки на `/money` (v0.5, итерация 60 — полиморфный ledger).
 // Все движения денег — это transfer-транзакции с заполненными from/to сторонами
-// (`from_kind`, `to_kind` ∈ {user, team, venue, external}). adjustment — без
-// движения денег, односторонне начисляет/списывает на счёт игрока.
+// (`from_kind`+`from_id` / `to_kind`+`to_id`). adjustment — без движения денег,
+// одностороннее начисление на счёт игрока (только to_kind='user' + to_id).
 //
-// Шесть независимых срезов в `details` + три агрегата в `summary`:
-//   on_hand              = Σ(to_kind='team') − Σ(from_kind='team')
-//   players_debts        = Σ max(0, charged − paid) по игрокам
-//   players_overpayments = Σ max(0, paid − charged) по игрокам
-//   arena_debts          = Σ max(0, cost_v − paid_v) по площадкам v
-//   arena_overpayments   = Σ max(0, paid_v − cost_v) по площадкам v
-//   external_*           = Σ max(0, ±) по external_label
+// Балансы любого счёта универсально считаются как `Σ(to=X) − Σ(from=X)`:
+//   on_hand           = Σ(to_kind='team') − Σ(from_kind='team')
+//   player(U) charged = Σ(to_kind='user', to_id=U)      // refund + adjustment + явка
+//   player(U) paid    = Σ(from_kind='user', from_id=U)  // взносы
+//   venue(V) paid     = Σ(to_kind='venue', to_id=V) − Σ(from_kind='venue', from_id=V)
+//   external_kind(K)  = Σ(to_kind='external', external_kind=K) − Σ(from_kind='external', external_kind=K)
 //
-// Per-venue, а не per-event: депозит / переплата на одном событии гасит долг
+// Per-venue (а не per-event): депозит / переплата на одном событии гасит долг
 // на другом за той же площадкой. Командный total от этого не зависит
 // (Σ paid − Σ cost одинаков при любой группировке).
 //
@@ -33,13 +32,10 @@ type SB = SupabaseClient<Database>;
 //   owed_to_us = players_debts + arena_overpayments + external_receivables
 //   owed_by_us = players_overpayments + arena_debts + external_overpayments
 //
-// charged игрока = ∑ cost_per_player по showed_up + ∑ refund (transfer team→user).
-// paid игрока    = ∑ player_payment (transfer user→team) + ∑ adjustment(to_user_id=U).
-//
-// `asOf` (YYYY-MM-DD) — день, на конец которого считаем срез. По умолчанию —
-// сегодня. Для финансового среза `/money/report` сюда передаётся последний
-// день выбранного месяца, и все плитки + расчётный баланс пересчитываются
-// «как будто этот день закончился».
+// «Начисление игроку» собирается из двух источников:
+//   • явка с cost_per_player — приходит из `event_attendances` (это не ledger);
+//   • refund/adjustment — это transfer team→user / adjustment to_user.
+// Оба суммируются в `charged`. Оплаты (paid) — только transfer user→team.
 type AttendanceRow = {
   user_id: string;
   events: { cost_per_player: number | null } | null;
@@ -50,12 +46,10 @@ type TxRow = {
   occurred_on: string;
   kind: string;
   from_kind: string | null;
+  from_id: string | null;
   to_kind: string | null;
-  from_user_id: string | null;
-  to_user_id: string | null;
-  from_venue_id: string | null;
-  to_venue_id: string | null;
-  external_label: string | null;
+  to_id: string | null;
+  external_kind: string | null;
 };
 
 type EventArenaRow = {
@@ -86,7 +80,7 @@ export async function computeTeamBalance(
     sb
       .from('finance_transactions')
       .select(
-        'amount, occurred_on, kind, from_kind, to_kind, from_user_id, to_user_id, from_venue_id, to_venue_id, external_label',
+        'amount, occurred_on, kind, from_kind, from_id, to_kind, to_id, external_kind',
       )
       .eq('team_id', teamId)
       .lte('occurred_on', effectiveAsOf),
@@ -111,13 +105,14 @@ export async function computeTeamBalance(
   }
 
   // 2) Прогон транзакций. SQL уже отфильтровал occurred_on ≤ asOf.
-  const paid = new Map<string, number>();
-  const paidByVenue = new Map<string, number>(); // venue_id → Σ amount транзакций to_venue
-  // external по label считается симметрично: paid — мы отдали наружу, received —
-  // нам вернули. Из положительной дельты следует переплата (они должны нам),
-  // из отрицательной — задолженность (мы должны им).
-  const externalPaid = new Map<string, number>(); // label → Σ amount to_external
-  const externalReceived = new Map<string, number>(); // label → Σ amount from_external
+  // Балансы каждого «счёта» сводим как Σ to − Σ from. Касса (team) считается так же.
+  const paid = new Map<string, number>(); // user_id → Σ платежей user→team
+  // venue: net = Σ to=venue − Σ from=venue. Положительный → команда «дала» больше
+  // площадке, чем «получила» обратно (= depositon арендой); сравним с cost_v.
+  const netByVenue = new Map<string, number>();
+  // external (по external_kind): net = Σ to=external − Σ from=external.
+  // Положительный → мы отдали больше, чем получили (значит они нам должны).
+  const netByExternal = new Map<string, number>();
   let onHand = 0;
 
   for (const tx of (txRes.data ?? []) as TxRow[]) {
@@ -130,50 +125,44 @@ export async function computeTeamBalance(
       if (tx.from_kind === 'team') onHand -= amt;
 
       // Балансы игроков.
-      if (tx.from_kind === 'user' && tx.from_user_id) {
-        paid.set(tx.from_user_id, (paid.get(tx.from_user_id) ?? 0) + amt);
+      if (tx.from_kind === 'user' && tx.from_id) {
+        paid.set(tx.from_id, (paid.get(tx.from_id) ?? 0) + amt);
       }
-      if (tx.to_kind === 'user' && tx.to_user_id) {
-        charged.set(tx.to_user_id, (charged.get(tx.to_user_id) ?? 0) + amt);
+      if (tx.to_kind === 'user' && tx.to_id) {
+        charged.set(tx.to_id, (charged.get(tx.to_id) ?? 0) + amt);
       }
 
       // Балансы площадок.
-      if (tx.to_kind === 'venue' && tx.to_venue_id) {
-        paidByVenue.set(
-          tx.to_venue_id,
-          (paidByVenue.get(tx.to_venue_id) ?? 0) + amt,
-        );
+      if (tx.to_kind === 'venue' && tx.to_id) {
+        netByVenue.set(tx.to_id, (netByVenue.get(tx.to_id) ?? 0) + amt);
       }
-      if (tx.from_kind === 'venue' && tx.from_venue_id) {
-        paidByVenue.set(
-          tx.from_venue_id,
-          (paidByVenue.get(tx.from_venue_id) ?? 0) - amt,
-        );
+      if (tx.from_kind === 'venue' && tx.from_id) {
+        netByVenue.set(tx.from_id, (netByVenue.get(tx.from_id) ?? 0) - amt);
       }
 
-      // Балансы external (по label).
-      if (tx.to_kind === 'external' && tx.external_label) {
-        externalPaid.set(
-          tx.external_label,
-          (externalPaid.get(tx.external_label) ?? 0) + amt,
+      // External-балансы (по external_kind).
+      if (tx.to_kind === 'external' && tx.external_kind) {
+        netByExternal.set(
+          tx.external_kind,
+          (netByExternal.get(tx.external_kind) ?? 0) + amt,
         );
       }
-      if (tx.from_kind === 'external' && tx.external_label) {
-        externalReceived.set(
-          tx.external_label,
-          (externalReceived.get(tx.external_label) ?? 0) + amt,
+      if (tx.from_kind === 'external' && tx.external_kind) {
+        netByExternal.set(
+          tx.external_kind,
+          (netByExternal.get(tx.external_kind) ?? 0) - amt,
         );
       }
     } else if (tx.kind === 'adjustment') {
       // adjustment — одностороннее начисление в пользу игрока. Касса не двигается.
-      if (tx.to_user_id) {
-        paid.set(tx.to_user_id, (paid.get(tx.to_user_id) ?? 0) + amt);
+      if (tx.to_id) {
+        paid.set(tx.to_id, (paid.get(tx.to_id) ?? 0) + amt);
       }
     }
   }
 
-  // 3) Долги и переплаты по площадкам. Стоимость аренды считаем по событиям
-  // на дату asOf — все не отменённые события с venue_id, чей starts_at ≤ asOf.
+  // 3) Долги и переплаты по площадкам. Стоимость аренды — по событиям с
+  // venue_id, чей starts_at ≤ asOf.
   const costByVenue = new Map<string, number>();
   for (const e of (evRes.data ?? []) as EventArenaRow[]) {
     if (!e.venue_id) continue;
@@ -183,30 +172,23 @@ export async function computeTeamBalance(
   }
   let arenaDebts = 0;
   let arenaOverpayments = 0;
-  const venueIds = new Set<string>([...costByVenue.keys(), ...paidByVenue.keys()]);
+  const venueIds = new Set<string>([...costByVenue.keys(), ...netByVenue.keys()]);
   for (const vid of venueIds) {
     const cost = costByVenue.get(vid) ?? 0;
-    const paidAmt = paidByVenue.get(vid) ?? 0;
-    const diff = paidAmt - cost;
+    const paidNet = netByVenue.get(vid) ?? 0;
+    const diff = paidNet - cost;
     if (diff < 0) arenaDebts += -diff;
     else if (diff > 0) arenaOverpayments += diff;
   }
 
-  // 4) External: сводим paid/received per label, дельта определяет сторону.
-  //   paid > received → external должен нам (external_receivables)
-  //   received > paid → мы должны external (external_overpayments)
+  // 4) External:
+  //   net > 0 (мы отдали больше, чем получили) → external нам должен  → external_receivables
+  //   net < 0 (нам пришло больше) → мы должны external               → external_overpayments
   let externalOverpayments = 0;
   let externalReceivables = 0;
-  const labels = new Set<string>([
-    ...externalPaid.keys(),
-    ...externalReceived.keys(),
-  ]);
-  for (const label of labels) {
-    const p = externalPaid.get(label) ?? 0;
-    const r = externalReceived.get(label) ?? 0;
-    const diff = p - r;
-    if (diff > 0) externalReceivables += diff;
-    else if (diff < 0) externalOverpayments += -diff;
+  for (const net of netByExternal.values()) {
+    if (net > 0) externalReceivables += net;
+    else if (net < 0) externalOverpayments += -net;
   }
 
   // 5) Балансы игроков и агрегаты долгов/переплат.

@@ -60,13 +60,14 @@ export async function computePlayerOverview(
       .eq('events.team_id', teamId)
       .neq('events.status', 'cancelled')
       .lt('events.starts_at', nowIso),
-    // Оплаты игрока.
+    // Оплаты игрока в кассу команды (transfer user→team).
     sb
       .from('finance_transactions')
       .select('amount')
       .eq('team_id', teamId)
-      .eq('user_id', userId)
-      .eq('type', 'player_payment'),
+      .eq('from_kind', 'user')
+      .eq('from_id', userId)
+      .eq('to_kind', 'team'),
     // Голы игрока в событиях команды (по типу).
     sb
       .from('result_points')

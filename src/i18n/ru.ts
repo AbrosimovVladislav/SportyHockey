@@ -842,7 +842,7 @@ export const ru = {
   'money.balance.onHand': 'На руках',
   'money.balance.owedToUs': 'Нам должны',
   'money.balance.owedByUs': 'Мы должны',
-  'money.balance.details.weOweArenas': 'Площадке',
+  'money.balance.details.weOweArenas': 'Площадкам',
   'money.balance.details.weOwePlayers': 'Игрокам',
   'money.balance.details.weOweOther': 'Прочее',
   'money.balance.details.theyOwePlayers': 'Игроки',

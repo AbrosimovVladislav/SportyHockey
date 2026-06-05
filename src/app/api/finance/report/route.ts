@@ -5,7 +5,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { computeTeamBalance } from '@/lib/team-finance';
 import {
   FINANCE_SELECT,
-  mapFinanceTransaction,
+  mapFinanceTransactionsBatch,
   type RawFinanceRow,
 } from '@/lib/finance-mapper';
 import type {
@@ -62,7 +62,9 @@ export async function GET(req: Request): Promise<Response> {
       // Все транзакции до конца периода — нужны для нарастающего on_hand на каждый день.
       sb
         .from('finance_transactions')
-        .select('amount, occurred_on, type, category, event_id')
+        .select(
+          'amount, occurred_on, kind, from_kind, from_id, to_kind, to_id, external_kind, event_id',
+        )
         .eq('team_id', teamId)
         .lte('occurred_on', to),
       // События периода — границы по starts_at (UTC).
@@ -99,8 +101,12 @@ export async function GET(req: Request): Promise<Response> {
     type TxRow = {
       amount: number;
       occurred_on: string;
-      type: string;
-      category: string | null;
+      kind: string;
+      from_kind: string | null;
+      from_id: string | null;
+      to_kind: string | null;
+      to_id: string | null;
+      external_kind: string | null;
       event_id: string | null;
     };
     const txAll = (txAllRes.data ?? []) as TxRow[];
@@ -118,7 +124,7 @@ export async function GET(req: Request): Promise<Response> {
       const amt = Number(tx.amount);
       if (!Number.isFinite(amt)) continue;
       const d = tx.occurred_on;
-      const delta = onHandDelta(tx.type, amt);
+      const delta = onHandDeltaFromLedger(tx, amt);
       if (delta === 0) continue;
       if (d < from) {
         baseOnHand += delta;
@@ -136,27 +142,36 @@ export async function GET(req: Request): Promise<Response> {
     }
 
     // 2) Cash flow за период. Тут смотрим только транзакции с occurred_on ∈ [from, to].
+    // Раскладка по направлениям ledger:
+    //   user→team           → income (взнос)
+    //   team→venue          → arenas
+    //   team→external|user  → expenses (инвентарь/прочее или refund)
     const cash: FinanceReportCashFlow = { income: 0, arenas: 0, expenses: 0, net: 0 };
     for (const tx of txAll) {
       if (tx.occurred_on < from || tx.occurred_on > to) continue;
       const amt = Number(tx.amount);
       if (!Number.isFinite(amt)) continue;
-      if (tx.type === 'player_payment') {
+      if (tx.kind !== 'transfer') continue;
+      if (tx.from_kind === 'user' && tx.to_kind === 'team') {
         cash.income += amt;
-      } else if (tx.type === 'expense') {
-        if (tx.category === 'arena') cash.arenas += amt;
-        else cash.expenses += amt;
-      } else if (tx.type === 'refund') {
+      } else if (tx.from_kind === 'team' && tx.to_kind === 'venue') {
+        cash.arenas += amt;
+      } else if (
+        tx.from_kind === 'team' &&
+        (tx.to_kind === 'external' || tx.to_kind === 'user')
+      ) {
         cash.expenses += amt;
       }
     }
     cash.net = cash.income - cash.arenas - cash.expenses;
 
-    // 3) События периода. «Собрано» — ∑ player_payment с этим event_id за всё
-    // время; берём из txAll (там лежат все транзакции до `to`).
+    // 3) События периода. «Собрано» — ∑ player_payment (user→team) с этим
+    // event_id за всё время; берём из txAll (там лежат все транзакции до `to`).
     const collectedByEvent = new Map<string, number>();
     for (const tx of txAll) {
-      if (tx.type !== 'player_payment' || !tx.event_id) continue;
+      if (tx.kind !== 'transfer') continue;
+      if (tx.from_kind !== 'user' || tx.to_kind !== 'team') continue;
+      if (!tx.event_id) continue;
       const amt = Number(tx.amount);
       if (!Number.isFinite(amt)) continue;
       collectedByEvent.set(tx.event_id, (collectedByEvent.get(tx.event_id) ?? 0) + amt);
@@ -189,8 +204,9 @@ export async function GET(req: Request): Promise<Response> {
     });
 
     // 4) Последние операции.
-    const recent_operations = ((recentRes.data ?? []) as unknown as RawFinanceRow[]).map(
-      mapFinanceTransaction,
+    const recent_operations = await mapFinanceTransactionsBatch(
+      sb,
+      (recentRes.data ?? []) as unknown as RawFinanceRow[],
     );
 
     const body: FinanceReportResponse = {
@@ -213,13 +229,17 @@ export async function GET(req: Request): Promise<Response> {
   }
 }
 
-// Дельта on_hand от одной транзакции для графика среза. На срезе будущие
-// расходы и возвраты тоже учитываются — иначе картинка перестаёт быть
-// прогнозной. В runtime-API (`/api/finance/balance`) и в `on-hand-guard`
+// Дельта on_hand от одной ledger-транзакции для графика среза. На срезе
+// будущие расходы и возвраты тоже учитываются — иначе картинка перестаёт
+// быть прогнозной. В runtime-API (`/api/finance/balance`) и в `on-hand-guard`
 // логика другая: там будущие даты в кассу не входят.
-function onHandDelta(type: string, amount: number): number {
-  if (type === 'player_payment') return amount;
-  if (type === 'expense' || type === 'refund') return -amount;
+function onHandDeltaFromLedger(
+  tx: { kind: string; from_kind: string | null; to_kind: string | null },
+  amount: number,
+): number {
+  if (tx.kind !== 'transfer') return 0;
+  if (tx.to_kind === 'team') return amount;
+  if (tx.from_kind === 'team') return -amount;
   return 0;
 }
 

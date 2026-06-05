@@ -108,19 +108,27 @@ async function buildMonthly(
   const monthStart = `${year}-${mm}-01`;
   const { data, error } = await sb
     .from('finance_transactions')
-    .select('amount, type')
+    .select('amount, kind, from_kind, to_kind')
     .eq('team_id', teamId)
     .gte('occurred_on', monthStart)
     .lte('occurred_on', lastDayIso);
   if (error) throw new Error(error.message);
 
+  // income = поступления в кассу команды (user→team).
+  // expenses = списания из кассы (team→venue/external/user) — без adjustment.
   let income = 0;
   let expenses = 0;
-  for (const tx of (data ?? []) as Array<{ amount: number; type: string }>) {
+  for (const tx of (data ?? []) as Array<{
+    amount: number;
+    kind: string;
+    from_kind: string | null;
+    to_kind: string | null;
+  }>) {
     const amt = Number(tx.amount);
     if (!Number.isFinite(amt)) continue;
-    if (tx.type === 'player_payment') income += amt;
-    else if (tx.type === 'expense' || tx.type === 'refund') expenses += amt;
+    if (tx.kind !== 'transfer') continue;
+    if (tx.to_kind === 'team') income += amt;
+    else if (tx.from_kind === 'team') expenses += amt;
   }
 
   return {
@@ -210,24 +218,28 @@ async function buildForecast(
   const threeMonthsAgo = addMonthsIso(todayIso, -3);
   const { data: recentTx, error: rtErr } = await sb
     .from('finance_transactions')
-    .select('amount, type, category, occurred_on')
+    .select('amount, kind, from_kind, to_kind, occurred_on')
     .eq('team_id', teamId)
     .gte('occurred_on', threeMonthsAgo)
     .lt('occurred_on', todayIso);
   if (rtErr) throw new Error(rtErr.message);
 
+  // «Прочие» расходы = из кассы, но не на аренду (тех уже учли через
+  // expectedArenas по будущим событиям). То есть team→external (инвентарь/
+  // прочее) и team→user (refund).
   let otherTotal3m = 0;
   for (const tx of (recentTx ?? []) as Array<{
     amount: number;
-    type: string;
-    category: string | null;
+    kind: string;
+    from_kind: string | null;
+    to_kind: string | null;
     occurred_on: string;
   }>) {
     const amt = Number(tx.amount);
     if (!Number.isFinite(amt)) continue;
-    // Аренда уже учтена через expectedArenas (по будущим событиям).
-    if (tx.type === 'expense' && tx.category !== 'arena') otherTotal3m += amt;
-    else if (tx.type === 'refund') otherTotal3m += amt;
+    if (tx.kind !== 'transfer') continue;
+    if (tx.from_kind !== 'team') continue;
+    if (tx.to_kind === 'external' || tx.to_kind === 'user') otherTotal3m += amt;
   }
   // На 3 месяца вперёд — оставляем как есть (среднее за 3 завершённых × 3 / 3 = за 3 завершённых).
   const expectedOtherExpenses = otherTotal3m;

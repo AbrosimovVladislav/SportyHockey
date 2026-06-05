@@ -15,8 +15,7 @@ export async function syncArenaPaidAmount(sb: SB, eventId: string | null | undef
     .from('finance_transactions')
     .select('amount')
     .eq('event_id', eventId)
-    .eq('type', 'expense')
-    .eq('category', 'arena');
+    .eq('to_kind', 'venue');
   if (error) throw new Error(error.message);
   const total = (data ?? []).reduce((acc, r) => acc + Number(r.amount), 0);
   const { error: updErr } = await sb

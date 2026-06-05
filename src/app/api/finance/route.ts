@@ -5,11 +5,12 @@ import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
 import {
   FINANCE_SELECT,
-  mapFinanceTransaction,
+  mapFinanceTransactionsBatch,
   type RawFinanceRow,
 } from '@/lib/finance-mapper';
 import { syncArenaPaidAmount } from '@/lib/sync-arena-paid';
 import { legacyToLedger } from '@/lib/finance-ledger';
+import { applyLegacyTypeFilter, applyLegacyUserFilter } from '@/lib/finance-query';
 import {
   currentOnHand,
   insufficientOnHandMessage,
@@ -27,6 +28,8 @@ export const dynamic = 'force-dynamic';
 
 // GET /api/finance — лента транзакций активной команды с фильтрами и
 // пагинацией. На хабе используется без фильтров с limit=10 — «Последние операции».
+// Фильтры по legacy-полям (type/category/user_id) транслируются в полиморфные
+// критерии через `applyLegacyTypeFilter` / `applyLegacyUserFilter`.
 export async function GET(req: Request): Promise<Response> {
   try {
     const user = await requireUser(req);
@@ -54,9 +57,8 @@ export async function GET(req: Request): Promise<Response> {
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (type) q = q.eq('type', type);
-    if (category) q = q.eq('category', category);
-    if (userId) q = q.eq('user_id', userId);
+    q = applyLegacyTypeFilter(q, type, category);
+    q = applyLegacyUserFilter(q, userId);
     if (eventId) q = q.eq('event_id', eventId);
     if (from) q = q.gte('occurred_on', from);
     if (to) q = q.lte('occurred_on', to);
@@ -65,9 +67,8 @@ export async function GET(req: Request): Promise<Response> {
     const { data, error } = await q;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // RawFinanceRow описывает форму, которую возвращает наш SELECT с JOIN-алиасами;
-    // postgrest-js типизирует это как `unknown`-подобную форму, приводим один раз.
-    const items = ((data ?? []) as unknown as RawFinanceRow[]).map(mapFinanceTransaction);
+    const rows = (data ?? []) as unknown as RawFinanceRow[];
+    const items = await mapFinanceTransactionsBatch(sb, rows);
     const next_cursor = items.length === limit ? items[items.length - 1].created_at : null;
     const body: FinanceListResponse = { items, next_cursor };
     return NextResponse.json(body);
@@ -79,10 +80,10 @@ export async function GET(req: Request): Promise<Response> {
 // POST /api/finance — создание транзакции. Доступно только организатору
 // активной команды. Тип определяет, какие поля обязательны.
 //
-// Итерация 58: тело принимает старый формат (type/category/user_id/event_id),
-// плюс новое поле venue_id — обязательное для аренды без события (депозит
-// площадке). На сервере адаптер раскладывает это в ledger-поля
-// (kind/from_kind/to_kind/...) и пишет их вместе со старыми (зеркалом).
+// Тело принимает старый формат (type/category/user_id/event_id), плюс поле
+// venue_id — обязательное для аренды без события (депозит площадке). На
+// сервере адаптер раскладывает это в ledger-поля (kind/from_kind/from_id/
+// to_kind/to_id/external_kind).
 const BodySchema = z
   .object({
     type: z.enum(['player_payment', 'expense', 'refund', 'adjustment']),
@@ -210,6 +211,7 @@ export async function POST(req: Request): Promise<Response> {
         event_id: d.event_id ?? null,
         venue_id: d.venue_id ?? null,
       },
+      teamId,
       eventVenueId,
     );
     if (!ledger.ok) {
@@ -269,21 +271,16 @@ export async function POST(req: Request): Promise<Response> {
 
     const insert: TablesInsert<'finance_transactions'> = {
       team_id: teamId,
-      type: d.type,
       amount: d.amount,
-      category: d.category ?? null,
-      user_id: d.user_id ?? null,
       event_id: d.event_id ?? null,
       description: d.description ?? null,
       created_by: user.id,
       kind: ledger.fields.kind,
       from_kind: ledger.fields.from_kind,
+      from_id: ledger.fields.from_id,
       to_kind: ledger.fields.to_kind,
-      from_user_id: ledger.fields.from_user_id,
-      to_user_id: ledger.fields.to_user_id,
-      from_venue_id: ledger.fields.from_venue_id,
-      to_venue_id: ledger.fields.to_venue_id,
-      external_label: ledger.fields.external_label,
+      to_id: ledger.fields.to_id,
+      external_kind: ledger.fields.external_kind,
     };
     if (d.occurred_on) insert.occurred_on = d.occurred_on;
 
@@ -299,9 +296,10 @@ export async function POST(req: Request): Promise<Response> {
       await syncArenaPaidAmount(sb, d.event_id);
     }
 
-    const body: CreateFinanceResponse = {
-      transaction: mapFinanceTransaction(created as unknown as RawFinanceRow),
-    };
+    const [transaction] = await mapFinanceTransactionsBatch(sb, [
+      created as unknown as RawFinanceRow,
+    ]);
+    const body: CreateFinanceResponse = { transaction };
     return NextResponse.json(body, { status: 201 });
   } catch (e) {
     return handleRouteError(e);
