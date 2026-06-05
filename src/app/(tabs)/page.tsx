@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { HomeHeader } from '@/components/home/home-header';
 import { HomeQuickActions } from '@/components/home/home-quick-actions';
+import { KeyStatsCard } from '@/components/home/key-stats-card';
 import { NextEventCard } from '@/components/home/next-event-card';
 import { NextEventEmpty } from '@/components/home/next-event-empty';
 import { NextEventSkeleton } from '@/components/home/next-event-skeleton';
@@ -98,6 +99,8 @@ export default function HomePage() {
         )}
 
         {isOrganizer ? <HomeQuickActions /> : null}
+
+        <KeyStatsCard />
       </div>
     </div>
   );

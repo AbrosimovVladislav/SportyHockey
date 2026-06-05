@@ -1138,3 +1138,50 @@ export type HomeActionsResponse = {
   pending_requests_count: number;
 };
 
+// Блок «Ключевая статистика» на главной (v0.6, итерация 64). Один эндпоинт
+// отдаёт три набора данных под три таба:
+//   • top_players  — топ-5 по очкам (Г + П) только в играх;
+//   • last_game    — счёт + ассисты + минуты удаления последней игры;
+//   • team_summary — матчи / тренировки / победы / шайбы / пропущено + баланс.
+export type DashboardTopPlayer = {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  photo_url: string | null;
+  jersey_number: number | null;
+  goals: number;
+  assists: number;
+  points: number;
+};
+
+export type DashboardLastGame = {
+  event_id: string;
+  played_on: string;
+  opponent_name: string | null;
+  our_name: string;
+  our_logo_url: string | null;
+  our_score: number;
+  opp_score: number;
+  our_assists: number;
+  opp_assists: number;
+  our_penalty_minutes: number;
+  opp_penalty_minutes: number;
+};
+
+export type DashboardTeamSummary = {
+  games_played: number;
+  trainings_played: number;
+  wins: number;
+  goals_for: number;
+  goals_against: number;
+  // Расчётный баланс команды = `computeTeamBalance.total`.
+  balance: number;
+};
+
+export type DashboardStatsResponse = {
+  top_players: DashboardTopPlayer[];
+  last_game: DashboardLastGame | null;
+  team_summary: DashboardTeamSummary;
+};
+

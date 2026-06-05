@@ -36,6 +36,32 @@ export const ru = {
   'home.actions.organizer.recordResult': 'Записать результат',
   'home.actions.organizer.requests': 'Заявки',
 
+  // Блок «Ключевая статистика» (v0.6, итерация 64). Три таба:
+  //   • «Топ 5 игроков» — очки (Г+П) только в играх;
+  //   • «Последняя игра» — счёт + ассисты + мин. удалений;
+  //   • «Команда»       — матчей/тренировок/побед/шайб/пропущено/баланс.
+  // Метрик, которых нет в модели (броски/вбрасывания/сэйвы/силовые), не
+  // показываем — юзер явно сказал не выдумывать.
+  'home.stats.title': 'Ключевая статистика',
+  'home.stats.tabs.top': 'Топ 5 игроков',
+  'home.stats.tabs.lastGame': 'Последняя игра',
+  'home.stats.tabs.team': 'Команда',
+  'home.stats.top.header.player': 'Игрок',
+  'home.stats.top.header.goals': 'Г',
+  'home.stats.top.header.assists': 'П',
+  'home.stats.top.header.points': 'Очки',
+  'home.stats.top.empty.title': 'Игр ещё не было',
+  'home.stats.top.empty.subtitle': 'Тут появится топ-5 по очкам после первой игры с записанным счётом',
+  'home.stats.lastGame.assists': 'Голевые передачи',
+  'home.stats.lastGame.penalties': 'Удаления (мин)',
+  'home.stats.lastGame.empty': 'Игр ещё не было',
+  'home.stats.team.games': 'Матчей',
+  'home.stats.team.trainings': 'Тренировок',
+  'home.stats.team.wins': 'Побед',
+  'home.stats.team.goalsFor': 'Шайб',
+  'home.stats.team.goalsAgainst': 'Пропущено',
+  'home.stats.team.balance': 'Баланс',
+
   // Раздел «Команда» — главная (хаб)
   'team.title': 'Команда',
   'team.stat.players': 'игроков',
