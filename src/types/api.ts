@@ -1090,3 +1090,40 @@ export type FinanceAnalyticsResponse = {
   forecast: FinanceForecast;
 };
 
+// Главная страница (`/`, v0.6, итерация 62). Возвращает ближайшее предстоящее
+// событие активной команды + краткие сведения о команде для шапки.
+// `event === null` означает «нет ближайших событий» — фронт показывает empty.
+// `team === null` — пользователь без команды (фронт показывает onboarding-CTA).
+export type HomeNextEventVenue = {
+  id: string;
+  name: string;
+};
+
+export type HomeNextEvent = {
+  id: string;
+  type: EventType;
+  title: string | null;
+  opponent_name: string | null;
+  starts_at: string;
+  venue: HomeNextEventVenue | null;
+  cost_per_player: number | null;
+  // Сколько уже сказали «иду» (event_attendances.vote='going').
+  going_count: number;
+  // Размер команды (team_memberships.count).
+  team_size: number;
+  // Сколько ещё может проголосовать «иду» = max(0, team_size - going_count).
+  // На скрине дизайна это поле подписано «X мест».
+  seats_left: number;
+};
+
+export type HomeNextEventTeam = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+};
+
+export type HomeNextEventResponse = {
+  team: HomeNextEventTeam | null;
+  event: HomeNextEvent | null;
+};
+

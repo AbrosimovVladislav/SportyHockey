@@ -191,10 +191,16 @@ export default function MoneyPage() {
                         label: t('money.balance.details.theyOwePlayers'),
                         value: balanceQ.data.details.owed_to_us.players_debts,
                       },
-                      {
-                        label: t('money.balance.details.theyOweOther'),
-                        value: balanceQ.data.details.owed_to_us.external_receivables,
-                      },
+                      // «Прочее» появляется только когда есть ненулевое значение
+                      // (предоплаты поставщикам пока не моделируются — обычно 0).
+                      ...(balanceQ.data.details.owed_to_us.external_receivables > 0
+                        ? [
+                            {
+                              label: t('money.balance.details.theyOweOther'),
+                              value: balanceQ.data.details.owed_to_us.external_receivables,
+                            },
+                          ]
+                        : []),
                     ]}
                   />
                   <BalanceBars
@@ -209,10 +215,14 @@ export default function MoneyPage() {
                         label: t('money.balance.details.weOwePlayers'),
                         value: balanceQ.data.details.owed_by_us.players_overpayments,
                       },
-                      {
-                        label: t('money.balance.details.weOweOther'),
-                        value: balanceQ.data.details.owed_by_us.external_overpayments,
-                      },
+                      ...(balanceQ.data.details.owed_by_us.external_overpayments > 0
+                        ? [
+                            {
+                              label: t('money.balance.details.weOweOther'),
+                              value: balanceQ.data.details.owed_by_us.external_overpayments,
+                            },
+                          ]
+                        : []),
                     ]}
                   />
                 </div>

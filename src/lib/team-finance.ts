@@ -21,16 +21,22 @@ type SB = SupabaseClient<Database>;
 //   player(U) charged = Σ(to_kind='user', to_id=U)      // refund + adjustment + явка
 //   player(U) paid    = Σ(from_kind='user', from_id=U)  // взносы
 //   venue(V) paid     = Σ(to_kind='venue', to_id=V) − Σ(from_kind='venue', from_id=V)
-//   external_kind(K)  = Σ(to_kind='external', external_kind=K) − Σ(from_kind='external', external_kind=K)
 //
 // Per-venue (а не per-event): депозит / переплата на одном событии гасит долг
 // на другом за той же площадкой. Командный total от этого не зависит
 // (Σ paid − Σ cost одинаков при любой группировке).
 //
+// External — безвозвратный кэш-расход (купили клюшки/шайбы — товар получили,
+// никто никому не должен). Деньги уходят из `on_hand`, но долгов/переплат не
+// порождают: `external_receivables` и `external_overpayments` всегда 0, пока
+// мы не заведём отдельную таблицу `counterparties` с учётом предоплат/возвратов
+// поставщикам. Категория «Прочее» в детализации в этом состоянии — заглушка,
+// которая никогда не показывается (фильтруется в `page.tsx`).
+//
 // Расчётный баланс:
 //   total = on_hand + owed_to_us − owed_by_us
-//   owed_to_us = players_debts + arena_overpayments + external_receivables
-//   owed_by_us = players_overpayments + arena_debts + external_overpayments
+//   owed_to_us = players_debts + arena_overpayments  ( + external_receivables = 0 )
+//   owed_by_us = players_overpayments + arena_debts  ( + external_overpayments = 0 )
 //
 // «Начисление игроку» собирается из двух источников:
 //   • явка с cost_per_player — приходит из `event_attendances` (это не ledger);
@@ -110,9 +116,6 @@ export async function computeTeamBalance(
   // venue: net = Σ to=venue − Σ from=venue. Положительный → команда «дала» больше
   // площадке, чем «получила» обратно (= depositon арендой); сравним с cost_v.
   const netByVenue = new Map<string, number>();
-  // external (по external_kind): net = Σ to=external − Σ from=external.
-  // Положительный → мы отдали больше, чем получили (значит они нам должны).
-  const netByExternal = new Map<string, number>();
   let onHand = 0;
 
   for (const tx of (txRes.data ?? []) as TxRow[]) {
@@ -121,6 +124,8 @@ export async function computeTeamBalance(
 
     if (tx.kind === 'transfer') {
       // on_hand: касса меняется только когда team — одна из сторон.
+      // Расход в `external` (купили инвентарь) уменьшает кассу здесь же
+      // и больше нигде не учитывается — это безвозвратный кэш-расход.
       if (tx.to_kind === 'team') onHand += amt;
       if (tx.from_kind === 'team') onHand -= amt;
 
@@ -139,20 +144,8 @@ export async function computeTeamBalance(
       if (tx.from_kind === 'venue' && tx.from_id) {
         netByVenue.set(tx.from_id, (netByVenue.get(tx.from_id) ?? 0) - amt);
       }
-
-      // External-балансы (по external_kind).
-      if (tx.to_kind === 'external' && tx.external_kind) {
-        netByExternal.set(
-          tx.external_kind,
-          (netByExternal.get(tx.external_kind) ?? 0) + amt,
-        );
-      }
-      if (tx.from_kind === 'external' && tx.external_kind) {
-        netByExternal.set(
-          tx.external_kind,
-          (netByExternal.get(tx.external_kind) ?? 0) - amt,
-        );
-      }
+      // external: только на `on_hand` (выше). В долги/переплаты не идёт,
+      // пока не появятся `counterparties` с учётом предоплат/возвратов.
     } else if (tx.kind === 'adjustment') {
       // adjustment — одностороннее начисление в пользу игрока. Касса не двигается.
       if (tx.to_id) {
@@ -181,15 +174,11 @@ export async function computeTeamBalance(
     else if (diff > 0) arenaOverpayments += diff;
   }
 
-  // 4) External:
-  //   net > 0 (мы отдали больше, чем получили) → external нам должен  → external_receivables
-  //   net < 0 (нам пришло больше) → мы должны external               → external_overpayments
-  let externalOverpayments = 0;
-  let externalReceivables = 0;
-  for (const net of netByExternal.values()) {
-    if (net > 0) externalReceivables += net;
-    else if (net < 0) externalOverpayments += -net;
-  }
+  // 4) External: «безвозвратный» расход. См. шапку файла — деньги ушли в `on_hand`,
+  // долгов/переплат не порождают. Поля оставлены в DTO ради совместимости со
+  // схемой ответа (потребители могут к ним обращаться), всегда 0.
+  const externalOverpayments = 0;
+  const externalReceivables = 0;
 
   // 5) Балансы игроков и агрегаты долгов/переплат.
   const userIds = new Set<string>([...charged.keys(), ...paid.keys()]);

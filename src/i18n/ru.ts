@@ -10,6 +10,22 @@ export const ru = {
   'home.title': 'Главная',
   'events.title': 'События',
 
+  // Главная (v0.6, итерация 62) — карточка ближайшего события + пустое
+  // состояние, когда событий нет. Метрики — «N из M идут», «X ₽ с игрока»,
+  // «K мест». Бейдж типа меняется по `event.type`.
+  'home.nextEvent.badge.training': 'Ближайшая тренировка',
+  'home.nextEvent.badge.game': 'Ближайшая игра',
+  'home.nextEvent.cta': 'Открыть событие',
+  'home.nextEvent.versus.opponent': 'Соперник',
+  'home.nextEvent.metric.attendance': 'идут',
+  'home.nextEvent.metric.fee': 'с игрока',
+  'home.nextEvent.metric.seats': 'мест',
+  'home.nextEvent.empty.title': 'Нет запланированных событий',
+  'home.nextEvent.empty.ctaOrganizer': 'Создать событие',
+  'home.nextEvent.empty.ctaPlayer': 'Открыть календарь',
+  'home.noTeam.title': 'Ты пока не в команде',
+  'home.noTeam.body': 'Создай команду или прими приглашение, чтобы увидеть главный экран.',
+
   // Раздел «Команда» — главная (хаб)
   'team.title': 'Команда',
   'team.stat.players': 'игроков',
