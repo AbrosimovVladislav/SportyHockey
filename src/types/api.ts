@@ -896,18 +896,27 @@ export type TeamBalanceSummary = {
   owed_by_us: number;
 };
 
-// Детализация двух нижних карточек под расчётным балансом (итерация 57).
+// Детализация двух нижних карточек под расчётным балансом (итерации 57+58).
 // Сумма строк в `owed_to_us` равна `summary.owed_to_us`, в `owed_by_us` —
 // `summary.owed_by_us`. Это инвариант: подписи могут меняться, но контроль
 // `Σдетализация = summary` обязателен.
+//
+// `external_*` — итерация 58, ledger. external — собирательная сторона: пока
+// сюда относятся поставщики инвентаря/формы/«прочее»/тренеры/спонсоры (плоский
+// `external_label`). В PoC расходы фиксируются по факту (платим — сразу
+// списываем), поэтому `external_overpayments` и `external_receivables` равны
+// нулю. Поля резервируем под будущие задолженности «мы отдали поставщику
+// больше, чем должны» и «нам должен спонсор / тренер недопровёл».
 export type TeamBalanceDetails = {
   owed_to_us: {
     players_debts: number;
     arena_overpayments: number;
+    external_receivables: number;
   };
   owed_by_us: {
     arena_debts: number;
     players_overpayments: number;
+    external_overpayments: number;
   };
 };
 
@@ -944,7 +953,10 @@ export type PlayerBalanceItem = {
 export type PlayersBalanceResponse = { items: PlayerBalanceItem[] };
 
 // Создание транзакции (POST /api/finance). Валидируется zod-схемой на сервере:
-// у каждого type — свой обязательный набор полей.
+// у каждого type — свой обязательный набор полей. Поле `venue_id` (итерация 58)
+// заполняется только для аренд без привязки к событию (депозит площадке);
+// если событие выбрано, venue определяется по `event.venue_id` и `venue_id`
+// игнорируется.
 export type CreateFinanceRequest = {
   type: FinanceTxType;
   amount: number;
@@ -952,6 +964,7 @@ export type CreateFinanceRequest = {
   category?: FinanceExpenseCategory | null;
   user_id?: string | null;
   event_id?: string | null;
+  venue_id?: string | null;
   description?: string | null;
 };
 export type CreateFinanceResponse = { transaction: FinanceTransaction };
@@ -966,6 +979,7 @@ export type UpdateFinanceRequest = {
   category?: FinanceExpenseCategory | null;
   user_id?: string | null;
   event_id?: string | null;
+  venue_id?: string | null;
   description?: string | null;
 };
 export type UpdateFinanceResponse = { transaction: FinanceTransaction };

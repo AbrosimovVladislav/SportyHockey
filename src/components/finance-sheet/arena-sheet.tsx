@@ -15,11 +15,12 @@ import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import type { EventDto, VenueDto } from '@/types/api';
 
-// Bottomsheet для ввода/правки аренды льда (v0.5, итерации 51 + 51.1).
-// Аренда всегда привязана к событию — в `finance_transactions` это запись
-// type='expense', category='arena', с обязательным event_id. Поле «Площадка» —
-// выбор из справочника venues; в `description` транзакции пишется venue.name
-// (отдельной venue_id колонки у транзакций пока нет).
+// Bottomsheet для ввода/правки аренды льда (v0.5, итерации 51 + 51.1 + 58).
+// Аренда в ledger-формате — это transfer team → venue. Возможны два режима:
+//   • привязка к событию: venue вычисляется из event.venue, заблокирован;
+//   • депозит площадке: событие не выбрано, venue выбирается свободно.
+// На сервере отказ с 409, если оплата события превысит arena_cost — здесь
+// зеркалим эту проверку локально для лучшей подсказки.
 //
 // Sheet открывается из трёх мест:
 //   - quick-action «Аренда» на хабе `/money` (mode='create' без initial)
@@ -37,7 +38,10 @@ export type ArenaInitial = {
 };
 
 export type ArenaFormValue = {
-  event_id: string;
+  // null — депозит площадке без привязки к событию.
+  event_id: string | null;
+  // Площадка обязательна всегда — либо из выбранного события, либо вручную.
+  venue_id: string;
   amount: number;
   occurred_on: string;
   description: string | null;
@@ -123,9 +127,12 @@ export function ArenaSheet({
   // При смене события в picker'е перезаполняем venue/amount из нового. Дату
   // оплаты НЕ трогаем: занимающийся бухгалтерией пользователь ставит «дату
   // оплаты», а не «дату события» — это сегодняшний день, а не дата матча.
-  const handlePickEvent = (id: string) => {
+  // Выбор «Без события» (id=null) переводит sheet в режим депозита: venue
+  // не сбрасываем (если уже выбран — оставляем), amount тоже остаётся как был.
+  const handlePickEvent = (id: string | null) => {
     setEventPickerOpen(false);
     setEventId(id);
+    if (id === null) return;
     const e = events.find((x) => x.id === id);
     if (!e) return;
     setVenueId(e.venue?.id ?? null);
@@ -151,12 +158,26 @@ export function ArenaSheet({
   const overLimit = maxAmount != null && validAmount && parsedAmount > maxAmount;
   const shortfall = overLimit && maxAmount != null ? parsedAmount - maxAmount : 0;
 
+  // Зеркало серверной 409 на переплату события. Если событие выбрано и у него
+  // есть arena_cost > 0 — суммарная оплата (текущая в БД минус oldImpact, если
+  // редактируем эту же запись) + введённая сумма не должна превышать стоимость.
+  const eventArenaCost = selectedEvent?.arena_cost ?? 0;
+  const eventArenaPaid = selectedEvent?.arena_paid_amount ?? 0;
+  // При edit'е существующая транзакция уже учтена в arena_paid_amount события,
+  // вычитаем её, чтобы не сравнивать с самой собой. На странице события (новая
+  // запись с initial.id=undefined) вычитать нечего.
+  const ownContribution = isEdit && initial?.id ? Number(initial.amount ?? 0) : 0;
+  const eventRemaining =
+    selectedEvent && eventArenaCost > 0
+      ? Math.max(0, eventArenaCost - (eventArenaPaid - ownContribution))
+      : null;
+  const overEvent =
+    eventRemaining != null && validAmount && parsedAmount > eventRemaining;
+  const eventOverflowAmount =
+    overEvent && eventRemaining != null ? parsedAmount - eventRemaining : 0;
+
   const submit = () => {
     setLocalError(null);
-    if (!eventId) {
-      setLocalError(t('money.sheet.arena.errorEmptyEvent'));
-      return;
-    }
     if (!venueId || !selectedVenue) {
       setLocalError(t('money.sheet.arena.errorEmptyVenue'));
       return;
@@ -178,8 +199,13 @@ export function ArenaSheet({
       );
       return;
     }
+    if (overEvent) {
+      setLocalError(t('money.sheet.arena.errorEventOverpaid'));
+      return;
+    }
     onSubmit({
       event_id: eventId,
+      venue_id: venueId,
       amount: parsedAmount,
       occurred_on: date,
       description: selectedVenue.name,
@@ -193,6 +219,11 @@ export function ArenaSheet({
 
   // Дата в будущем — показываем баннер про запланированную аренду.
   const isFutureDate = date > todayIso();
+
+  // Когда событие выбрано — venue вычисляется из него и блокируется. В режиме
+  // депозита venue свободно выбирается. Это исключает рассинхрон «выбрано
+  // событие на площадке А, но в venue стоит площадка Б».
+  const venueLocked = !!eventId;
 
   const label: CSSProperties = {
     fontSize: 12,
@@ -220,6 +251,12 @@ export function ArenaSheet({
     fontSize: 15,
     fontWeight: 500,
     textAlign: 'left',
+  };
+
+  const lockedBtn: CSSProperties = {
+    ...selectBtn,
+    cursor: 'default',
+    opacity: 0.85,
   };
 
   const placeholderText: CSSProperties = {
@@ -256,7 +293,8 @@ export function ArenaSheet({
         title={isEdit ? t('money.sheet.arena.editTitle') : t('money.sheet.arena.createTitle')}
       >
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {/* Событие */}
+          {/* Событие — опциональное. Если не выбрано, sheet работает в режиме
+              депозита площадке (venue выбирается ниже свободно). */}
           <div style={fieldBlock}>
             <div style={label}>{t('money.sheet.arena.eventLabel')}</div>
             <button
@@ -284,19 +322,26 @@ export function ArenaSheet({
                   </span>
                 </span>
               ) : (
-                <span style={placeholderText}>{t('money.sheet.arena.eventPlaceholder')}</span>
+                <span style={placeholderText}>
+                  {t('money.sheet.arena.eventPlaceholderDeposit')}
+                </span>
               )}
             </button>
           </div>
 
-          {/* Площадка (selector из справочника) */}
+          {/* Площадка. Когда событие выбрано — берётся из event.venue и
+              блокируется. В режиме депозита — picker открывается по тапу. */}
           <div style={fieldBlock}>
             <div style={label}>{t('money.sheet.arena.venueLabel')}</div>
             <button
               type="button"
-              className="pressable"
-              style={selectBtn}
-              onClick={() => setVenuePickerOpen(true)}
+              className={venueLocked ? undefined : 'pressable'}
+              style={venueLocked ? lockedBtn : selectBtn}
+              onClick={() => {
+                if (venueLocked) return;
+                setVenuePickerOpen(true);
+              }}
+              aria-disabled={venueLocked}
             >
               <IconLocation size={18} color={colors.iconFg} />
               {selectedVenue ? (
@@ -359,7 +404,20 @@ export function ArenaSheet({
                 ₽
               </span>
             </div>
-            {maxAmount != null ? (
+            {overEvent && eventRemaining != null ? (
+              <div
+                style={{
+                  marginTop: spacing['6'],
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: colors.error,
+                }}
+              >
+                {t('money.sheet.arena.eventOverpaidHint')
+                  .replace('{overflow}', formatMoney(eventOverflowAmount))
+                  .replace('{remaining}', formatMoney(eventRemaining))}
+              </div>
+            ) : maxAmount != null ? (
               <div
                 style={{
                   marginTop: spacing['6'],
@@ -440,6 +498,7 @@ export function ArenaSheet({
         searchPlaceholder={t('money.sheet.arena.eventSearch')}
         emptyText={t('money.sheet.arena.eventEmpty')}
         title={t('money.sheet.arena.eventLabel')}
+        depositLabel={t('money.sheet.arena.eventDeposit')}
         statusLabels={{
           paid: t('money.sheet.arena.eventStatus.paid'),
           unpaid: t('money.sheet.arena.eventStatus.unpaid'),
@@ -496,6 +555,8 @@ export function ArenaSheet({
 // События сортируются по starts_at desc. У каждой строки виден чип статуса
 // оплаты аренды: зелёный «Оплачено», серый «Не оплачено», ничего — если
 // arena_cost не задан (нет цены, нечего оплачивать).
+// Первой строкой всегда «Без события — депозит площадке» — это переключение
+// sheet'а в режим депозита.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type PickerProps = {
@@ -505,8 +566,9 @@ type PickerProps = {
   currentId: string | null;
   searchPlaceholder: string;
   emptyText: string;
+  depositLabel: string;
   statusLabels: { paid: string; unpaid: string };
-  onPick: (id: string) => void;
+  onPick: (id: string | null) => void;
   onClose: () => void;
 };
 
@@ -517,6 +579,7 @@ function EventPicker({
   currentId,
   searchPlaceholder,
   emptyText,
+  depositLabel,
   statusLabels,
   onPick,
   onClose,
@@ -562,6 +625,8 @@ function EventPicker({
     textAlign: 'left',
   });
 
+  const depositActive = currentId === null;
+
   return (
     <BottomSheet open={open} onClose={onClose} title={title}>
       <div style={{ position: 'relative', marginBottom: spacing['8'] }}>
@@ -584,6 +649,32 @@ function EventPicker({
           style={{ paddingLeft: 38 }}
         />
       </div>
+      {/* Опция «депозит» всегда видна — даже при поиске. Она не «выбирает
+          событие», а явно отказывается от привязки. */}
+      <button
+        type="button"
+        className="pressable"
+        style={row(depositActive)}
+        onClick={() => onPick(null)}
+      >
+        <span
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: depositActive ? colors.primary : colors.bgMuted,
+            color: depositActive ? colors.textInverse : colors.iconFg,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+          aria-hidden
+        >
+          <IconLocation size={18} color="currentColor" />
+        </span>
+        <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>{depositLabel}</span>
+      </button>
       <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '55dvh', overflowY: 'auto' }}>
         {filtered.length === 0 ? (
           <div style={{ padding: spacing['16'], color: colors.textSecondary, fontSize: 14 }}>

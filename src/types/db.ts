@@ -279,9 +279,17 @@ export type Database = {
           created_by: string | null
           description: string | null
           event_id: string | null
+          external_label: string | null
+          from_kind: string | null
+          from_user_id: string | null
+          from_venue_id: string | null
           id: string
+          kind: string
           occurred_on: string
           team_id: string
+          to_kind: string | null
+          to_user_id: string | null
+          to_venue_id: string | null
           type: string
           user_id: string | null
         }
@@ -292,9 +300,17 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           event_id?: string | null
+          external_label?: string | null
+          from_kind?: string | null
+          from_user_id?: string | null
+          from_venue_id?: string | null
           id?: string
+          kind?: string
           occurred_on?: string
           team_id: string
+          to_kind?: string | null
+          to_user_id?: string | null
+          to_venue_id?: string | null
           type: string
           user_id?: string | null
         }
@@ -305,9 +321,17 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           event_id?: string | null
+          external_label?: string | null
+          from_kind?: string | null
+          from_user_id?: string | null
+          from_venue_id?: string | null
           id?: string
+          kind?: string
           occurred_on?: string
           team_id?: string
+          to_kind?: string | null
+          to_user_id?: string | null
+          to_venue_id?: string | null
           type?: string
           user_id?: string | null
         }
@@ -327,10 +351,38 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "finance_transactions_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_from_venue_id_fkey"
+            columns: ["from_venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "finance_transactions_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_to_venue_id_fkey"
+            columns: ["to_venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
           {

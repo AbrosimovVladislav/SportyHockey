@@ -9,6 +9,7 @@ import {
   type RawFinanceRow,
 } from '@/lib/finance-mapper';
 import { syncArenaPaidAmount } from '@/lib/sync-arena-paid';
+import { legacyToLedger } from '@/lib/finance-ledger';
 import {
   currentOnHand,
   insufficientOnHandMessage,
@@ -77,6 +78,11 @@ export async function GET(req: Request): Promise<Response> {
 
 // POST /api/finance — создание транзакции. Доступно только организатору
 // активной команды. Тип определяет, какие поля обязательны.
+//
+// Итерация 58: тело принимает старый формат (type/category/user_id/event_id),
+// плюс новое поле venue_id — обязательное для аренды без события (депозит
+// площадке). На сервере адаптер раскладывает это в ledger-поля
+// (kind/from_kind/to_kind/...) и пишет их вместе со старыми (зеркалом).
 const BodySchema = z
   .object({
     type: z.enum(['player_payment', 'expense', 'refund', 'adjustment']),
@@ -85,6 +91,7 @@ const BodySchema = z
     category: z.enum(['arena', 'inventory', 'uniform', 'other']).nullable().optional(),
     user_id: z.string().uuid().nullable().optional(),
     event_id: z.string().uuid().nullable().optional(),
+    venue_id: z.string().uuid().nullable().optional(),
     description: z.string().max(500).nullable().optional(),
   })
   .superRefine((d, ctx) => {
@@ -116,6 +123,13 @@ const BodySchema = z
           code: 'custom',
           path: ['user_id'],
           message: 'Для возврата и корректировки нужен игрок',
+        });
+      }
+      if (d.venue_id) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['venue_id'],
+          message: 'Площадка применима только к аренде',
         });
       }
     }
@@ -156,16 +170,81 @@ export async function POST(req: Request): Promise<Response> {
       if (!mem) return NextResponse.json({ error: 'Игрок не в команде' }, { status: 404 });
     }
 
-    // Если задан event_id — событие должно принадлежать той же команде.
+    // Если задан event_id — событие должно принадлежать той же команде. Для
+    // арендных расходов попутно вытаскиваем venue_id и arena_cost — нужны для
+    // ledger-маппинга и для 409 на переплату.
+    let eventVenueId: string | null = null;
+    let eventArenaCost: number | null = null;
     if (d.event_id) {
       const { data: ev, error: evErr } = await sb
         .from('events')
-        .select('id, team_id')
+        .select('id, team_id, venue_id, arena_cost')
         .eq('id', d.event_id)
         .maybeSingle();
       if (evErr) return NextResponse.json({ error: evErr.message }, { status: 500 });
       if (!ev || ev.team_id !== teamId) {
         return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
+      }
+      eventVenueId = ev.venue_id;
+      eventArenaCost = ev.arena_cost != null ? Number(ev.arena_cost) : null;
+    }
+
+    // Если задан venue_id (для депозита площадке) — площадка должна существовать.
+    if (d.venue_id) {
+      const { data: v, error: vErr } = await sb
+        .from('venues')
+        .select('id')
+        .eq('id', d.venue_id)
+        .maybeSingle();
+      if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
+      if (!v) return NextResponse.json({ error: 'Площадка не найдена' }, { status: 404 });
+    }
+
+    // Раскладываем в ledger-поля. Адаптер дублирует CHECK-инварианты БД и
+    // даёт человекочитаемое 400 вместо CHECK violation.
+    const ledger = legacyToLedger(
+      {
+        type: d.type,
+        category: d.category ?? null,
+        user_id: d.user_id ?? null,
+        event_id: d.event_id ?? null,
+        venue_id: d.venue_id ?? null,
+      },
+      eventVenueId,
+    );
+    if (!ledger.ok) {
+      return NextResponse.json({ error: ledger.error }, { status: 400 });
+    }
+
+    // Проверка переплаты события: для арендного расхода с привязкой к событию
+    // суммарная оплата по этому событию не должна превышать его arena_cost.
+    // Депозит площадке (event_id=null) этим ограничением не связан.
+    if (
+      d.type === 'expense' &&
+      d.category === 'arena' &&
+      d.event_id &&
+      eventArenaCost != null &&
+      eventArenaCost > 0
+    ) {
+      const { data: paidRows, error: paidErr } = await sb
+        .from('finance_transactions')
+        .select('amount')
+        .eq('team_id', teamId)
+        .eq('event_id', d.event_id)
+        .eq('to_kind', 'venue');
+      if (paidErr) return NextResponse.json({ error: paidErr.message }, { status: 500 });
+      const alreadyPaid = (paidRows ?? []).reduce(
+        (acc, row) => acc + Number(row.amount || 0),
+        0,
+      );
+      if (alreadyPaid + d.amount > eventArenaCost) {
+        return NextResponse.json(
+          {
+            error:
+              'Событие уже оплачено полностью — для дополнительной оплаты площадке создайте депозит без привязки к событию',
+          },
+          { status: 409 },
+        );
       }
     }
 
@@ -197,6 +276,14 @@ export async function POST(req: Request): Promise<Response> {
       event_id: d.event_id ?? null,
       description: d.description ?? null,
       created_by: user.id,
+      kind: ledger.fields.kind,
+      from_kind: ledger.fields.from_kind,
+      to_kind: ledger.fields.to_kind,
+      from_user_id: ledger.fields.from_user_id,
+      to_user_id: ledger.fields.to_user_id,
+      from_venue_id: ledger.fields.from_venue_id,
+      to_venue_id: ledger.fields.to_venue_id,
+      external_label: ledger.fields.external_label,
     };
     if (d.occurred_on) insert.occurred_on = d.occurred_on;
 

@@ -427,6 +427,7 @@ export default function EventDetailPage() {
                 category: 'arena',
                 amount: v.amount,
                 event_id: v.event_id,
+                venue_id: v.event_id ? null : v.venue_id,
                 occurred_on: v.occurred_on,
                 description: v.description,
               },

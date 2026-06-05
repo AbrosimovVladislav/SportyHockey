@@ -7,11 +7,16 @@ import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import { formatMoney } from '@/lib/format-money';
 
-// Карточка детализации под «Расчётным балансом» (v0.5, итерация 57).
+// Карточка детализации под «Расчётным балансом» (v0.5, итерации 57 + 58).
 // Используется парой в гриде 1fr 1fr: слева «Мы должны», справа «Нам должны».
 // Каждая строка = pill-плашка с категорией + сумма справа. Инвариант:
 // сумма по всем строкам = `TeamBalanceSummary.owed_by_us` или `owed_to_us`.
-// Если все суммы = 0, карточка не рендерится (`empty`).
+//
+// С итерации 58 фильтр `value > 0` снят: карточка показывает все переданные
+// строки, в том числе нулевые. Это нужно, чтобы три категории (Площадке /
+// Игрокам / Прочее или Игроки / Переплаты площадкам / Прочее) всегда были на
+// своих местах и визуально не «дрожали» при обнулении одной из них. Если
+// items пуст — карточка не рендерится.
 
 type Tone = 'negative' | 'positive';
 
@@ -27,8 +32,7 @@ type Props = {
 };
 
 export function BalanceDetailsCard({ title, tone, items }: Props) {
-  const visible = items.filter((it) => it.value > 0);
-  if (visible.length === 0) return null;
+  if (items.length === 0) return null;
 
   const pillBg = tone === 'negative' ? colors.error : colors.success;
   const titleColor = tone === 'negative' ? colors.errorDark : colors.successDark;
@@ -55,7 +59,7 @@ export function BalanceDetailsCard({ title, tone, items }: Props) {
     <div style={card}>
       <div style={titleStyle}>{title}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['8'] }}>
-        {visible.map((it, i) => (
+        {items.map((it, i) => (
           <Row key={i} label={it.label} value={it.value} pillBg={pillBg} />
         ))}
       </div>

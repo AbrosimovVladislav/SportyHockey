@@ -9,6 +9,7 @@ import {
   type RawFinanceRow,
 } from '@/lib/finance-mapper';
 import { syncArenaPaidAmount, syncArenaPaidAmountForChange } from '@/lib/sync-arena-paid';
+import { legacyToLedger } from '@/lib/finance-ledger';
 import {
   currentOnHand,
   insufficientOnHandMessage,
@@ -35,6 +36,7 @@ const PatchSchema = z.object({
   category: z.enum(['arena', 'inventory', 'uniform', 'other']).nullable().optional(),
   user_id: z.string().uuid().nullable().optional(),
   event_id: z.string().uuid().nullable().optional(),
+  venue_id: z.string().uuid().nullable().optional(),
   description: z.string().max(500).nullable().optional(),
 });
 
@@ -55,7 +57,9 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     // Достаём существующую запись и проверяем принадлежность команде.
     const { data: existing, error: exErr } = await sb
       .from('finance_transactions')
-      .select('id, team_id, type, category, user_id, event_id, amount, occurred_on')
+      .select(
+        'id, team_id, type, category, user_id, event_id, amount, occurred_on, to_venue_id',
+      )
       .eq('id', id)
       .maybeSingle();
     if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 });
@@ -82,6 +86,10 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       category: 'category' in d ? d.category ?? null : existing.category,
       user_id: 'user_id' in d ? d.user_id ?? null : existing.user_id,
       event_id: 'event_id' in d ? d.event_id ?? null : existing.event_id,
+      // venue_id явно не хранится в старой схеме — берём только если прислали,
+      // и используем как fallback для арендного депозита без события. Если
+      // event_id остаётся прежним, venue вытянется из события.
+      venue_id: 'venue_id' in d ? d.venue_id ?? null : existing.to_venue_id,
     };
     const validationError = validateMerged(merged);
     if (validationError) {
@@ -100,16 +108,80 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       if (!mem) return NextResponse.json({ error: 'Игрок не в команде' }, { status: 404 });
     }
 
-    // Аналогично — новое событие должно принадлежать команде.
-    if (d.event_id && d.event_id !== existing.event_id) {
+    // Аналогично — новое событие должно принадлежать команде. Заодно получаем
+    // venue_id и arena_cost для ledger-маппинга и 409.
+    let eventVenueId: string | null = null;
+    let eventArenaCost: number | null = null;
+    if (merged.event_id) {
       const { data: ev, error: evErr } = await sb
         .from('events')
-        .select('id, team_id')
-        .eq('id', d.event_id)
+        .select('id, team_id, venue_id, arena_cost')
+        .eq('id', merged.event_id)
         .maybeSingle();
       if (evErr) return NextResponse.json({ error: evErr.message }, { status: 500 });
       if (!ev || ev.team_id !== teamId) {
         return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
+      }
+      eventVenueId = ev.venue_id;
+      eventArenaCost = ev.arena_cost != null ? Number(ev.arena_cost) : null;
+    }
+
+    // Если задан venue_id (для депозита площадке) — площадка должна существовать.
+    if (merged.venue_id && !merged.event_id) {
+      const { data: v, error: vErr } = await sb
+        .from('venues')
+        .select('id')
+        .eq('id', merged.venue_id)
+        .maybeSingle();
+      if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
+      if (!v) return NextResponse.json({ error: 'Площадка не найдена' }, { status: 404 });
+    }
+
+    // Раскладываем merged в ledger-поля и пишем их в update.
+    const ledger = legacyToLedger(
+      {
+        type: merged.type as 'player_payment' | 'expense' | 'refund' | 'adjustment',
+        category: merged.category as 'arena' | 'inventory' | 'uniform' | 'other' | null,
+        user_id: merged.user_id,
+        event_id: merged.event_id,
+        venue_id: merged.venue_id,
+      },
+      eventVenueId,
+    );
+    if (!ledger.ok) {
+      return NextResponse.json({ error: ledger.error }, { status: 400 });
+    }
+
+    // Проверка переплаты события: суммарная оплата по событию (без этой
+    // транзакции) + новая сумма не должна превышать arena_cost.
+    const newAmount = d.amount ?? Number(existing.amount);
+    if (
+      merged.type === 'expense' &&
+      merged.category === 'arena' &&
+      merged.event_id &&
+      eventArenaCost != null &&
+      eventArenaCost > 0
+    ) {
+      const { data: paidRows, error: paidErr } = await sb
+        .from('finance_transactions')
+        .select('amount')
+        .eq('team_id', teamId)
+        .eq('event_id', merged.event_id)
+        .eq('to_kind', 'venue')
+        .neq('id', id);
+      if (paidErr) return NextResponse.json({ error: paidErr.message }, { status: 500 });
+      const alreadyPaid = (paidRows ?? []).reduce(
+        (acc, row) => acc + Number(row.amount || 0),
+        0,
+      );
+      if (alreadyPaid + newAmount > eventArenaCost) {
+        return NextResponse.json(
+          {
+            error:
+              'Событие уже оплачено полностью — для дополнительной оплаты площадке создайте депозит без привязки к событию',
+          },
+          { status: 409 },
+        );
       }
     }
 
@@ -117,7 +189,6 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     // и отказываем, если это уведёт on_hand в минус. Дельта = новый вклад −
     // старый вклад (текущая касса уже учитывает старый вклад).
     const today = todayIso();
-    const newAmount = d.amount ?? Number(existing.amount);
     const newOccurredOn =
       d.occurred_on !== undefined && d.occurred_on !== null
         ? d.occurred_on
@@ -148,6 +219,16 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     if ('user_id' in d) update.user_id = d.user_id ?? null;
     if ('event_id' in d) update.event_id = d.event_id ?? null;
     if ('description' in d) update.description = d.description ?? null;
+    // ledger-поля всегда переписываем из адаптера — это устраняет дрейф между
+    // зеркалом и ledger при частичном PATCH.
+    update.kind = ledger.fields.kind;
+    update.from_kind = ledger.fields.from_kind;
+    update.to_kind = ledger.fields.to_kind;
+    update.from_user_id = ledger.fields.from_user_id;
+    update.to_user_id = ledger.fields.to_user_id;
+    update.from_venue_id = ledger.fields.from_venue_id;
+    update.to_venue_id = ledger.fields.to_venue_id;
+    update.external_label = ledger.fields.external_label;
 
     const { data: updated, error: updErr } = await sb
       .from('finance_transactions')
@@ -239,19 +320,29 @@ export async function DELETE(req: Request, { params }: Params): Promise<Response
 }
 
 // Те же правила, что у POST /api/finance: для expense обязательна категория,
-// для refund/adjustment — user_id, у не-expense категория запрещена.
+// для refund/adjustment — user_id, у не-expense категория запрещена. Поле
+// venue_id допустимо только для аренды и взаимоисключающе с event_id
+// (если событие задано, venue берётся из event, а присланный venue_id игнорируется).
 function validateMerged(m: {
   type: string;
   category: string | null;
   user_id: string | null;
   event_id: string | null;
+  venue_id: string | null;
 }): string | null {
   if (m.type === 'expense') {
     if (!m.category) return 'Категория обязательна для расхода';
     if (m.user_id) return 'У расхода не может быть игрока';
+    if (m.category !== 'arena' && m.venue_id) {
+      return 'Площадка применима только к аренде';
+    }
+    if (m.category === 'arena' && !m.event_id && !m.venue_id) {
+      return 'Выберите событие или площадку для аренды';
+    }
     return null;
   }
   if (m.category) return 'Категория допустима только у расхода';
+  if (m.venue_id) return 'Площадка применима только к аренде';
   if (m.type !== 'player_payment' && !m.user_id) {
     return 'Для возврата и корректировки нужен игрок';
   }

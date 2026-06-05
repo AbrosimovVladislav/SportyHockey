@@ -88,6 +88,7 @@ export default function MoneyPage() {
         category: 'arena',
         amount: v.amount,
         event_id: v.event_id,
+        venue_id: v.event_id ? null : v.venue_id,
         occurred_on: v.occurred_on,
         description: v.description,
       },
@@ -190,6 +191,10 @@ export default function MoneyPage() {
                         label: t('money.balance.details.weOwePlayers'),
                         value: balanceQ.data.details.owed_by_us.players_overpayments,
                       },
+                      {
+                        label: t('money.balance.details.weOweOther'),
+                        value: balanceQ.data.details.owed_by_us.external_overpayments,
+                      },
                     ]}
                   />
                   <BalanceDetailsCard
@@ -203,6 +208,10 @@ export default function MoneyPage() {
                       {
                         label: t('money.balance.details.theyOweArenas'),
                         value: balanceQ.data.details.owed_to_us.arena_overpayments,
+                      },
+                      {
+                        label: t('money.balance.details.theyOweOther'),
+                        value: balanceQ.data.details.owed_to_us.external_receivables,
                       },
                     ]}
                   />

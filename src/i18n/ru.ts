@@ -844,8 +844,10 @@ export const ru = {
   'money.balance.owedByUs': 'Мы должны',
   'money.balance.details.weOweArenas': 'Площадке',
   'money.balance.details.weOwePlayers': 'Игрокам',
+  'money.balance.details.weOweOther': 'Прочее',
   'money.balance.details.theyOwePlayers': 'Игроки',
   'money.balance.details.theyOweArenas': 'Переплаты площадкам',
+  'money.balance.details.theyOweOther': 'Прочее',
   // Старые лейблы — пока используются в `/money/report` (замьюченный экран).
   // Удалить после редизайна или окончательного отказа от среза.
   'money.balance.debts': 'Долги игроков',
@@ -1009,6 +1011,8 @@ export const ru = {
   'money.sheet.arena.editTitle': 'Аренда',
   'money.sheet.arena.eventLabel': 'Событие',
   'money.sheet.arena.eventPlaceholder': 'Выберите событие',
+  'money.sheet.arena.eventPlaceholderDeposit': 'Без события — депозит площадке',
+  'money.sheet.arena.eventDeposit': 'Без события — депозит площадке',
   'money.sheet.arena.eventSearch': 'Поиск по названию или площадке',
   'money.sheet.arena.eventEmpty': 'Событий не нашли',
   'money.sheet.arena.venueLabel': 'Площадка',
@@ -1029,6 +1033,8 @@ export const ru = {
   'money.sheet.arena.errorEmptyAmount': 'Укажите сумму больше нуля',
   'money.sheet.arena.errorBadDate': 'Укажите корректную дату',
   'money.sheet.arena.errorInsufficient': 'В кассе только {available} — пополните счёт перед оплатой',
+  'money.sheet.arena.errorEventOverpaid': 'Событие уже оплачено полностью — уберите привязку, чтобы внести депозит площадке',
+  'money.sheet.arena.eventOverpaidHint': 'До полной оплаты события осталось {remaining} — введённая сумма превышает на {overflow}',
   'money.sheet.arena.availableOnHand': 'На руках: {amount}',
   'money.sheet.arena.shortfall': 'Не хватает {amount} — нужно пополнить кассу',
   'money.sheet.arena.eventStatus.paid': 'Оплачено',
