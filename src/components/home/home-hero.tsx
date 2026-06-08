@@ -80,12 +80,13 @@ export function HomeHero({ team, event, labels }: Props) {
     display: 'flex',
     flexDirection: 'column',
   };
-  // Группа контента выровнена к низу шапки — как title в DarkHeader.
+  // Группа выровнена к ВЕРХУ шапки (лого+название слева сверху, под ними
+  // событие). DarkHeader выравнивает по низу, нам же нужно начало сверху —
+  // логотип и название — главная якорная пара экрана.
   const group: CSSProperties = {
-    marginTop: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['8'],
+    gap: spacing['12'],
   };
 
   const isGame = event?.type === 'game';
@@ -161,10 +162,10 @@ function TeamSoloRow({ name, logoUrl }: { name: string; logoUrl: string | null }
   const wrap: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: spacing['12'],
+    gap: spacing['16'],
   };
   const title: CSSProperties = {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 800,
     color: colors.textInverse,
     letterSpacing: '-0.01em',
@@ -173,10 +174,11 @@ function TeamSoloRow({ name, logoUrl }: { name: string; logoUrl: string | null }
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     minWidth: 0,
+    margin: 0,
   };
   return (
     <div style={wrap}>
-      <Avatar src={logoUrl} name={name} size={48} />
+      <Avatar src={logoUrl} name={name} size={56} />
       <h1 style={title}>{name || '—'}</h1>
     </div>
   );
