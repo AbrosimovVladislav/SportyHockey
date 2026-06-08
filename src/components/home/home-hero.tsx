@@ -50,7 +50,7 @@ export function HomeHero({ team, event, labels }: Props) {
     overflow: 'hidden',
     background: colors.headerBg,
     color: colors.textInverse,
-    paddingTop: `calc(${spacing['12']}px + var(--app-safe-top))`,
+    paddingTop: `calc(${spacing['16']}px + var(--app-safe-top))`,
     paddingBottom: spacing['32'],
     paddingLeft: spacing['20'],
     paddingRight: spacing['20'],
@@ -80,14 +80,15 @@ export function HomeHero({ team, event, labels }: Props) {
     display: 'flex',
     flexDirection: 'column',
   };
-  // Лого + название — сверху слева. Инфо о событии (бейдж + дата + venue)
-  // приклеена к низу шапки через `marginTop: auto` (как title в DarkHeader).
-  // Между ними — свободное пространство с фоном-картинкой.
+  // Спейсер между блоком команды/команд и блоком события. flex:1 «приклеивает»
+  // событие к низу шапки на тренировке (там верхний блок короткий, спейсер
+  // растягивается). `minHeight` гарантирует воздух даже когда контент длинный
+  // (3 ряда для игры) и шапка распирается — иначе всё бы слипалось вплотную.
+  const spacer: CSSProperties = { flex: 1, minHeight: spacing['24'] };
   const eventGroup: CSSProperties = {
-    marginTop: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['8'],
+    gap: spacing['10'],
   };
 
   const isGame = event?.type === 'game';
@@ -106,6 +107,8 @@ export function HomeHero({ team, event, labels }: Props) {
         ) : (
           <TeamSoloRow name={team?.name ?? ''} logoUrl={team?.logo_url ?? null} />
         )}
+
+        <div style={spacer} aria-hidden />
 
         <div style={eventGroup}>
           <Badge
@@ -209,7 +212,7 @@ function TeamsVersusRow({
   const wrap: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['6'],
+    gap: spacing['8'],
   };
   const ourRow: CSSProperties = {
     display: 'flex',
