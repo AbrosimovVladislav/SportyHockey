@@ -159,28 +159,37 @@ const venueStyle: CSSProperties = {
   color: 'rgba(255,255,255,0.85)',
 };
 
+// Размеры нашего блока (`OUR_LOGO_SIZE` + `OUR_NAME_FONT_SIZE`) одинаковы
+// для тренировки и для игры — в обоих случаях наш блок выглядит идентично,
+// меняется только наличие строки соперника снизу.
+const OUR_LOGO_SIZE = 48;
+const OUR_NAME_FONT_SIZE = 22;
+const OPP_LOGO_SIZE = 36;
+const OPP_NAME_FONT_SIZE = 16;
+
+const ourNameStyle: CSSProperties = {
+  fontSize: OUR_NAME_FONT_SIZE,
+  fontWeight: 800,
+  color: colors.textInverse,
+  letterSpacing: '-0.01em',
+  lineHeight: 1.1,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+  margin: 0,
+};
+
 function TeamSoloRow({ name, logoUrl }: { name: string; logoUrl: string | null }) {
   const wrap: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing['16'],
   };
-  const title: CSSProperties = {
-    fontSize: 24,
-    fontWeight: 800,
-    color: colors.textInverse,
-    letterSpacing: '-0.01em',
-    lineHeight: 1.1,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    minWidth: 0,
-    margin: 0,
-  };
   return (
     <div style={wrap}>
-      <Avatar src={logoUrl} name={name} size={56} />
-      <h1 style={title}>{name || '—'}</h1>
+      <Avatar src={logoUrl} name={name} size={OUR_LOGO_SIZE} />
+      <h1 style={ourNameStyle}>{name || '—'}</h1>
     </div>
   );
 }
@@ -194,40 +203,47 @@ function TeamsVersusRow({
   ourLogo: string | null;
   opponentName: string;
 }) {
-  // Для игры: два ряда друг под другом — наш сверху, соперник снизу
+  // Для игры: три ряда — наш сверху, разделитель «— vs —», соперник снизу
   // (с уменьшенным лого и шрифтом, чтобы визуально подчеркнуть кто
-  // «хозяин» главной страницы).
+  // «хозяин» главной страницы). Размеры нашего блока совпадают с тренировкой.
   const wrap: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['8'],
+    gap: spacing['6'],
   };
   const ourRow: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing['16'],
   };
+  const vsRow: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing['8'],
+    paddingLeft: spacing['8'],
+  };
+  const vsLine: CSSProperties = {
+    width: 28,
+    height: 1,
+    background: 'rgba(255,255,255,0.5)',
+    flexShrink: 0,
+  };
+  const vsText: CSSProperties = {
+    fontSize: 12,
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.75)',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  };
   const oppRow: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing['10'],
     paddingLeft: spacing['4'],
-    opacity: 0.85,
+    opacity: 0.9,
   };
-  const ourName_: CSSProperties = {
-    fontSize: 24,
-    fontWeight: 800,
-    color: colors.textInverse,
-    letterSpacing: '-0.01em',
-    lineHeight: 1.1,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    minWidth: 0,
-    margin: 0,
-  };
-  const oppName: CSSProperties = {
-    fontSize: 18,
+  const oppNameStyle: CSSProperties = {
+    fontSize: OPP_NAME_FONT_SIZE,
     fontWeight: 700,
     color: 'rgba(255,255,255,0.92)',
     lineHeight: 1.15,
@@ -239,12 +255,17 @@ function TeamsVersusRow({
   return (
     <div style={wrap}>
       <div style={ourRow}>
-        <Avatar src={ourLogo} name={ourName} size={56} />
-        <h1 style={ourName_}>{ourName || '—'}</h1>
+        <Avatar src={ourLogo} name={ourName} size={OUR_LOGO_SIZE} />
+        <h1 style={ourNameStyle}>{ourName || '—'}</h1>
+      </div>
+      <div style={vsRow} aria-hidden>
+        <span style={vsLine} />
+        <span style={vsText}>vs</span>
+        <span style={vsLine} />
       </div>
       <div style={oppRow}>
-        <Avatar src={null} name={opponentName} size={40} />
-        <span style={oppName}>{opponentName}</span>
+        <Avatar src={null} name={opponentName} size={OPP_LOGO_SIZE} />
+        <span style={oppNameStyle}>{opponentName}</span>
       </div>
     </div>
   );
