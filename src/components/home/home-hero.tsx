@@ -62,7 +62,7 @@ export function HomeHero({ team, event, labels }: Props) {
   const imageLayer: CSSProperties = {
     position: 'absolute',
     inset: 0,
-    background: "url('/event-bg.jpg') center/cover no-repeat",
+    background: "url('/main.png') center/cover no-repeat",
     zIndex: 0,
   };
   // Затемнение у самого низа — под белые тексты (как в DarkHeader.bottomScrim).
@@ -80,13 +80,14 @@ export function HomeHero({ team, event, labels }: Props) {
     display: 'flex',
     flexDirection: 'column',
   };
-  // Группа выровнена к ВЕРХУ шапки (лого+название слева сверху, под ними
-  // событие). DarkHeader выравнивает по низу, нам же нужно начало сверху —
-  // логотип и название — главная якорная пара экрана.
-  const group: CSSProperties = {
+  // Лого + название — сверху слева. Инфо о событии (бейдж + дата + venue)
+  // приклеена к низу шапки через `marginTop: auto` (как title в DarkHeader).
+  // Между ними — свободное пространство с фоном-картинкой.
+  const eventGroup: CSSProperties = {
+    marginTop: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['12'],
+    gap: spacing['8'],
   };
 
   const isGame = event?.type === 'game';
@@ -96,17 +97,17 @@ export function HomeHero({ team, event, labels }: Props) {
       <div style={imageLayer} aria-hidden />
       <div style={bottomScrim} aria-hidden />
       <div style={content}>
-        <div style={group}>
-          {isGame && event ? (
-            <TeamsVersusRow
-              ourName={team?.name ?? ''}
-              ourLogo={team?.logo_url ?? null}
-              opponentName={(event.opponent_name ?? '').trim() || labels.versus}
-            />
-          ) : (
-            <TeamSoloRow name={team?.name ?? ''} logoUrl={team?.logo_url ?? null} />
-          )}
+        {isGame && event ? (
+          <TeamsVersusRow
+            ourName={team?.name ?? ''}
+            ourLogo={team?.logo_url ?? null}
+            opponentName={(event.opponent_name ?? '').trim() || labels.versus}
+          />
+        ) : (
+          <TeamSoloRow name={team?.name ?? ''} logoUrl={team?.logo_url ?? null} />
+        )}
 
+        <div style={eventGroup}>
           <Badge
             text={
               event

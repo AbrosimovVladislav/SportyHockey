@@ -100,7 +100,8 @@ function Metric({
   const wrap: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    textAlign: 'center',
     gap: spacing['4'],
     minWidth: 0,
   };
