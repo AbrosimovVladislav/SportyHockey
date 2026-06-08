@@ -3,44 +3,31 @@
 import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
-import { HomeHeader } from '@/components/home/home-header';
+import { HomeHero } from '@/components/home/home-hero';
 import { HomeQuickActions } from '@/components/home/home-quick-actions';
 import { KeyStatsCard } from '@/components/home/key-stats-card';
-import { NextEventCard } from '@/components/home/next-event-card';
-import { NextEventEmpty } from '@/components/home/next-event-empty';
-import { NextEventSkeleton } from '@/components/home/next-event-skeleton';
-import { useMe } from '@/hooks/use-me';
 import { useNextEvent } from '@/hooks/use-next-event';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
-import { useActiveTeamStore } from '@/store/active-team';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 
-// Главная страница (v0.6, итерация 62) — первый таб «Команда». Дайджест:
-// шапка с логотипом/названием команды, карточка ближайшего события (либо
-// empty-state), под ними в следующих итерациях появятся quick-actions и
-// блок «Ключевая статистика».
+// Главная страница (v0.6, передизайн от 2026-06-08). Структура:
+//   1) HomeHero    — тёмный full-width блок: команда + ближайшее событие + CTA.
+//   2) Быстрые действия (organizer) — две плитки в строке.
+//   3) Ключевая статистика — карточка с тремя табами фиксированной высоты.
 //
-// К моменту монтирования layout (tabs) уже гарантирует, что пользователь
-// прошёл онбординг и состоит хотя бы в одной команде — иначе нас не пустят.
+// Tg-header окрашен в тёмно-зелёный, чтобы сшивался с HomeHero без видимой
+// границы (раньше шапка была белой, hero сидел поверх и это норм; сейчас
+// hero сам = шапка раздела, как на /money).
 export default function HomePage() {
   const t = useT();
   const router = useRouter();
-  useTgHeader(colors.bg);
+  useTgHeader(colors.headerBg);
 
-  const me = useMe();
-  const activeTeamId = useActiveTeamStore((s) => s.activeTeamId);
   const { isOrganizer } = useIsOrganizer();
   const nextQ = useNextEvent();
-
-  // Активная команда — для шапки. Берём из memberships по activeTeamId
-  // (или первая, если store ещё не успел) — данные есть с самого начала
-  // благодаря layout, нет лоадера-плейсхолдера.
-  const memberships = me.data?.memberships ?? [];
-  const activeMembership =
-    memberships.find((m) => m.team_id === activeTeamId) ?? memberships[0] ?? null;
 
   const root: CSSProperties = {
     minHeight: '100dvh',
@@ -51,57 +38,58 @@ export default function HomePage() {
   const content: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing['16'],
-    padding: `0 ${spacing['16']}px`,
+    gap: spacing['20'],
+    padding: `${spacing['20']}px ${spacing['16']}px 0`,
   };
 
   const handleOpenEvent = (eventId: string) => router.push(`/events/${eventId}`);
-  const handleCreateEvent = () => router.push('/events/new');
-  const handleOpenCalendar = () => router.push('/events');
+  const handleEmptyCta = () =>
+    router.push(isOrganizer ? '/events/new' : '/events');
 
   const team = nextQ.data?.team ?? null;
   const event = nextQ.data?.event ?? null;
+  const isLoading = nextQ.isLoading || nextQ.isPending;
 
   return (
     <div style={root}>
-      <HomeHeader
-        teamName={activeMembership?.team_name ?? ''}
-        teamLogoUrl={activeMembership?.team_logo_url ?? null}
-      />
+      {isLoading ? (
+        <HeroSkeleton />
+      ) : (
+        <HomeHero
+          team={team}
+          event={event}
+          onOpenEvent={handleOpenEvent}
+          onEmptyCta={handleEmptyCta}
+          labels={{
+            badgeTraining: t('home.nextEvent.badge.training'),
+            badgeGame: t('home.nextEvent.badge.game'),
+            badgeEmpty: t('home.nextEvent.empty.title'),
+            cta: t('home.nextEvent.cta'),
+            ctaEmpty: isOrganizer
+              ? t('home.nextEvent.empty.ctaOrganizer')
+              : t('home.nextEvent.empty.ctaPlayer'),
+            versus: t('home.nextEvent.versus.opponent'),
+            attendanceCaption: t('home.nextEvent.metric.attendance'),
+            feeCaption: t('home.nextEvent.metric.fee'),
+            seatsCaption: t('home.nextEvent.metric.seats'),
+          }}
+        />
+      )}
       <div style={content}>
-        {nextQ.isLoading || nextQ.isPending ? (
-          <NextEventSkeleton />
-        ) : event ? (
-          <NextEventCard
-            event={event}
-            team={team}
-            onOpen={() => handleOpenEvent(event.id)}
-            labels={{
-              badgeTraining: t('home.nextEvent.badge.training'),
-              badgeGame: t('home.nextEvent.badge.game'),
-              cta: t('home.nextEvent.cta'),
-              versusOpponent: t('home.nextEvent.versus.opponent'),
-              attendanceCaption: t('home.nextEvent.metric.attendance'),
-              feeCaption: t('home.nextEvent.metric.fee'),
-              seatsCaption: t('home.nextEvent.metric.seats'),
-            }}
-          />
-        ) : (
-          <NextEventEmpty
-            title={t('home.nextEvent.empty.title')}
-            ctaLabel={
-              isOrganizer
-                ? t('home.nextEvent.empty.ctaOrganizer')
-                : t('home.nextEvent.empty.ctaPlayer')
-            }
-            onCta={isOrganizer ? handleCreateEvent : handleOpenCalendar}
-          />
-        )}
-
         {isOrganizer ? <HomeQuickActions /> : null}
-
         <KeyStatsCard />
       </div>
     </div>
   );
+}
+
+// Скелетон для HomeHero — тёмная подложка той же примерной высоты,
+// чтобы при загрузке tg-header не светил белым в верхней части.
+function HeroSkeleton() {
+  const sk: CSSProperties = {
+    background: colors.headerBg,
+    minHeight: `calc(320px + var(--app-safe-top))`,
+    opacity: 0.95,
+  };
+  return <div aria-hidden style={sk} />;
 }

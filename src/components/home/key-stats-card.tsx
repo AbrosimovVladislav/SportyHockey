@@ -42,11 +42,15 @@ export function KeyStatsCard() {
   const tabsWrap: CSSProperties = {
     padding: `${spacing['8']}px ${spacing['8']}px ${spacing['4']}px`,
   };
+  // Фиксированный минимум, чтобы переключение табов не двигало layout
+  // страницы (топ-5 высокий, last_game пониже, team_summary плотная).
+  // Берём с запасом ≈ заполненный топ-5 — это самый длинный таб.
   const body: CSSProperties = {
     padding: `${spacing['4']}px ${spacing['8']}px ${spacing['8']}px`,
+    minHeight: 360,
   };
   const skel: CSSProperties = {
-    height: 180,
+    height: 320,
     background: colors.bgMuted,
     margin: spacing['8'],
     borderRadius: radius.md,
