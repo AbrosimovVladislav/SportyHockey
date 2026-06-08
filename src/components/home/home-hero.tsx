@@ -194,46 +194,57 @@ function TeamsVersusRow({
   ourLogo: string | null;
   opponentName: string;
 }) {
+  // Для игры: два ряда друг под другом — наш сверху, соперник снизу
+  // (с уменьшенным лого и шрифтом, чтобы визуально подчеркнуть кто
+  // «хозяин» главной страницы).
   const wrap: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '1fr auto 1fr',
-    alignItems: 'center',
-    gap: spacing['10'],
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing['8'],
   };
-  const side: CSSProperties = {
+  const ourRow: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: spacing['8'],
-    minWidth: 0,
+    gap: spacing['16'],
   };
-  const sideRight: CSSProperties = { ...side, flexDirection: 'row-reverse' };
-  const name: CSSProperties = {
-    fontSize: 16,
-    fontWeight: 700,
+  const oppRow: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing['10'],
+    paddingLeft: spacing['4'],
+    opacity: 0.85,
+  };
+  const ourName_: CSSProperties = {
+    fontSize: 24,
+    fontWeight: 800,
     color: colors.textInverse,
+    letterSpacing: '-0.01em',
+    lineHeight: 1.1,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     minWidth: 0,
-    flex: 1,
+    margin: 0,
   };
-  const vs: CSSProperties = {
-    fontSize: 13,
+  const oppName: CSSProperties = {
+    fontSize: 18,
     fontWeight: 700,
-    color: 'rgba(255,255,255,0.6)',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.92)',
+    lineHeight: 1.15,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    minWidth: 0,
   };
   return (
     <div style={wrap}>
-      <div style={side}>
-        <Avatar src={ourLogo} name={ourName} size={40} />
-        <span style={name}>{ourName || '—'}</span>
+      <div style={ourRow}>
+        <Avatar src={ourLogo} name={ourName} size={56} />
+        <h1 style={ourName_}>{ourName || '—'}</h1>
       </div>
-      <span style={vs}>vs</span>
-      <div style={sideRight}>
+      <div style={oppRow}>
         <Avatar src={null} name={opponentName} size={40} />
-        <span style={{ ...name, textAlign: 'right' }}>{opponentName}</span>
+        <span style={oppName}>{opponentName}</span>
       </div>
     </div>
   );
