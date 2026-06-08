@@ -21,6 +21,7 @@ export const ru = {
   'home.nextEvent.metric.fee': 'с игрока',
   'home.nextEvent.metric.seats': 'мест',
   'home.nextEvent.empty.title': 'Нет запланированных событий',
+  'home.nextEvent.empty.body': 'Создай первое событие, чтобы команда могла записаться.',
   'home.nextEvent.empty.ctaOrganizer': 'Создать событие',
   'home.nextEvent.empty.ctaPlayer': 'Открыть календарь',
   'home.noTeam.title': 'Ты пока не в команде',

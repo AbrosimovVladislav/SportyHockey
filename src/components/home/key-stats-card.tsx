@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { FilterChips } from '@/components/filter-chips';
+import { ContentTabs } from '@/components/content-tabs';
 import { LastGameTile } from '@/components/home/last-game-tile';
 import { TeamSummaryTile } from '@/components/home/team-summary-tile';
 import { TopPlayersTable } from '@/components/home/top-players-table';
@@ -12,10 +12,17 @@ import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 
-// Блок «Ключевая статистика» (v0.6, итерация 64). Карточка с заголовком и
-// тремя pill-табами: «Топ 5 игроков» / «Последняя игра» / «Команда». Источник
-// данных — `useDashboardStats` (один эндпоинт, три набора). Каждый таб рисует
-// свой компонент со своим empty state.
+// Блок «Ключевая статистика» на главной (v0.6, передизайн от 2026-06-08):
+// карточка с заголовком и `ContentTabs` (общий стиль табов приложения —
+// как на /events, /squad/[user]). Три таба: «Топ 5 игроков», «Последняя
+// игра», «Команда».
+//
+// Высота карточки задаётся самым длинным табом (топ-5 с 5 игроками) —
+// никакого фиксированного min-height. Содержимое всегда рендерится одним
+// и тем же DOM-блоком; при коротком табе остаётся пустое пространство
+// внизу, но это сценарий «нет данных» (empty state), который мы и так
+// рисуем нейтрально. В заполненном состоянии все три таба близки по
+// высоте, layout не «прыгает».
 
 type TabId = 'top' | 'lastGame' | 'team';
 
@@ -27,8 +34,7 @@ export function KeyStatsCard() {
   const card: CSSProperties = {
     background: colors.bg,
     borderRadius: radius.lg,
-    border: `1px solid ${colors.line}`,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 6px 20px rgba(0,0,0,0.04)',
     overflow: 'hidden',
   };
   const header: CSSProperties = {
@@ -39,15 +45,8 @@ export function KeyStatsCard() {
     color: colors.text,
     margin: 0,
   };
-  const tabsWrap: CSSProperties = {
-    padding: `${spacing['8']}px ${spacing['8']}px ${spacing['4']}px`,
-  };
-  // Фиксированный минимум, чтобы переключение табов не двигало layout
-  // страницы (топ-5 высокий, last_game пониже, team_summary плотная).
-  // Берём с запасом ≈ заполненный топ-5 — это самый длинный таб.
   const body: CSSProperties = {
-    padding: `${spacing['4']}px ${spacing['8']}px ${spacing['8']}px`,
-    minHeight: 360,
+    padding: spacing['8'],
   };
   const skel: CSSProperties = {
     height: 320,
@@ -61,18 +60,15 @@ export function KeyStatsCard() {
       <header style={header}>
         <h2 style={title}>{t('home.stats.title')}</h2>
       </header>
-      <div style={tabsWrap}>
-        <FilterChips
-          compact
-          activeId={active}
-          onChange={(id) => setActive(id as TabId)}
-          options={[
-            { id: 'top', label: t('home.stats.tabs.top') },
-            { id: 'lastGame', label: t('home.stats.tabs.lastGame') },
-            { id: 'team', label: t('home.stats.tabs.team') },
-          ]}
-        />
-      </div>
+      <ContentTabs
+        activeId={active}
+        onChange={(id) => setActive(id as TabId)}
+        tabs={[
+          { id: 'top', label: t('home.stats.tabs.top') },
+          { id: 'lastGame', label: t('home.stats.tabs.lastGame') },
+          { id: 'team', label: t('home.stats.tabs.team') },
+        ]}
+      />
       <div style={body}>
         {statsQ.isLoading || statsQ.isPending ? (
           <div style={skel} aria-hidden />
