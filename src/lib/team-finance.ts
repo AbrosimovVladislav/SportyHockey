@@ -103,6 +103,9 @@ export async function computeTeamBalance(
   if (evRes.error) throw new Error(evRes.error.message);
 
   // 1) Начисления по игрокам по факту showed_up.
+  // Источник истины по per-player итогам — `computePlayerBalance` (единая
+  // формула для /money/players, профиля и вкладки «Финансы»). Здесь же
+  // только аккумулируем команду из тех же транзакций (касса + площадки).
   const charged = new Map<string, number>();
   for (const r of (attRes.data ?? []) as AttendanceRow[]) {
     const cost = r.events?.cost_per_player != null ? Number(r.events.cost_per_player) : 0;
@@ -111,10 +114,9 @@ export async function computeTeamBalance(
   }
 
   // 2) Прогон транзакций. SQL уже отфильтровал occurred_on ≤ asOf.
-  // Балансы каждого «счёта» сводим как Σ to − Σ from. Касса (team) считается так же.
-  const paid = new Map<string, number>(); // user_id → Σ платежей user→team
-  // venue: net = Σ to=venue − Σ from=venue. Положительный → команда «дала» больше
-  // площадке, чем «получила» обратно (= depositon арендой); сравним с cost_v.
+  // Кассу и площадки считаем здесь. Балансы игроков — пересобираем ниже через
+  // computePlayerBalance, чтобы три места приложения видели одни и те же числа.
+  const paid = new Map<string, number>();
   const netByVenue = new Map<string, number>();
   let onHand = 0;
 
@@ -129,7 +131,8 @@ export async function computeTeamBalance(
       if (tx.to_kind === 'team') onHand += amt;
       if (tx.from_kind === 'team') onHand -= amt;
 
-      // Балансы игроков.
+      // Зеркалим в per-user мапы — для совместимости со старым кодом ниже,
+      // но финальный per-user итог всё равно пересоберётся из computePlayerBalance.
       if (tx.from_kind === 'user' && tx.from_id) {
         paid.set(tx.from_id, (paid.get(tx.from_id) ?? 0) + amt);
       }
@@ -137,18 +140,14 @@ export async function computeTeamBalance(
         charged.set(tx.to_id, (charged.get(tx.to_id) ?? 0) + amt);
       }
 
-      // Балансы площадок.
       if (tx.to_kind === 'venue' && tx.to_id) {
         netByVenue.set(tx.to_id, (netByVenue.get(tx.to_id) ?? 0) + amt);
       }
       if (tx.from_kind === 'venue' && tx.from_id) {
         netByVenue.set(tx.from_id, (netByVenue.get(tx.from_id) ?? 0) - amt);
       }
-      // external: только на `on_hand` (выше). В долги/переплаты не идёт,
-      // пока не появятся `counterparties` с учётом предоплат/возвратов.
     } else if (tx.kind === 'adjustment') {
-      // adjustment — одностороннее начисление в пользу игрока. Касса не двигается.
-      if (tx.to_id) {
+      if (tx.to_kind === 'user' && tx.to_id) {
         paid.set(tx.to_id, (paid.get(tx.to_id) ?? 0) + amt);
       }
     }

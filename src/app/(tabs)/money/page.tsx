@@ -28,6 +28,7 @@ import { useTeamMembers } from '@/hooks/use-team-members';
 import { useEvents } from '@/hooks/use-events';
 import { useVenues } from '@/hooks/use-venues';
 import { useCreateFinance } from '@/hooks/use-create-finance';
+import { useTeamSectionImages } from '@/hooks/use-team-section-images';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
@@ -53,6 +54,7 @@ export default function MoneyPage() {
   const eventsQ = useEvents();
   const venuesQ = useVenues();
   const createFinance = useCreateFinance();
+  const sectionImages = useTeamSectionImages();
 
   const [depositOpen, setDepositOpen] = useState(false);
   const [depositError, setDepositError] = useState<string | null>(null);
@@ -150,7 +152,7 @@ export default function MoneyPage() {
 
   return (
     <div style={root}>
-      <DarkHeader title={t('money.title')} imageSrc="/money.png" />
+      <DarkHeader title={t('money.title')} imageSrc={sectionImages.data?.money ?? '/money.png'} />
       <div style={sheet}>
         {!hasTeam && me.isSuccess ? (
           <EmptyTeam title={t('money.empty.noTeam.title')} body={t('money.empty.noTeam.body')} />

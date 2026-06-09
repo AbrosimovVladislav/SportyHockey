@@ -12,6 +12,7 @@ import { NextEventInfoSkeleton } from '@/components/home/next-event-skeleton';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useNextEvent } from '@/hooks/use-next-event';
 import { useT } from '@/hooks/use-t';
+import { useTeamSectionImages } from '@/hooks/use-team-section-images';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
@@ -32,6 +33,7 @@ export default function HomePage() {
 
   const { isOrganizer } = useIsOrganizer();
   const nextQ = useNextEvent();
+  const sectionImages = useTeamSectionImages();
 
   const root: CSSProperties = { minHeight: '100dvh', background: colors.bg };
 
@@ -63,6 +65,7 @@ export default function HomePage() {
           badgeEmpty: t('home.nextEvent.empty.title'),
           versus: t('home.nextEvent.versus.opponent'),
         }}
+        customImage={sectionImages.data?.home ?? null}
       />
 
       <div style={sheet}>

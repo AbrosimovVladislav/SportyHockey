@@ -794,6 +794,24 @@ export type UpdateTeamSettingsResponse = { ok: true };
 // что и в SignMediaUpload (использует тот же storage-клиент Supabase).
 export type SignTeamMediaResponse = SignMediaUpload;
 
+// Картинки шапок разделов. Если для раздела ничего не загружено — null,
+// фронт подставляет дефолт из /public/. Итерация 65.
+export type SectionImageKey =
+  | 'home'
+  | 'team'
+  | 'events_list'
+  | 'event_detail'
+  | 'money';
+
+export type TeamSectionImagesResponse = Record<SectionImageKey, string | null>;
+
+export type SetTeamSectionImageRequest = {
+  section: SectionImageKey;
+  // Путь, полученный после signed-upload. null — отвязать (вернуть дефолт).
+  path: string | null;
+};
+export type SetTeamSectionImageResponse = TeamSectionImagesResponse;
+
 // Инвайт-токен команды. Один постоянный токен на команду, лениво создаётся
 // при первом запросе. url — полный путь /join/<token>, готовый к копированию.
 export type TeamInviteDto = {

@@ -22,6 +22,7 @@ import { useTeamMembers } from '@/hooks/use-team-members';
 import { useTeam } from '@/hooks/use-team';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useJoinRequests } from '@/hooks/use-join-requests';
+import { useTeamSectionImages } from '@/hooks/use-team-section-images';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
 import { colors } from '@/theme/colors';
@@ -43,7 +44,11 @@ export default function TeamHubPage() {
   const pendingCount = pendingQ.data?.requests.length ?? 0;
 
   const members = membersQ.data?.members ?? [];
-  const teamPhoto = teamQ.data?.photo_url ?? '/team.png';
+  const sectionImagesQ = useTeamSectionImages();
+  // Картинка раздела «Команда»: кастом из team_section_images > общее фото
+  // команды (teams.photo_url) > дефолт /team.png.
+  const teamPhoto =
+    sectionImagesQ.data?.team ?? teamQ.data?.photo_url ?? '/team.png';
   const counts = useMemo(
     () => ({
       total: members.length,

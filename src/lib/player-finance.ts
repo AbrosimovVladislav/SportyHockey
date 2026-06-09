@@ -4,6 +4,7 @@ import type { Database } from '@/types/db';
 import type { PlayerFinance, PlayerFinanceEventRow, PlayerFinanceRow } from '@/types/api';
 import { eventLabel } from '@/lib/event-label';
 import { asEventType } from '@/lib/event-enum';
+import { computePlayerBalance } from '@/lib/player-balance';
 
 type SB = SupabaseClient<Database>;
 
@@ -23,7 +24,7 @@ export async function computePlayerFinance(
 ): Promise<PlayerFinance> {
   const nowIso = new Date().toISOString();
 
-  const [attendedRes, paysRes] = await Promise.all([
+  const [attendedRes, paysRes, totals] = await Promise.all([
     sb
       .from('event_attendances')
       .select('events!inner(id, type, title, opponent_name, starts_at, cost_per_player)')
@@ -43,16 +44,18 @@ export async function computePlayerFinance(
       .eq('from_kind', 'user')
       .eq('from_id', userId)
       .eq('to_kind', 'team'),
+    // Итоги (charge / paid / balance) — единый расчёт через player-balance,
+    // общий с /money/players и публичным профилем. Список строк ниже остаётся
+    // по «оплатам user→team», но шапка карточки совпадает с другими экранами.
+    computePlayerBalance(sb, teamId, userId),
   ]);
 
   // Сдвоенные строки события, ключ — event_id. Начисления — из посещённых прошедших событий.
   const eventRows = new Map<string, PlayerFinanceEventRow>();
-  let totalCharged = 0;
   for (const r of attendedRes.data ?? []) {
     const ev = r.events;
     if (!ev) continue;
     const cost = ev.cost_per_player != null ? Number(ev.cost_per_player) : 0;
-    totalCharged += cost;
     if (cost <= 0) continue;
     eventRows.set(ev.id, {
       kind: 'event',
@@ -67,10 +70,8 @@ export async function computePlayerFinance(
   }
 
   const deposits: PlayerFinanceRow[] = [];
-  let totalPaid = 0;
   for (const p of paysRes.data ?? []) {
     const amt = Number(p.amount);
-    totalPaid += amt;
     const ev = p.event_id ? p.events : null;
     if (p.event_id) {
       let row = eventRows.get(p.event_id);
@@ -113,14 +114,13 @@ export async function computePlayerFinance(
     return da < db ? 1 : da > db ? -1 : 0;
   });
 
-  const balance = totalCharged - totalPaid;
   const paidPercent =
-    totalCharged > 0 ? Math.min(100, Math.round((totalPaid / totalCharged) * 100)) : 0;
+    totals.charge > 0 ? Math.min(100, Math.round((totals.paid / totals.charge) * 100)) : 0;
 
   return {
-    balance,
-    total_charged: totalCharged,
-    total_paid: totalPaid,
+    balance: totals.balance,
+    total_charged: totals.charge,
+    total_paid: totals.paid,
     paid_percent: paidPercent,
     rows,
   };

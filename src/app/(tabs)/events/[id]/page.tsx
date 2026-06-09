@@ -38,6 +38,7 @@ import { useCreateFinance } from '@/hooks/use-create-finance';
 import { useTeamBalance } from '@/hooks/use-team-balance';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
+import { useTeamSectionImages } from '@/hooks/use-team-section-images';
 import { formatEventDateRange } from '@/lib/event-format';
 import { formatMoney } from '@/lib/format-money';
 import { formatName } from '@/lib/format-name';
@@ -71,6 +72,7 @@ export default function EventDetailPage() {
   const eventResult = useEventResult(isGame ? id : undefined);
 
   const { isOrganizer } = useIsOrganizer(data?.team_id);
+  const sectionImages = useTeamSectionImages();
   const canEditEvent = isOrganizer && data?.status === 'scheduled';
   const myAttendee = useMemo(() => {
     if (!data || !me.data) return null;
@@ -165,7 +167,7 @@ export default function EventDetailPage() {
       title={titleOverride ?? titleText}
       subtitle={headerSubtitle ?? undefined}
       badge={headerBadge ?? undefined}
-      imageSrc="/arena.png"
+      imageSrc={sectionImages.data?.event_detail ?? '/arena.png'}
       left={
         <GlassButton ariaLabel={t('schedule.backLabel')} onClick={() => router.back()} size={44}>
           <IconBack size={20} color={colors.textInverse} />

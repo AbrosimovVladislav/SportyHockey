@@ -720,6 +720,38 @@ export type Database = {
           },
         ]
       }
+      team_section_images: {
+        Row: {
+          id: string
+          image_url: string
+          section: string
+          team_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          id?: string
+          image_url: string
+          section: string
+          team_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          id?: string
+          image_url?: string
+          section?: string
+          team_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_section_images_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teams: {
         Row: {
           archived_at: string | null

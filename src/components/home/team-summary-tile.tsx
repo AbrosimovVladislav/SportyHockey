@@ -32,9 +32,12 @@ type Props = {
     goalsAgainst: string;
     balance: string;
   };
+  // Игрокам не показываем плашку «Баланс» — это командные финансы, доступ
+  // к ним только у организатора (раздел «Деньги»).
+  showBalance?: boolean;
 };
 
-export function TeamSummaryTile({ summary, labels }: Props) {
+export function TeamSummaryTile({ summary, labels, showBalance = true }: Props) {
   const grid: CSSProperties = {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
@@ -76,12 +79,14 @@ export function TeamSummaryTile({ summary, labels }: Props) {
         label={labels.trainings}
         value={String(summary.trainings_played)}
       />
-      <Stat
-        icon={<IconRuble size={18} color={colors.iconFg} />}
-        label={labels.balance}
-        value={formatMoney(summary.balance)}
-        valueColor={balanceColor}
-      />
+      {showBalance ? (
+        <Stat
+          icon={<IconRuble size={18} color={colors.iconFg} />}
+          label={labels.balance}
+          value={formatMoney(summary.balance)}
+          valueColor={balanceColor}
+        />
+      ) : null}
     </div>
   );
 }

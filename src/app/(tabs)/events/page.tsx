@@ -20,6 +20,7 @@ import { useEvents } from '@/hooks/use-events';
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useTgHeader } from '@/hooks/use-tg-header';
+import { useTeamSectionImages } from '@/hooks/use-team-section-images';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
@@ -50,6 +51,7 @@ export default function EventsPage() {
 
   const { isOrganizer } = useIsOrganizer();
   const events = useEvents();
+  const sectionImages = useTeamSectionImages();
   const [tab, setTab] = useState<TabId>('list');
   const [filter, setFilter] = useState<FilterId>('all');
   const [calendarSelected, setCalendarSelected] = useState<Date>(() => {
@@ -221,7 +223,7 @@ export default function EventsPage() {
 
   return (
     <div style={{ background: colors.bg, minHeight: '100dvh' }}>
-      <DarkHeader title={t('schedule.title')} imageSrc="/bus.png" />
+      <DarkHeader title={t('schedule.title')} imageSrc={sectionImages.data?.events_list ?? '/bus.png'} />
 
       <div style={sheet}>
         <ContentTabs tabs={tabsOptions} activeId={tab} onChange={(id) => setTab(id as TabId)} />

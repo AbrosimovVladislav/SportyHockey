@@ -1,0 +1,63 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { requireOrganizer } from '@/lib/auth';
+import { handleRouteError } from '@/lib/api-error';
+import { supabaseServer } from '@/lib/supabase-server';
+import type { SignTeamMediaResponse } from '@/types/api';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// Signed-upload для шапочной картинки конкретного раздела команды.
+// Кладём в тот же public-бакет team-media в подпапку sections/<team_id>/.
+// После загрузки клиент шлёт PATCH /api/teams/me/section-images с path.
+
+const BUCKET = 'team-media';
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+const Body = z.object({
+  mime: z.enum(ALLOWED_MIME),
+  section: z.enum(['home', 'team', 'events_list', 'event_detail', 'money']),
+});
+
+function safeExt(mime: string): string {
+  if (mime === 'image/jpeg') return 'jpg';
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/webp') return 'webp';
+  return 'bin';
+}
+
+export async function POST(req: Request): Promise<Response> {
+  try {
+    const org = await requireOrganizer(req);
+    const sb = supabaseServer();
+
+    const json = await req.json().catch(() => null);
+    const parsed = Body.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
+    }
+
+    const ext = safeExt(parsed.data.mime);
+    const path = `sections/${org.team_id}/${parsed.data.section}-${crypto.randomUUID()}.${ext}`;
+    const { data: signed, error: signErr } = await sb.storage
+      .from(BUCKET)
+      .createSignedUploadUrl(path);
+    if (signErr || !signed) {
+      return NextResponse.json(
+        { error: signErr?.message ?? 'Не удалось получить signed URL' },
+        { status: 500 },
+      );
+    }
+
+    const body: SignTeamMediaResponse = {
+      path: signed.path,
+      signed_url: signed.signedUrl,
+      token: signed.token,
+      mime: parsed.data.mime,
+    };
+    return NextResponse.json(body);
+  } catch (e) {
+    return handleRouteError(e);
+  }
+}

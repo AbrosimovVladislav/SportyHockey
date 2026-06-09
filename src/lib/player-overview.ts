@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/db';
 import type { AttendanceLast5Item, AttendanceStatus, PlayerOverview } from '@/types/api';
 import { asEventType } from '@/lib/event-enum';
+import { computePlayerBalance } from '@/lib/player-balance';
 
 type SB = SupabaseClient<Database>;
 
@@ -32,7 +33,7 @@ export async function computePlayerOverview(
     .maybeSingle();
   const joinedIso = mem?.joined_at ?? new Date(0).toISOString();
 
-  const [denomRes, numRes, attendedRes, paidRes, goalsRes, assistsRes, last5Res] = await Promise.all([
+  const [denomRes, numRes, attendedRes, balance, goalsRes, assistsRes, last5Res] = await Promise.all([
     // Знаменатель посещаемости: прошедшие не-отменённые события команды после вступления.
     sb
       .from('events')
@@ -60,14 +61,9 @@ export async function computePlayerOverview(
       .eq('events.team_id', teamId)
       .neq('events.status', 'cancelled')
       .lt('events.starts_at', nowIso),
-    // Оплаты игрока в кассу команды (transfer user→team).
-    sb
-      .from('finance_transactions')
-      .select('amount')
-      .eq('team_id', teamId)
-      .eq('from_kind', 'user')
-      .eq('from_id', userId)
-      .eq('to_kind', 'team'),
+    // Баланс игрока — единый расчёт ([player-balance.ts]), общий с
+    // /money/players и вкладкой «Финансы» в профиле.
+    computePlayerBalance(sb, teamId, userId),
     // Голы игрока в событиях команды (по типу).
     sb
       .from('result_points')
@@ -103,17 +99,12 @@ export async function computePlayerOverview(
     trainings: { played: 0, goals: 0, assists: 0 },
   };
 
-  let charge = 0;
   for (const r of attendedRes.data ?? []) {
     const ev = r.events;
     if (!ev) continue;
-    charge += ev.cost_per_player != null ? Number(ev.cost_per_player) : 0;
     if (asEventType(ev.type) === 'game') stats.games.played += 1;
     else stats.trainings.played += 1;
   }
-
-  const paid = (paidRes.data ?? []).reduce((s, p) => s + Number(p.amount), 0);
-  const balance = charge - paid;
 
   for (const r of goalsRes.data ?? []) {
     if (asEventType(r.events?.type ?? null) === 'game') stats.games.goals += 1;
@@ -143,7 +134,7 @@ export async function computePlayerOverview(
 
   return {
     attendance: { rate, last5 },
-    finance: { balance },
+    finance: { balance: balance.balance },
     stats,
   };
 }

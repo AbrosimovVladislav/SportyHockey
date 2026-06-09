@@ -39,13 +39,13 @@ export const ru = {
   'home.actions.organizer.recordResult': 'Записать результат',
 
   // Блок «Ключевая статистика» (v0.6, итерация 64). Три таба:
-  //   • «Топ 5 игроков» — очки (Г+П) только в играх;
+  //   • «Топ 5 машин — очки (Г+П) только в играх;
   //   • «Последняя игра» — счёт + ассисты + мин. удалений;
   //   • «Команда»       — матчей/тренировок/побед/шайб/пропущено/баланс.
   // Метрик, которых нет в модели (броски/вбрасывания/сэйвы/силовые), не
   // показываем — юзер явно сказал не выдумывать.
   'home.stats.title': 'Ключевая статистика',
-  'home.stats.tabs.top': 'Топ 5 игроков',
+  'home.stats.tabs.top': 'Топ 5 машин',
   'home.stats.tabs.lastGame': 'Последняя игра',
   'home.stats.tabs.team': 'Команда',
   'home.stats.top.header.player': 'Игрок',
@@ -725,6 +725,20 @@ export const ru = {
   'teamSettings.general.photo': 'Командная фотография',
   'teamSettings.general.photo.empty': 'Загрузите фотографию, которая станет шапкой раздела «Команда».',
   'teamSettings.general.photo.change': 'Изменить',
+  'teamSettings.sectionImages.title': 'Изображения разделов',
+  'teamSettings.sectionImages.description':
+    'Для каждого раздела можно загрузить свою картинку. Не загружено — показываем стандартное изображение.',
+  'teamSettings.sectionImages.section.home': 'Главная',
+  'teamSettings.sectionImages.section.team': 'Команда',
+  'teamSettings.sectionImages.section.events_list': 'Расписание',
+  'teamSettings.sectionImages.section.event_detail': 'Карточка события',
+  'teamSettings.sectionImages.section.money': 'Деньги',
+  'teamSettings.sectionImages.replace': 'Заменить',
+  'teamSettings.sectionImages.reset': 'Сбросить',
+  'teamSettings.sectionImages.status.custom': 'Своё',
+  'teamSettings.sectionImages.status.default': 'Стандарт',
+  'teamSettings.sectionImages.toggle.expand': 'Развернуть',
+  'teamSettings.sectionImages.toggle.collapse': 'Свернуть',
   'teamSettings.name.sheet.title': 'Название команды',
   'teamSettings.name.sheet.placeholder': 'Например, SportyHockey',
   'teamSettings.save': 'Сохранить',

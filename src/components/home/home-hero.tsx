@@ -32,9 +32,11 @@ type Props = {
     badgeEmpty: string;
     versus: string;
   };
+  // Кастомная картинка раздела home (если орг загрузил). null — дефолт.
+  customImage?: string | null;
 };
 
-export function HomeHero({ team, event, labels }: Props) {
+export function HomeHero({ team, event, labels, customImage }: Props) {
   // Top-scrim для опасной зоны — как в DarkHeader. На выходе сбрасываем,
   // чтобы светлые разделы не тащили затемнение под статус-баром.
   useEffect(() => {
@@ -62,7 +64,7 @@ export function HomeHero({ team, event, labels }: Props) {
   const imageLayer: CSSProperties = {
     position: 'absolute',
     inset: 0,
-    background: "url('/main.png') center/cover no-repeat",
+    background: `url('${customImage ?? '/main.png'}') center/cover no-repeat`,
     zIndex: 0,
   };
   // Затемнение у самого низа — под белые тексты (как в DarkHeader.bottomScrim).

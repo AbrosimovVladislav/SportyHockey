@@ -12,6 +12,7 @@ import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import type { TeamSettingsDto } from '@/types/api';
 import { SectionHeader } from './section-header';
+import { SectionImagesBlock } from './section-images-block';
 
 // Вкладка «Общее»: название, логотип, командная фотография.
 // Кропа нет — изображения грузятся как есть.
@@ -166,6 +167,8 @@ export function GeneralTab({ settings }: Props) {
           }}
         />
       </section>
+
+      <SectionImagesBlock />
 
       <BottomSheet
         open={editingName}
