@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidateHome } from '@/lib/invalidate-home';
 import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { UpdateFinanceRequest, UpdateFinanceResponse } from '@/types/api';
 
@@ -37,6 +38,7 @@ export function useUpdateFinance(): UseMutationResult<
       // Профиль старого игрока (если user_id сменился) + нового — оба.
       if (vars.prev_user_id) invalidatePlayer(qc, vars.prev_user_id);
       if (vars.patch.user_id) invalidatePlayer(qc, vars.patch.user_id);
+      invalidateHome(qc, { dashboardStats: true, nextEvent: false, homeActions: false });
     },
   });
 }

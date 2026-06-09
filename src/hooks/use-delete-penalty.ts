@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidateHome } from '@/lib/invalidate-home';
 import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { DeletePenaltyResponse } from '@/types/api';
 
@@ -18,6 +19,7 @@ export function useDeletePenalty(
       qc.invalidateQueries({ queryKey: ['event-result', eventId] });
       // удалённого игрока из vars (только penaltyId) не вычислить
       invalidatePlayer(qc);
+      invalidateHome(qc, { dashboardStats: true, nextEvent: false, homeActions: false });
     },
   });
 }

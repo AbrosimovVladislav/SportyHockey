@@ -8,6 +8,7 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidateHome } from '@/lib/invalidate-home';
 import type {
   JoinRequestDecisionRequest,
   JoinRequestDecisionResponse,
@@ -51,6 +52,8 @@ export function useDecideJoinRequest(): UseMutationResult<
       qc.invalidateQueries({ queryKey: ['join-requests'] });
       // Принятый игрок должен появиться в /squad даже если список не смонтирован.
       qc.invalidateQueries({ queryKey: ['team-members'], refetchType: 'all' });
+      // Бейдж pending-counter на плитке «Заявки» на главной.
+      invalidateHome(qc, { homeActions: true, nextEvent: false, dashboardStats: false });
     },
   });
 }

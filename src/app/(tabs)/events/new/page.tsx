@@ -23,6 +23,7 @@ import {
 import { useIsOrganizer } from '@/hooks/use-is-organizer';
 import { useT } from '@/hooks/use-t';
 import { useVenues } from '@/hooks/use-venues';
+import { invalidateHome } from '@/lib/invalidate-home';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import { combineDateTime, formatLongDateLocal } from '@/lib/event-format';
 import { colors } from '@/theme/colors';
@@ -224,6 +225,9 @@ export default function EventNewPage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['events'] });
+      // Новое событие → ближайшее на главной сдвигается; home-actions может
+      // получить нового кандидата под «последнее прошедшее» (если оно в прошлом).
+      invalidateHome(qc, { nextEvent: true, homeActions: true, dashboardStats: false });
       router.replace('/events');
     },
     onError: (e) => setError(e instanceof ApiError ? e.message : t('common.error')),

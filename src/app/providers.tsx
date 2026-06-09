@@ -22,8 +22,14 @@ export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        // refetchOnWindowFocus: true — когда пользователь возвращается в TMA из
+        // другого Telegram-окна / бэкграунда, все запросы за пределами staleTime
+        // автоматически обновляются. Это закрывает 90% сценариев «зашёл, через
+        // полчаса вернулся — данные старые» (v0.6, итерация 66.1). На staleTime
+        // 30s слишком частых рефетчей не будет: переключения между табами
+        // приложения мгновенные, focus-event там не срабатывает.
         defaultOptions: {
-          queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 },
+          queries: { retry: 1, refetchOnWindowFocus: true, staleTime: 30_000 },
         },
       }),
   );

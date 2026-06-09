@@ -16,7 +16,13 @@ export type VerifiedInitData = {
   start_param?: string;
 };
 
-const MAX_AGE_SECONDS = 24 * 60 * 60;
+// Срок жизни подписи initData. 24h как security-best-practice слишком жёстко
+// для TMA, который у пользователя может «висеть в фоне» по нескольку дней —
+// при возвращении в app сервер отбрасывал старую подпись и весь интерфейс
+// показывал «что-то пошло не так». 7 дней — приемлемый компромисс для PoC
+// (HMAC всё равно проверяется криптографически; ограничение чисто против
+// replay-атак с украденным initData).
+const MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export function verifyInitData(initData: string, botToken: string): VerifiedInitData {
   const params = new URLSearchParams(initData);

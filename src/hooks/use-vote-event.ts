@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidateHome } from '@/lib/invalidate-home';
 import type {
   AttendanceCount,
   EventDetailDto,
@@ -39,6 +40,9 @@ export function useVoteEvent(
     onSettled: () => {
       qc.invalidateQueries({ queryKey: key });
       qc.invalidateQueries({ queryKey: ['events'] });
+      // Главная показывает `N из M идут` — обновляем после голоса.
+      // home-actions / dashboard-stats голос не двигает, экономим запросы.
+      invalidateHome(qc, { nextEvent: true, homeActions: false, dashboardStats: false });
     },
   });
 }

@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidateHome } from '@/lib/invalidate-home';
 import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { EventDetailDto, SetPaymentRequest } from '@/types/api';
 
@@ -32,6 +33,8 @@ export function useSetPayment(
       qc.invalidateQueries({ queryKey: key });
       qc.invalidateQueries({ queryKey: ['events'] });
       invalidatePlayer(qc, vars.user_id);
+      // Оплата ↔ финансовая транзакция → `team_summary.balance` на главной.
+      invalidateHome(qc, { dashboardStats: true, nextEvent: false, homeActions: false });
     },
   });
 }

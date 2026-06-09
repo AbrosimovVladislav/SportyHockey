@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidateHome } from '@/lib/invalidate-home';
 import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { UpdatePenaltyRequest, UpdatePenaltyResponse } from '@/types/api';
 
@@ -21,6 +22,7 @@ export function useUpdatePenalty(
       qc.invalidateQueries({ queryKey: ['event-result', eventId] });
       // PATCH мог сместить штраф между игроками — затронутых из vars не вычислить
       invalidatePlayer(qc);
+      invalidateHome(qc, { dashboardStats: true, nextEvent: false, homeActions: false });
     },
   });
 }

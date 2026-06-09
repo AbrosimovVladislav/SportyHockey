@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidateHome } from '@/lib/invalidate-home';
 import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { EventDetailDto, SetAttendanceRequest } from '@/types/api';
 
@@ -40,6 +41,9 @@ export function useSetAttendance(
       invalidatePlayer(qc, vars.user_id);
       // attendance_rate в списке состава тоже зависит от showed_up
       qc.invalidateQueries({ queryKey: ['team-members'] });
+      // `team_summary.balance` использует charged = ∑ cost_per_player по
+      // showed_up=true (см. team-finance.ts). Отметка явки сдвигает баланс.
+      invalidateHome(qc, { dashboardStats: true, nextEvent: false, homeActions: false });
     },
   });
 }

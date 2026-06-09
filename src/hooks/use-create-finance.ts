@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { invalidateHome } from '@/lib/invalidate-home';
 import { invalidatePlayer } from '@/lib/invalidate-player';
 import type { CreateFinanceRequest, CreateFinanceResponse } from '@/types/api';
 
@@ -31,6 +32,8 @@ export function useCreateFinance(): UseMutationResult<
       qc.invalidateQueries({ queryKey: ['finance-report'] });
       qc.invalidateQueries({ queryKey: ['finance-analytics'] });
       if (vars.user_id) invalidatePlayer(qc, vars.user_id);
+      // На главной — `team_summary.balance` в табе «Команда».
+      invalidateHome(qc, { dashboardStats: true, nextEvent: false, homeActions: false });
     },
   });
 }
