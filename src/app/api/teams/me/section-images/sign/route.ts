@@ -17,7 +17,7 @@ const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 const Body = z.object({
   mime: z.enum(ALLOWED_MIME),
-  section: z.enum(['home', 'team', 'events_list', 'event_detail', 'money']),
+  section: z.enum(['home', 'team', 'events_list', 'money']),
 });
 
 function safeExt(mime: string): string {

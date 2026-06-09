@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState, type CSSProperties } from 'react';
-import { Card } from '@/components/card';
 import { ListRow } from '@/components/list-row';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { IconBadgeCheck, IconImage } from '@/components/icons';
@@ -14,8 +13,10 @@ import type { TeamSettingsDto } from '@/types/api';
 import { SectionHeader } from './section-header';
 import { SectionImagesBlock } from './section-images-block';
 
-// Вкладка «Общее»: название, логотип, командная фотография.
-// Кропа нет — изображения грузятся как есть.
+// Вкладка «Общее»: название, логотип, картинки разделов.
+// Старое поле «Командная фотография» (teams.photo_url) убрано из UI — его
+// заменила секция `team` в новом аккордионе `SectionImagesBlock`. В БД поле
+// осталось для бота / постеров, но в настройках команды больше не редактируется.
 
 const LOGO_PREVIEW = 36;
 
@@ -29,11 +30,9 @@ export function GeneralTab({ settings }: Props) {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const logoInputRef = useRef<HTMLInputElement | null>(null);
-  const photoInputRef = useRef<HTMLInputElement | null>(null);
 
   const name = settings?.name ?? '';
   const logoUrl = settings?.logo_url ?? null;
-  const photoUrl = settings?.photo_url ?? null;
 
   function openNameSheet() {
     setNameDraft(name);
@@ -54,11 +53,11 @@ export function GeneralTab({ settings }: Props) {
     }
   }
 
-  async function pickAndUpload(kind: 'logo' | 'photo', file: File | null | undefined) {
+  async function pickAndUploadLogo(file: File | null | undefined) {
     if (!file) return;
     setUploadError(null);
     try {
-      await update.mutateAsync({ body: {}, upload: { kind, file } });
+      await update.mutateAsync({ body: {}, upload: { kind: 'logo', file } });
     } catch (e) {
       if (e instanceof UploadError) {
         setUploadError(e.message);
@@ -105,70 +104,15 @@ export function GeneralTab({ settings }: Props) {
           onChange={(e) => {
             const f = e.target.files?.[0] ?? null;
             e.target.value = '';
-            void pickAndUpload('logo', f);
-          }}
-        />
-      </section>
-
-      <section>
-        <SectionHeader>{t('teamSettings.general.section.appearance')}</SectionHeader>
-        <Card variant="surface" padding={spacing['16']}>
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: colors.text,
-              marginBottom: spacing['12'],
-            }}
-          >
-            {t('teamSettings.general.photo')}
-          </div>
-          <PhotoPreview src={photoUrl} placeholder={t('teamSettings.general.photo.empty')} />
-          <button
-            type="button"
-            className="pressable"
-            onClick={() => photoInputRef.current?.click()}
-            style={{
-              marginTop: spacing['12'],
-              width: '100%',
-              padding: `${spacing['12']}px ${spacing['16']}px`,
-              borderRadius: radius.md,
-              border: 'none',
-              background: colors.bgMuted,
-              color: colors.primary,
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            {t('teamSettings.general.photo.change')}
-          </button>
-          {uploadError ? (
-            <div
-              style={{
-                marginTop: spacing['8'],
-                fontSize: 13,
-                color: colors.error,
-              }}
-            >
-              {uploadError}
-            </div>
-          ) : null}
-        </Card>
-        <input
-          ref={photoInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          style={{ display: 'none' }}
-          onChange={(e) => {
-            const f = e.target.files?.[0] ?? null;
-            e.target.value = '';
-            void pickAndUpload('photo', f);
+            void pickAndUploadLogo(f);
           }}
         />
       </section>
 
       <SectionImagesBlock />
+      {uploadError ? (
+        <div style={{ fontSize: 13, color: colors.error }}>{uploadError}</div>
+      ) : null}
 
       <BottomSheet
         open={editingName}
@@ -230,37 +174,3 @@ function LogoPreview({ src }: { src: string | null }) {
   return <div style={box} aria-hidden />;
 }
 
-function PhotoPreview({ src, placeholder }: { src: string | null; placeholder: string }) {
-  if (!src) {
-    return (
-      <div
-        style={{
-          width: '100%',
-          aspectRatio: '4 / 5',
-          borderRadius: radius.md,
-          background: colors.bgMuted,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: colors.textSecondary,
-          fontSize: 13,
-          textAlign: 'center',
-          padding: spacing['16'],
-        }}
-      >
-        {placeholder}
-      </div>
-    );
-  }
-  return (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: '4 / 5',
-        borderRadius: radius.md,
-        background: `url(${src}) center/cover no-repeat`,
-      }}
-      aria-hidden
-    />
-  );
-}

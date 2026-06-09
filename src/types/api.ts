@@ -795,12 +795,12 @@ export type UpdateTeamSettingsResponse = { ok: true };
 export type SignTeamMediaResponse = SignMediaUpload;
 
 // Картинки шапок разделов. Если для раздела ничего не загружено — null,
-// фронт подставляет дефолт из /public/. Итерация 65.
+// фронт подставляет дефолт из /public/. Итерация 65. Карточка события
+// сюда не входит — там подтягивается venue.photo_url из таблицы venues.
 export type SectionImageKey =
   | 'home'
   | 'team'
   | 'events_list'
-  | 'event_detail'
   | 'money';
 
 export type TeamSectionImagesResponse = Record<SectionImageKey, string | null>;

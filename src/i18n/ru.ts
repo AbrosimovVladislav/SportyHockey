@@ -731,7 +731,6 @@ export const ru = {
   'teamSettings.sectionImages.section.home': 'Главная',
   'teamSettings.sectionImages.section.team': 'Команда',
   'teamSettings.sectionImages.section.events_list': 'Расписание',
-  'teamSettings.sectionImages.section.event_detail': 'Карточка события',
   'teamSettings.sectionImages.section.money': 'Деньги',
   'teamSettings.sectionImages.replace': 'Заменить',
   'teamSettings.sectionImages.reset': 'Сбросить',

@@ -29,7 +29,6 @@ const ROWS: SectionRow[] = [
   { key: 'home', defaultSrc: '/main.png' },
   { key: 'team', defaultSrc: '/team.png' },
   { key: 'events_list', defaultSrc: '/bus.png' },
-  { key: 'event_detail', defaultSrc: '/arena.png' },
   { key: 'money', defaultSrc: '/money.png' },
 ];
 
@@ -215,7 +214,12 @@ function SectionRowView({
     flex: 1,
     minWidth: 0,
   };
-  const actions: CSSProperties = { display: 'flex', gap: spacing['8'] };
+  const actions: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing['6'],
+    flexShrink: 0,
+  };
   const btn: CSSProperties = {
     padding: `${spacing['8']}px ${spacing['12']}px`,
     border: `1px solid ${colors.border}`,
