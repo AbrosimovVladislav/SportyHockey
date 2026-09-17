@@ -765,16 +765,13 @@ export type CreateEventResponse = {
 // POST /api/events/[id]/announce — опубликовать (или повторно) анонс в канал.
 export type AnnounceEventResponse = { ok: true; announced_at: string };
 
-// GET/PUT/DELETE /api/teams/me/channel — группа команды в Telegram для анонсов.
+// GET/DELETE /api/teams/me/channel — группа команды в Telegram для анонсов.
 // bot_username нужен для подсказки «добавь @бота в группу».
 export type TeamChannelDto = {
   bound: boolean;
   title: string | null;
   bot_username: string | null;
 };
-
-// PUT: @ник публичной группы (или ссылка t.me/nick).
-export type BindTeamChannelRequest = { username: string };
 
 // ───────────────────────────────────────────────────────────────────────────
 // Итерация 41 — Настройки команды (/squad/settings).

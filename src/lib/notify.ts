@@ -136,7 +136,7 @@ export async function notifyEventSeriesCreated(eventIds: string[]): Promise<void
 
 // Изменение события. В канал пишем только то, что важно всем: перенос (время или
 // площадка) и возврат отменённого события. Правка взноса/деталей реплая не стоит.
-// Личные сообщения об изменениях — в кандидатах v0.8.
+// Личные сообщения об изменениях пока не сделаны.
 export async function notifyEventUpdated(
   eventId: string,
   change: { rescheduled: boolean; restored: boolean },

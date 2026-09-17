@@ -595,8 +595,8 @@ export const ru = {
   'eventAnnounce.sending': 'Отправляем...',
   'eventAnnounce.done': 'Анонс отправлен в группу',
   'eventAnnounce.error': 'Не получилось отправить анонс',
-  'eventAnnounce.noGroup': 'Группа команды не указана — анонс отправить некуда',
-  'eventAnnounce.toSettings': 'Указать группу в настройках',
+  'eventAnnounce.noGroup': 'Группа команды не привязана — анонс отправить некуда',
+  'eventAnnounce.toSettings': 'Как привязать группу',
 
   // Edit event (/events/[id]/reschedule)
   'reschedule.title': 'Изменить событие',
@@ -762,17 +762,18 @@ export const ru = {
   'teamSettings.sectionImages.status.default': 'Стандарт',
   'teamSettings.sectionImages.status.venue': 'Фото арены',
   'teamSettings.channel.title': 'Группа команды в Telegram',
-  'teamSettings.channel.notBound': 'Группа не указана',
-  'teamSettings.channel.notBoundHint': 'Укажи группу — бот будет публиковать в неё анонсы тренировок и игр',
-  'teamSettings.channel.boundNoTitle': 'Группа указана',
+  'teamSettings.channel.notBound': 'Группа не привязана',
+  'teamSettings.channel.notBoundHint': 'Привяжи группу — бот будет публиковать в неё анонсы тренировок и игр',
+  'teamSettings.channel.boundNoTitle': 'Группа привязана',
   'teamSettings.channel.boundHint': 'Сюда бот публикует анонсы тренировок и игр',
   'teamSettings.channel.botFallback': 'Бот',
-  'teamSettings.channel.nickPlaceholder': '@ник группы',
-  'teamSettings.channel.bind': 'Привязать',
-  'teamSettings.channel.binding': 'Проверяем...',
-  'teamSettings.channel.bindError': 'Не получилось привязать группу',
-  'teamSettings.channel.note':
-    '{bot} должен быть добавлен в группу, а ты — быть её админом. Ник есть только у публичной группы. У закрытой ника нет: добавь в неё бота — она привяжется сама и появится здесь.',
+  'teamSettings.channel.step1':
+    'Добавь {bot} в группу команды в Telegram (лучше администратором). Добавить должен ты сам: бот привязывает группу к команде того, кто его добавил.',
+  'teamSettings.channel.step2':
+    'Бот напишет в группу, что она привязана, и её название появится здесь.',
+  'teamSettings.channel.step3': 'Бот уже в группе? Отправь в ней команду {cmd}',
+  'teamSettings.channel.moveHint':
+    'Перенести анонсы в другую группу: добавь туда бота и отправь в ней {cmd}',
   'teamSettings.channel.unbind': 'Отвязать группу',
   'teamSettings.channel.unbindError': 'Не получилось отвязать группу',
   'teamSettings.sectionImages.toggle.expand': 'Развернуть',

@@ -148,7 +148,7 @@ export async function publishEventAnnouncement(
 
   let chatId = one(event.team)?.announce_chat_id ?? null;
   if (chatId == null) {
-    return { ok: false, reason: 'no_channel', message: 'Группа команды не указана' };
+    return { ok: false, reason: 'no_channel', message: 'Группа команды не привязана' };
   }
   const threadId = one(event.team)?.announce_thread_id ?? undefined;
 
