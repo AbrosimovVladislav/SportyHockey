@@ -92,7 +92,8 @@ function buildCaption(event: AnnounceEvent): string {
       : `🏒 <b>${escapeHtml(title || 'Тренировка')}</b>`,
   );
   lines.push(`📅 ${formatEventDateLine(event.starts_at, event.ends_at, team?.timezone)}`);
-  if (venue?.name) lines.push(`📍 ${escapeHtml(venue.name)}`);
+  const venueName = venue?.name?.trim();
+  if (venueName) lines.push(`📍 ${escapeHtml(venueName)}`);
   const cost = event.cost_per_player != null ? Number(event.cost_per_player) : 0;
   if (cost > 0) lines.push(`💰 ${formatRub(cost)} ₽ с игрока`);
   const details = event.details?.trim();
@@ -233,7 +234,7 @@ export async function replyToAnnouncement(eventId: string, kind: AnnounceReplyKi
   if (!event || event.announce_chat_id == null || event.announce_message_id == null) return;
 
   const when = formatEventDateLine(event.starts_at, event.ends_at, one(event.team)?.timezone);
-  const venueName = one(event.venue)?.name;
+  const venueName = one(event.venue)?.name?.trim();
   const lines: string[] = [];
   if (kind === 'cancelled') {
     lines.push('❌ <b>Отменено</b>');

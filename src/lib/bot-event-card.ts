@@ -37,7 +37,8 @@ export function buildEventCard(args: BotEventCardArgs): {
   // У игры название команды уже в заголовке («Команда vs Соперник»).
   if (args.type !== 'game' && args.team_name?.trim()) lines.push(`👥 ${args.team_name.trim()}`);
   lines.push(`📅 ${formatEventDateLine(args.starts_at, args.ends_at, args.timezone)}`);
-  if (args.venue_name) lines.push(`📍 ${args.venue_name}`);
+  const venueName = args.venue_name?.trim();
+  if (venueName) lines.push(`📍 ${venueName}`);
   if (args.cost_per_player != null && args.cost_per_player > 0) {
     lines.push(`💰 ${formatRub(args.cost_per_player)} ₽`);
   }

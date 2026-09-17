@@ -110,7 +110,8 @@ export async function notifyEventSeriesCreated(eventIds: string[]): Promise<void
   for (const e of events) {
     lines.push(`📅 ${formatEventDateLine(e.starts_at, e.ends_at, teamRaw?.timezone)}`);
   }
-  if (venueRaw?.name) lines.push(`📍 ${venueRaw.name}`);
+  const venueName = venueRaw?.name?.trim();
+  if (venueName) lines.push(`📍 ${venueName}`);
   const cost = first.cost_per_player != null ? Number(first.cost_per_player) : 0;
   if (cost > 0) lines.push(`💰 ${formatRub(cost)} ₽`);
   const text = lines.join('\n');
