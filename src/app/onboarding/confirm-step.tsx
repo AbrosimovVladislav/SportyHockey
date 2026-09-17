@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { MemberForm, emptyMemberForm, splitName, type MemberFormValue } from '@/components/member-form';
 import { useOnboard } from '@/hooks/use-onboard';
 import { useT } from '@/hooks/use-t';
+import { peekPendingPath } from '@/lib/pending-path';
 import { typography } from '@/theme/typography';
 import { colors } from '@/theme/colors';
 import type { MeUser } from '@/types/api';
@@ -38,7 +39,7 @@ export function ConfirmStep({ user }: { user: MeUser }) {
       {
         onSuccess: async () => {
           await qc.invalidateQueries({ queryKey: ['me'] });
-          router.replace('/');
+          router.replace(peekPendingPath() ?? '/');
         },
       },
     );

@@ -3,14 +3,16 @@ import { z } from 'zod';
 import { requireUser } from '@/lib/auth';
 import { handleRouteError } from '@/lib/api-error';
 import { supabaseServer } from '@/lib/supabase-server';
-import type { CreateTeamResponse } from '@/types/api';
+import { isValidTimezone } from '@/lib/bot-format';
+import type { CreateTeamRequest, CreateTeamResponse } from '@/types/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const Body = z.object({
   name: z.string().trim().min(2).max(50),
-});
+  timezone: z.string().max(64).optional(),
+}) satisfies z.ZodType<CreateTeamRequest>;
 
 export async function POST(req: Request): Promise<Response> {
   try {
@@ -36,7 +38,13 @@ export async function POST(req: Request): Promise<Response> {
 
     const { data: team, error: teamErr } = await sb
       .from('teams')
-      .insert({ name: parsed.data.name })
+      .insert({
+        name: parsed.data.name,
+        timezone:
+          parsed.data.timezone && isValidTimezone(parsed.data.timezone)
+            ? parsed.data.timezone
+            : null,
+      })
       .select('id, name')
       .single();
     if (teamErr || !team) {

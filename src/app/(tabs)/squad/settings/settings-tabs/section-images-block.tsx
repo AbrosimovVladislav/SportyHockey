@@ -23,6 +23,9 @@ import { SectionHeader } from './section-header';
 type SectionRow = {
   key: SectionImageKey;
   defaultSrc: string;
+  // Картинки анонсов в Telegram-канал: без своей картинки бот берёт фото арены
+  // события, и только потом — стандартную. Подпись статуса это отражает.
+  announce?: boolean;
 };
 
 const ROWS: SectionRow[] = [
@@ -30,6 +33,8 @@ const ROWS: SectionRow[] = [
   { key: 'team', defaultSrc: '/team.png' },
   { key: 'events_list', defaultSrc: '/bus.png' },
   { key: 'money', defaultSrc: '/money.png' },
+  { key: 'announce_training', defaultSrc: '/arena.png', announce: true },
+  { key: 'announce_game', defaultSrc: '/arena.png', announce: true },
 ];
 
 export function SectionImagesBlock() {
@@ -133,7 +138,9 @@ export function SectionImagesBlock() {
                   status={
                     custom
                       ? t('teamSettings.sectionImages.status.custom')
-                      : t('teamSettings.sectionImages.status.default')
+                      : r.announce
+                        ? t('teamSettings.sectionImages.status.venue')
+                        : t('teamSettings.sectionImages.status.default')
                   }
                   hasCustom={!!custom}
                   replaceLabel={t('teamSettings.sectionImages.replace')}

@@ -79,7 +79,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
     const { data: rawEvent, error } = await sb
       .from('events')
       .select(
-        'id, team_id, type, title, details, starts_at, ends_at, cost_per_player, arena_cost, arena_paid_amount, opponent_name, status, created_by, cancelled_reason, venue:venues(id, name, address, photo_url)',
+        'id, team_id, type, title, details, starts_at, ends_at, cost_per_player, arena_cost, arena_paid_amount, opponent_name, status, created_by, cancelled_reason, announced_at, venue:venues(id, name, address, photo_url)',
       )
       .eq('id', id)
       .maybeSingle();
@@ -271,6 +271,7 @@ export async function GET(req: Request, { params }: Params): Promise<Response> {
       lines,
       media_count: mediaCount ?? 0,
       cancelled_reason: event.cancelled_reason ?? null,
+      announced_at: event.announced_at ?? null,
     };
     return NextResponse.json(dto);
   } catch (e) {
@@ -291,7 +292,7 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
     const sb = supabaseServer();
     const { data: existing, error: existingErr } = await sb
       .from('events')
-      .select('id, team_id, status, starts_at, type, opponent_name')
+      .select('id, team_id, status, starts_at, type, opponent_name, venue_id')
       .eq('id', id)
       .maybeSingle();
     if (existingErr) {
@@ -392,7 +393,14 @@ export async function PATCH(req: Request, { params }: Params): Promise<Response>
       }
       await notifyEventCancelled(id);
     } else if (!stillCancelled) {
-      await notifyEventUpdated(id);
+      const timeChanged =
+        d.starts_at !== undefined &&
+        new Date(d.starts_at).getTime() !== new Date(existing.starts_at).getTime();
+      const venueChanged = d.venue_id !== undefined && d.venue_id !== existing.venue_id;
+      await notifyEventUpdated(id, {
+        rescheduled: timeChanged || venueChanged,
+        restored: d.status === 'scheduled' && existing.status === 'cancelled',
+      });
     }
 
     return NextResponse.json({ ok: true });

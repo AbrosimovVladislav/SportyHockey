@@ -14,7 +14,14 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const MEDIA_BUCKET = 'team-media';
-const SECTIONS: SectionImageKey[] = ['home', 'team', 'events_list', 'money'];
+const SECTIONS: SectionImageKey[] = [
+  'home',
+  'team',
+  'events_list',
+  'money',
+  'announce_training',
+  'announce_game',
+];
 
 function emptyMap(): TeamSectionImagesResponse {
   return {
@@ -22,6 +29,8 @@ function emptyMap(): TeamSectionImagesResponse {
     team: null,
     events_list: null,
     money: null,
+    announce_training: null,
+    announce_game: null,
   };
 }
 
@@ -61,7 +70,7 @@ export async function GET(req: Request): Promise<Response> {
 }
 
 const PatchBody = z.object({
-  section: z.enum(['home', 'team', 'events_list', 'money']),
+  section: z.enum(['home', 'team', 'events_list', 'money', 'announce_training', 'announce_game']),
   path: z.string().max(300).nullable(),
 }) satisfies z.ZodType<SetTeamSectionImageRequest>;
 

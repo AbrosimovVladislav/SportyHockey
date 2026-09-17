@@ -16,7 +16,8 @@ import {
   setMiniAppBackgroundColor,
   backButton,
 } from '@telegram-apps/sdk-react';
-import { StartParamRedirect } from './start-param-redirect';
+import { StartParamGate } from './start-param-redirect';
+import { WriteAccessPrompt } from './write-access-prompt';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -40,8 +41,10 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StartParamRedirect />
-      {children}
+      <StartParamGate>
+        <WriteAccessPrompt />
+        {children}
+      </StartParamGate>
     </QueryClientProvider>
   );
 }

@@ -52,6 +52,8 @@ export type UpdateMeRequest = {
   contact_phone?: string | null;
   contact_whatsapp?: string | null;
   avatar_path?: string | null;
+  // Итерация 70: ответ на нативный запрос Telegram «разрешить боту писать вам».
+  bot_write_allowed?: boolean;
 };
 // Возвращаем полный MeResponse, чтобы фронт мог сразу применить изменения
 // (новый avatar_url, пересчитанные membershipss и т.п.).
@@ -91,6 +93,8 @@ export type ApplyToTeamResponse = { ok: true; status: JoinRequestStatus; already
 
 export type CreateTeamRequest = {
   name: string;
+  // IANA-пояс устройства создателя — в нём бот пишет время событий команды.
+  timezone?: string;
 };
 
 export type CreateTeamResponse = {
@@ -336,6 +340,8 @@ export type EventDetailDto = EventDto & {
   lines: EventLineEntry[];
   media_count: number;
   cancelled_reason: string | null;
+  // Когда анонс события последний раз ушёл в канал команды; null — не публиковался.
+  announced_at: string | null;
 };
 
 export type MediaUploader = {
@@ -723,6 +729,10 @@ export type CreateEventRequest = {
   cost_per_player?: number;
   arena_cost?: number;
   opponent_name?: string;
+  // Публиковать ли анонс в канал команды (если он привязан). По умолчанию — да.
+  announce?: boolean;
+  // IANA-пояс устройства организатора; сервер запоминает его как пояс команды.
+  timezone?: string;
 };
 
 export type UpdateEventRequest = {
@@ -740,7 +750,25 @@ export type UpdateEventRequest = {
 
 export type UpdateEventResponse = { ok: true };
 
-export type CreateEventResponse = { id: string };
+// announce: sent — анонс ушёл в канал; skipped — канал не привязан или анонс выключен;
+// failed — событие создано, но Telegram анонс не принял (причина в announce_error).
+export type AnnounceStatus = 'sent' | 'skipped' | 'failed';
+export type CreateEventResponse = {
+  id: string;
+  announce: AnnounceStatus;
+  announce_error?: string;
+};
+
+// POST /api/events/[id]/announce — опубликовать (или повторно) анонс в канал.
+export type AnnounceEventResponse = { ok: true; announced_at: string };
+
+// GET/DELETE /api/teams/me/channel — привязанный Telegram-канал анонсов.
+// bot_username нужен для инструкции «добавь @бота администратором канала».
+export type TeamChannelDto = {
+  bound: boolean;
+  title: string | null;
+  bot_username: string | null;
+};
 
 // ───────────────────────────────────────────────────────────────────────────
 // Итерация 41 — Настройки команды (/squad/settings).
@@ -801,7 +829,10 @@ export type SectionImageKey =
   | 'home'
   | 'team'
   | 'events_list'
-  | 'money';
+  | 'money'
+  // Картинки анонсов в Telegram-канал (итерация 70) — не шапки разделов.
+  | 'announce_training'
+  | 'announce_game';
 
 export type TeamSectionImagesResponse = Record<SectionImageKey, string | null>;
 

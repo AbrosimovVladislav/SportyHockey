@@ -4,6 +4,9 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { formatName } from '@/lib/format-name';
 import { buildEventCard } from '@/lib/bot-event-card';
 import { asEventType } from '@/lib/event-enum';
+import { replyToAnnouncement } from '@/lib/announce';
+import { resolveTimezone } from '@/lib/bot-format';
+import { buildMiniAppUrl } from '@/lib/team-link';
 
 export async function notifyEventCreated(eventId: string): Promise<void> {
   const sb = supabaseServer();
@@ -11,7 +14,7 @@ export async function notifyEventCreated(eventId: string): Promise<void> {
   const { data: event } = await sb
     .from('events')
     .select(
-      'id, team_id, type, title, starts_at, ends_at, cost_per_player, opponent_name, venue:venues(name)',
+      'id, team_id, type, title, starts_at, ends_at, cost_per_player, opponent_name, venue:venues(name), team:teams(name, timezone)',
     )
     .eq('id', eventId)
     .maybeSingle();
@@ -37,6 +40,7 @@ export async function notifyEventCreated(eventId: string): Promise<void> {
   }
 
   const venueRaw = Array.isArray(event.venue) ? event.venue[0] : event.venue;
+  const teamRaw = Array.isArray(event.team) ? event.team[0] : event.team;
   const cardArgs = {
     eventId: event.id,
     type: asEventType(event.type),
@@ -46,6 +50,8 @@ export async function notifyEventCreated(eventId: string): Promise<void> {
     venue_name: venueRaw?.name ?? null,
     cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
     opponent_name: event.opponent_name ?? null,
+    team_name: teamRaw?.name ?? null,
+    timezone: teamRaw?.timezone ?? null,
   };
 
   await Promise.all(
@@ -65,12 +71,19 @@ export async function notifyEventCreated(eventId: string): Promise<void> {
   );
 }
 
-export async function notifyEventUpdated(eventId: string): Promise<void> {
-  console.log('[notify] event updated:', eventId);
+// Изменение события. В канал пишем только то, что важно всем: перенос (время или
+// площадка) и возврат отменённого события. Правка взноса/деталей реплая не стоит.
+// Личные сообщения об изменениях — в кандидатах v0.8.
+export async function notifyEventUpdated(
+  eventId: string,
+  change: { rescheduled: boolean; restored: boolean },
+): Promise<void> {
+  if (change.restored) await replyToAnnouncement(eventId, 'restored');
+  else if (change.rescheduled) await replyToAnnouncement(eventId, 'rescheduled');
 }
 
 export async function notifyEventCancelled(eventId: string): Promise<void> {
-  console.log('[notify] event cancelled:', eventId);
+  await replyToAnnouncement(eventId, 'cancelled');
 }
 
 export async function notifyPaymentClaim(args: {
@@ -88,9 +101,10 @@ export async function notifyPaymentClaim(args: {
 
   const { data: event } = await sb
     .from('events')
-    .select('title, type, starts_at')
+    .select('title, type, starts_at, team:teams(timezone)')
     .eq('id', args.event_id)
     .maybeSingle();
+  const teamRaw = Array.isArray(event?.team) ? event?.team[0] : event?.team;
 
   const { data: orgs } = await sb
     .from('team_memberships')
@@ -121,6 +135,7 @@ export async function notifyPaymentClaim(args: {
         month: 'long',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: resolveTimezone(teamRaw?.timezone),
       })
     : null;
 
@@ -130,10 +145,8 @@ export async function notifyPaymentClaim(args: {
     }${dateLabel ? ` (${dateLabel})` : ''}.\n\n` +
     `Зайди в состав события и проверь — если оплата действительно прошла, отметь сумму в «Сдал».`;
 
-  const miniAppUrl = process.env.MINI_APP_URL;
-  const deepLink = miniAppUrl
-    ? `${miniAppUrl}?startapp=event_${args.event_id}_attendees`
-    : null;
+  // Личка с ботом — web_app-кнопка открывает экран состава напрямую.
+  const attendeesUrl = buildMiniAppUrl(`/events/${args.event_id}/attendees`);
 
   let bot;
   try {
@@ -150,8 +163,8 @@ export async function notifyPaymentClaim(args: {
       if (!telegramId) return;
       try {
         await bot.api.sendMessage(telegramId, text, {
-          reply_markup: deepLink
-            ? { inline_keyboard: [[{ text: 'Открыть состав', url: deepLink }]] }
+          reply_markup: attendeesUrl
+            ? { inline_keyboard: [[{ text: 'Открыть состав', web_app: { url: attendeesUrl } }]] }
             : undefined,
         });
       } catch (err) {

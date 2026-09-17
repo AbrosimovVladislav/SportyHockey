@@ -7,7 +7,7 @@
 - **Next.js 16** (App Router) + **React 19** + TypeScript strict — фронт и API в одном проекте на Vercel.
 - **Supabase Postgres 17** — данные. **Supabase Storage** (public-бакет `team-media`) — фото, аватары, логотипы, картинки разделов.
 - **TanStack Query v5** — серверный стейт. **Zustand** — UI-стейт (активная команда). **recharts** — графики финансов.
-- **grammy** — Telegram-бот, webhook в `/api/bot` (`/start`, `/events`, inline-голосование).
+- **grammy** — Telegram-бот, webhook в `/api/bot`: `/start`, `/events`, inline-голосование, привязка канала команды. Один бот на все команды; анонсы событий публикуются в канал команды (`teams.announce_chat_id`), подробности — [features/notifications.md](features/notifications.md).
 - **Auth:** Telegram `initData` + HMAC на каждом запросе. Без JWT, cookies, сессий.
 
 ## Поток авторизации
@@ -51,6 +51,7 @@ supabase/migrations/         # SQL-миграции (зеркало истори
 | Финансы | `/api/finance`, `/api/finance/*` | лента операций, баланс, балансы игроков, срез за период, аналитика и прогноз |
 | Главная | `/api/team/*` | ближайшее событие, quick-actions, ключевая статистика |
 | Площадки | `/api/venues` | только чтение — CRUD площадок в приложении нет |
+| Анонсы | `/api/events/[id]/announce`, `/api/teams/me/channel` | публикация анонса в Telegram-канал; статус и отвязка канала |
 | Бот | `/api/bot` | grammy webhook (защищён `X-Telegram-Bot-Api-Secret-Token`) |
 
 Загрузка файлов везде одинаковая: `*/sign` отдаёт signed upload URL → клиент грузит напрямую в Storage → отдельный запрос сохраняет ссылку.
@@ -72,6 +73,7 @@ supabase/migrations/         # SQL-миграции (зеркало истори
 Важное:
 
 - View, функций, enum'ов и триггеров в схеме нет — вся логика в [src/lib/](../src/lib/).
+- Сервер живёт в UTC. Всё, что бот пишет людям текстом (дата и время события), форматируется в поясе команды — `teams.timezone`, заполняется с устройства организатора; см. [`bot-format.ts`](../src/lib/bot-format.ts).
 - **RLS выключен на всех таблицах — осознанное решение.** Доступ только через server-side API с service-role. Security advisor Supabase будет показывать это как ERROR — так и задумано.
 - Схема меняется только миграцией: применили в Supabase → положили тот же SQL в `supabase/migrations/<version>_<name>.sql` → перегенерили [`src/types/db.ts`](../src/types/db.ts).
 

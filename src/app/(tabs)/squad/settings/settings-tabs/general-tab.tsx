@@ -11,6 +11,7 @@ import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import type { TeamSettingsDto } from '@/types/api';
 import { SectionHeader } from './section-header';
+import { AnnounceChannelBlock } from './announce-channel-block';
 import { SectionImagesBlock } from './section-images-block';
 
 // Вкладка «Общее»: название, логотип, картинки разделов.
@@ -110,6 +111,7 @@ export function GeneralTab({ settings }: Props) {
       </section>
 
       <SectionImagesBlock />
+      <AnnounceChannelBlock />
       {uploadError ? (
         <div style={{ fontSize: 13, color: colors.error }}>{uploadError}</div>
       ) : null}

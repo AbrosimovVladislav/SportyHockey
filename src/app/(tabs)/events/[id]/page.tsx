@@ -8,6 +8,7 @@ import { ListRow } from '@/components/list-row';
 import { BOTTOM_NAV_HEIGHT } from '@/components/bottom-nav';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { MenuButton } from '@/components/menu-button';
+import { EventAnnounceMenuItem } from '@/components/event-announce-menu-item';
 import { EventHeaderBadge } from '@/components/event-header-badge';
 import { EventVsCard } from '@/components/event-vs-card';
 import { EventVoteSection } from '@/components/event-vote-section';
@@ -382,6 +383,11 @@ export default function EventDetailPage() {
           onClose={() => setMenuOpen(false)}
           title={t('eventMenu.title')}
         >
+          <EventAnnounceMenuItem
+            eventId={id}
+            announcedAt={data.announced_at}
+            onDone={() => setMenuOpen(false)}
+          />
           <MenuButton
             icon={<IconClock size={20} color={colors.iconFg} />}
             label={t('eventMenu.reschedule')}

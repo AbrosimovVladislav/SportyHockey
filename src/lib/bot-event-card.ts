@@ -1,5 +1,7 @@
 import 'server-only';
 import { InlineKeyboard } from 'grammy';
+import { formatEventDateLine, formatRub } from '@/lib/bot-format';
+import { buildMiniAppUrl } from '@/lib/team-link';
 
 export type BotEventVote = 'going' | 'not_going' | null;
 
@@ -12,33 +14,12 @@ export type BotEventCardArgs = {
   venue_name: string | null;
   cost_per_player: number | null;
   opponent_name: string | null;
+  // Название команды — чтобы игрок нескольких команд понимал, чьё это событие.
+  team_name: string | null;
+  // IANA-пояс команды: сервер живёт в UTC, время пишем в поясе команды.
+  timezone: string | null;
   my_vote: BotEventVote;
 };
-
-const dateFmt = new Intl.DateTimeFormat('ru-RU', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'long',
-});
-
-const timeFmt = new Intl.DateTimeFormat('ru-RU', {
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-});
-
-function formatDateLine(startsIso: string, endsIso: string | null): string {
-  const starts = new Date(startsIso);
-  const date = dateFmt.format(starts);
-  const startTime = timeFmt.format(starts);
-  if (!endsIso) return `📅 ${date} · ${startTime}`;
-  const endTime = timeFmt.format(new Date(endsIso));
-  return `📅 ${date} · ${startTime}–${endTime}`;
-}
-
-function formatRub(n: number): string {
-  return n.toLocaleString('ru-RU');
-}
 
 export function buildEventCard(args: BotEventCardArgs): {
   text: string;
@@ -54,7 +35,9 @@ export function buildEventCard(args: BotEventCardArgs): {
 
   const lines: string[] = [];
   lines.push(`🏒 ${titleSource}`);
-  lines.push(formatDateLine(args.starts_at, args.ends_at));
+  // У игры название команды уже в заголовке («Команда vs Соперник»).
+  if (args.type !== 'game' && args.team_name?.trim()) lines.push(`👥 ${args.team_name.trim()}`);
+  lines.push(`📅 ${formatEventDateLine(args.starts_at, args.ends_at, args.timezone)}`);
   if (args.venue_name) lines.push(`📍 ${args.venue_name}`);
   if (args.cost_per_player != null && args.cost_per_player > 0) {
     lines.push(`💰 ${formatRub(args.cost_per_player)} ₽`);
@@ -69,10 +52,9 @@ export function buildEventCard(args: BotEventCardArgs): {
     .text(notGoingLabel, `vote:not_going:${args.eventId}`)
     .row();
 
-  const miniAppUrl = process.env.MINI_APP_URL;
-  if (miniAppUrl) {
-    keyboard.webApp('Открыть в Mini App', `${miniAppUrl}?startapp=event_${args.eventId}`);
-  }
+  // Личка с ботом — здесь web_app-кнопка разрешена и открывает экран напрямую.
+  const eventUrl = buildMiniAppUrl(`/events/${args.eventId}`);
+  if (eventUrl) keyboard.webApp('Открыть в Mini App', eventUrl);
 
   return { text, keyboard };
 }

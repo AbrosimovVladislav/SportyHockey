@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { VenueSelectSheet } from '@/components/venue-select-sheet';
+import { AnnounceToggleRow } from '@/components/announce-toggle-row';
 import { CardField } from '@/components/card-field';
 import { TypeChips } from '@/components/type-chips';
 import { Input } from '@/components/input';
@@ -179,6 +180,8 @@ export default function EventNewPage() {
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [error, setError] = useState<string | null>(null);
   const [venueOpen, setVenueOpen] = useState(false);
+  // Анонс в Telegram-канал команды; строка видна, только если канал привязан.
+  const [announce, setAnnounce] = useState(true);
 
   useEffect(() => {
     if (!meLoading && !isOrganizer) {
@@ -223,7 +226,14 @@ export default function EventNewPage() {
         method: 'POST',
         body: JSON.stringify(body),
       }),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      // Событие создано в любом случае; если анонс не ушёл — говорим почему,
+      // повторить можно из меню события («Анонсировать в канал»).
+      if (res.announce === 'failed') {
+        window.alert(
+          [t('eventNew.announce.failed'), res.announce_error].filter(Boolean).join('\n'),
+        );
+      }
       qc.invalidateQueries({ queryKey: ['events'] });
       // Новое событие → ближайшее на главной сдвигается; home-actions может
       // получить нового кандидата под «последнее прошедшее» (если оно в прошлом).
@@ -274,6 +284,9 @@ export default function EventNewPage() {
       arena_cost: Number.isFinite(arenaNum) && arenaNum >= 0 ? arenaNum : undefined,
       opponent_name:
         form.type === 'game' && form.opponent.trim() ? form.opponent.trim() : undefined,
+      announce,
+      // Пояс устройства организатора: в нём бот напишет людям время события.
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
     createEvent.mutate(body);
   };
@@ -428,6 +441,8 @@ export default function EventNewPage() {
           value={form.cost}
           onChange={(raw) => setForm((prev) => ({ ...prev, cost: raw, costTouched: true }))}
         />
+
+        <AnnounceToggleRow checked={announce} onChange={setAnnounce} />
 
         {error ? (
           <div

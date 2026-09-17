@@ -48,6 +48,7 @@ const PatchBody = z.object({
   contact_phone: z.string().nullable().optional(),
   contact_whatsapp: z.string().nullable().optional(),
   avatar_path: z.string().nullable().optional(),
+  bot_write_allowed: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request): Promise<Response> {
@@ -71,6 +72,7 @@ export async function PATCH(req: Request): Promise<Response> {
     if (d.username !== undefined) update.username = normTelegramUsername(d.username);
     if (d.contact_phone !== undefined) update.contact_phone = normStr(d.contact_phone);
     if (d.contact_whatsapp !== undefined) update.contact_whatsapp = normStr(d.contact_whatsapp);
+    if (d.bot_write_allowed !== undefined) update.bot_write_allowed = d.bot_write_allowed;
     if (d.avatar_path) {
       update.avatar_url = sb.storage
         .from(MEDIA_BUCKET)

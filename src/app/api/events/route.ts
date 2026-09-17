@@ -8,6 +8,8 @@ import { finalizeRows } from '@/lib/event-finalize';
 import { loadAttendance } from '@/lib/event-attendance';
 import { getUserTeamId } from '@/lib/user-team';
 import { notifyEventCreated } from '@/lib/notify';
+import { publishEventAnnouncement } from '@/lib/announce';
+import { isValidTimezone } from '@/lib/bot-format';
 import { buildEventTitle } from '@/lib/event-title';
 import { applyDefaultLineup } from '@/lib/apply-default-lineup';
 import type {
@@ -19,6 +21,9 @@ import type {
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// Анонс в канал скачивает фото и загружает его в Telegram — даём запас по времени
+// сверх стандартных 10 с serverless-функции.
+export const maxDuration = 30;
 
 const CreateBody = z.object({
   type: z.enum(['training', 'game']),
@@ -29,6 +34,8 @@ const CreateBody = z.object({
   cost_per_player: z.number().nonnegative().optional(),
   arena_cost: z.number().nonnegative().optional(),
   opponent_name: z.string().trim().min(1).max(100).optional(),
+  announce: z.boolean().optional(),
+  timezone: z.string().max(64).optional(),
 });
 
 type VenueRow = Pick<EventVenue, 'id' | 'name' | 'address' | 'photo_url'>;
@@ -182,9 +189,27 @@ export async function POST(req: Request): Promise<Response> {
     // Прокидываем дефолтную раскидку команды (звенья + стороны для тренировки).
     await applyDefaultLineup(data.id, parsed.data.type, ctx.team_id);
 
+    // Пояс команды = пояс устройства организатора. Сохраняем ДО рассылки, чтобы уже
+    // первое событие ушло людям с правильным временем (сервер живёт в UTC).
+    const tz = parsed.data.timezone;
+    if (tz && isValidTimezone(tz)) {
+      await sb.from('teams').update({ timezone: tz }).eq('id', ctx.team_id);
+    }
+
     await notifyEventCreated(data.id);
 
-    const body: CreateEventResponse = { id: data.id };
+    // Анонс в канал команды — в дополнение к личным сообщениям. Сбой анонса не должен
+    // ломать создание события: возвращаем статус, а клиент покажет причину.
+    const body: CreateEventResponse = { id: data.id, announce: 'skipped' };
+    if (parsed.data.announce !== false) {
+      const result = await publishEventAnnouncement(data.id, ctx.id);
+      if (result.ok) {
+        body.announce = 'sent';
+      } else if (result.reason !== 'no_channel') {
+        body.announce = 'failed';
+        body.announce_error = result.message;
+      }
+    }
     return NextResponse.json(body, { status: 201 });
   } catch (e) {
     return handleRouteError(e);

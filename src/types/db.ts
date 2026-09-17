@@ -191,6 +191,9 @@ export type Database = {
       }
       events: {
         Row: {
+          announce_chat_id: number | null
+          announce_message_id: number | null
+          announced_at: string | null
           arena_cost: number | null
           arena_paid_amount: number
           cancelled_reason: string | null
@@ -210,6 +213,9 @@ export type Database = {
           venue_id: string | null
         }
         Insert: {
+          announce_chat_id?: number | null
+          announce_message_id?: number | null
+          announced_at?: string | null
           arena_cost?: number | null
           arena_paid_amount?: number
           cancelled_reason?: string | null
@@ -229,6 +235,9 @@ export type Database = {
           venue_id?: string | null
         }
         Update: {
+          announce_chat_id?: number | null
+          announce_message_id?: number | null
+          announced_at?: string | null
           arena_cost?: number | null
           arena_paid_amount?: number
           cancelled_reason?: string | null
@@ -754,6 +763,8 @@ export type Database = {
       }
       teams: {
         Row: {
+          announce_chat_id: number | null
+          announce_chat_title: string | null
           archived_at: string | null
           created_at: string | null
           default_event_cost: number | null
@@ -763,8 +774,11 @@ export type Database = {
           logo_url: string | null
           name: string
           photo_url: string | null
+          timezone: string | null
         }
         Insert: {
+          announce_chat_id?: number | null
+          announce_chat_title?: string | null
           archived_at?: string | null
           created_at?: string | null
           default_event_cost?: number | null
@@ -774,8 +788,11 @@ export type Database = {
           logo_url?: string | null
           name: string
           photo_url?: string | null
+          timezone?: string | null
         }
         Update: {
+          announce_chat_id?: number | null
+          announce_chat_title?: string | null
           archived_at?: string | null
           created_at?: string | null
           default_event_cost?: number | null
@@ -785,6 +802,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           photo_url?: string | null
+          timezone?: string | null
         }
         Relationships: [
           {
@@ -801,6 +819,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           birth_date: string | null
+          bot_write_allowed: boolean | null
           contact_phone: string | null
           contact_whatsapp: string | null
           created_at: string | null
@@ -817,6 +836,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           birth_date?: string | null
+          bot_write_allowed?: boolean | null
           contact_phone?: string | null
           contact_whatsapp?: string | null
           created_at?: string | null
@@ -833,6 +853,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           birth_date?: string | null
+          bot_write_allowed?: boolean | null
           contact_phone?: string | null
           contact_whatsapp?: string | null
           created_at?: string | null

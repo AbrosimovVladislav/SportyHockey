@@ -5,6 +5,7 @@ import { buildEventCard, type BotEventVote } from '@/lib/bot-event-card';
 import { asEventType } from '@/lib/event-enum';
 import { upsertTelegramUser } from '@/lib/upsert-telegram-user';
 import { normTelegramUsername } from '@/lib/normalize-contact';
+import { registerChannelHandlers } from '@/lib/bot-channel';
 
 let cachedBot: Bot | null = null;
 
@@ -32,6 +33,9 @@ export function getBot(): Bot {
 const VOTE_CALLBACK_RE = /^vote:(going|not_going):([0-9a-f-]{36})$/i;
 
 function registerHandlers(bot: Bot): void {
+  // Привязка канала анонсов (пересланный пост + выбор команды) — в bot-channel.ts.
+  registerChannelHandlers(bot);
+
   bot.callbackQuery(VOTE_CALLBACK_RE, async (ctx) => {
     const m = ctx.match;
     if (!Array.isArray(m)) return;
@@ -125,7 +129,7 @@ async function handleVoteCallback(
   const { data: event } = await sb
     .from('events')
     .select(
-      'id, team_id, type, title, starts_at, ends_at, cost_per_player, opponent_name, status, venue:venues(name)',
+      'id, team_id, type, title, starts_at, ends_at, cost_per_player, opponent_name, status, venue:venues(name), team:teams(name, timezone)',
     )
     .eq('id', eventId)
     .maybeSingle();
@@ -177,6 +181,7 @@ async function handleVoteCallback(
   }
 
   const venueRaw = Array.isArray(event.venue) ? event.venue[0] : event.venue;
+  const teamRaw = Array.isArray(event.team) ? event.team[0] : event.team;
   const card = buildEventCard({
     eventId: event.id,
     type: asEventType(event.type),
@@ -186,6 +191,8 @@ async function handleVoteCallback(
     venue_name: venueRaw?.name ?? null,
     cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
     opponent_name: event.opponent_name ?? null,
+    team_name: teamRaw?.name ?? null,
+    timezone: teamRaw?.timezone ?? null,
     my_vote: finalVote,
   });
 
@@ -224,7 +231,7 @@ async function sendUpcomingEvents(ctx: Context): Promise<void> {
   const { data: events } = await sb
     .from('events')
     .select(
-      'id, team_id, type, title, starts_at, ends_at, cost_per_player, opponent_name, venue:venues(name)',
+      'id, team_id, type, title, starts_at, ends_at, cost_per_player, opponent_name, venue:venues(name), team:teams(name, timezone)',
     )
     .in('team_id', teamIds)
     .neq('status', 'cancelled')
@@ -251,6 +258,7 @@ async function sendUpcomingEvents(ctx: Context): Promise<void> {
 
   for (const event of events) {
     const venueRaw = Array.isArray(event.venue) ? event.venue[0] : event.venue;
+    const teamRaw = Array.isArray(event.team) ? event.team[0] : event.team;
     const card = buildEventCard({
       eventId: event.id,
       type: asEventType(event.type),
@@ -260,6 +268,8 @@ async function sendUpcomingEvents(ctx: Context): Promise<void> {
       venue_name: venueRaw?.name ?? null,
       cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
       opponent_name: event.opponent_name ?? null,
+      team_name: teamRaw?.name ?? null,
+      timezone: teamRaw?.timezone ?? null,
       my_vote: voteMap.get(event.id) ?? null,
     });
     try {

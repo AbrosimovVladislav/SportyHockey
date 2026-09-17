@@ -10,6 +10,7 @@ import { useT } from '@/hooks/use-t';
 import { useMe } from '@/hooks/use-me';
 import { useBackButton } from '@/hooks/use-back-button';
 import { ApiError, apiFetch } from '@/lib/api-client';
+import { peekPendingPath } from '@/lib/pending-path';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 import { colors } from '@/theme/colors';
@@ -43,7 +44,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (data && onboarded && hasMembership) {
-      router.replace('/');
+      router.replace(peekPendingPath() ?? '/');
     }
   }, [data, onboarded, hasMembership, router]);
 
@@ -51,7 +52,11 @@ export default function OnboardingPage() {
     mutationFn: (name: string) =>
       apiFetch<CreateTeamResponse>('/api/teams', {
         method: 'POST',
-        body: JSON.stringify({ name } satisfies CreateTeamRequest),
+        body: JSON.stringify({
+          name,
+          // Пояс устройства создателя: в нём бот будет писать время событий команды.
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        } satisfies CreateTeamRequest),
       }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['me'] });

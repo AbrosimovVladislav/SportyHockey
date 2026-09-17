@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/bottom-nav';
 import { Screen } from '@/components/screen';
 import { useMe } from '@/hooks/use-me';
 import { useT } from '@/hooks/use-t';
+import { clearPendingPath } from '@/lib/pending-path';
 import { useActiveTeamStore } from '@/store/active-team';
 import { typography } from '@/theme/typography';
 import { colors } from '@/theme/colors';
@@ -28,6 +29,12 @@ export default function TabsLayout({ children }: { children: ReactNode }) {
       router.replace('/onboarding');
     }
   }, [needsOnboarding, router]);
+
+  // Онбординг пройден → отложенный путь deep-link'а (см. pending-path.ts) отработал.
+  const insideApp = Boolean(me.data) && !needsOnboarding;
+  useEffect(() => {
+    if (insideApp) clearPendingPath();
+  }, [insideApp]);
 
   // Активная команда живёт в localStorage и уходит на сервер заголовком X-Team-Id.
   // Если сохранённой команды нет среди членств (вышел, удалили, команда пересоздана),
