@@ -23,6 +23,7 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
+import { goBackOr } from '@/lib/nav-history';
 
 const REASON_LIMIT = 200;
 
@@ -52,10 +53,7 @@ export default function EventCancelPage() {
     }
   }, [data, meLoading, isOrganizer, id, router]);
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push(`/events/${id}`);
-  };
+  const onBack = () => goBackOr(router, `/events/${id}`);
 
   const root: CSSProperties = {
     background: colors.bg,

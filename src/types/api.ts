@@ -733,6 +733,8 @@ export type CreateEventRequest = {
   announce?: boolean;
   // IANA-пояс устройства организатора; сервер запоминает его как пояс команды.
   timezone?: string;
+  // Серия: начала остальных событий с теми же параметрами (до 11, всего до 12).
+  extra_starts_at?: string[];
 };
 
 export type UpdateEventRequest = {
@@ -754,7 +756,8 @@ export type UpdateEventResponse = { ok: true };
 // failed — событие создано, но Telegram анонс не принял (причина в announce_error).
 export type AnnounceStatus = 'sent' | 'skipped' | 'failed';
 export type CreateEventResponse = {
-  id: string;
+  id: string; // первое (ближайшее) событие
+  count: number; // сколько событий создано — больше 1 для серии
   announce: AnnounceStatus;
   announce_error?: string;
 };
@@ -762,13 +765,16 @@ export type CreateEventResponse = {
 // POST /api/events/[id]/announce — опубликовать (или повторно) анонс в канал.
 export type AnnounceEventResponse = { ok: true; announced_at: string };
 
-// GET/DELETE /api/teams/me/channel — привязанный Telegram-канал анонсов.
-// bot_username нужен для инструкции «добавь @бота администратором канала».
+// GET/PUT/DELETE /api/teams/me/channel — группа команды в Telegram для анонсов.
+// bot_username нужен для подсказки «добавь @бота в группу».
 export type TeamChannelDto = {
   bound: boolean;
   title: string | null;
   bot_username: string | null;
 };
+
+// PUT: @ник публичной группы (или ссылка t.me/nick).
+export type BindTeamChannelRequest = { username: string };
 
 // ───────────────────────────────────────────────────────────────────────────
 // Итерация 41 — Настройки команды (/squad/settings).

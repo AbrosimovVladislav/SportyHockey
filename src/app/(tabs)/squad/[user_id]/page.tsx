@@ -28,6 +28,7 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 import type { TKey } from '@/i18n/ru';
+import { goBackOr } from '@/lib/nav-history';
 
 type TabId = 'overview' | 'finance' | 'stats';
 
@@ -48,10 +49,7 @@ export default function PlayerProfilePage() {
   const del = useDeleteMember(userId);
   useTgHeader(colors.bg);
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push('/squad/roster');
-  };
+  const onBack = () => goBackOr(router, '/squad/roster');
 
   const root: CSSProperties = { minHeight: '100dvh', background: colors.bg };
   const content: CSSProperties = {

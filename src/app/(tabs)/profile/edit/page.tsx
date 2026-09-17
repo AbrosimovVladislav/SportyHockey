@@ -21,6 +21,7 @@ import { useTgHeader } from '@/hooks/use-tg-header';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
+import { goBackOr } from '@/lib/nav-history';
 
 // Редактирование личного профиля игрока (v0.4, итерация 44).
 // Переиспользует ту же MemberForm, что и /squad/[user_id]/edit для
@@ -81,10 +82,7 @@ export default function MyProfileEditPage() {
     }));
   }, [memberQ.data?.member]);
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push('/profile');
-  };
+  const onBack = () => goBackOr(router, '/profile');
 
   const dismissKeyboard = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = e.target as HTMLElement;

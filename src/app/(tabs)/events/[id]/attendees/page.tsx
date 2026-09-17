@@ -26,6 +26,7 @@ import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import type { EventAttendee, EventDetailDto, PlayerPosition } from '@/types/api';
+import { goBackOr } from '@/lib/nav-history';
 
 function interp(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
@@ -111,10 +112,7 @@ export default function EventAttendeesPage() {
     gap: spacing['16'],
   };
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push(`/events/${id}`);
-  };
+  const onBack = () => goBackOr(router, `/events/${id}`);
 
   if (ev.isLoading || !data) {
     return (

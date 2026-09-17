@@ -24,6 +24,7 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
+import { goBackOr } from '@/lib/nav-history';
 
 export default function EditPlayerPage() {
   const t = useT();
@@ -60,10 +61,7 @@ export default function EditPlayerPage() {
     });
   }, [member]);
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push(`/squad/${userId}`);
-  };
+  const onBack = () => goBackOr(router, `/squad/${userId}`);
 
   // Тап по пустой области закрывает клавиатуру — у цифровых полей iOS нет своей кнопки «Готово».
   const dismissKeyboard = (e: ReactPointerEvent<HTMLDivElement>) => {

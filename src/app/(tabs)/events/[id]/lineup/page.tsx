@@ -37,6 +37,7 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 import type { EventAttendee, LineSlot as LineSlotKey, PlayerPosition, TeamSide } from '@/types/api';
+import { goBackOr } from '@/lib/nav-history';
 
 type TabId = 'teams' | 'lines_light' | 'lines_dark';
 
@@ -169,10 +170,7 @@ export default function EventLineupPage() {
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
   };
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push(`/events/${id}`);
-  };
+  const onBack = () => goBackOr(router, `/events/${id}`);
 
   const venueName = data?.venue?.name ?? '';
   const subtitle = data

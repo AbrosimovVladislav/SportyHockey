@@ -32,6 +32,7 @@ import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import type { FinanceTransaction } from '@/types/api';
+import { goBackOr } from '@/lib/nav-history';
 
 // Депозит — это `player_payment` без привязки к событию (event === null).
 function isDeposit(tx: FinanceTransaction): boolean {
@@ -187,10 +188,7 @@ export default function MoneyTransactionsPage() {
     paddingBottom: BOTTOM_NAV_HEIGHT + spacing['24'],
   };
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push('/money');
-  };
+  const onBack = () => goBackOr(router, '/money');
 
   // Из транзакции собираем initial для DepositSheet. Дефолт user_id —
   // пустая строка маловероятна, но fallback нужен (сервер не вернёт user==null

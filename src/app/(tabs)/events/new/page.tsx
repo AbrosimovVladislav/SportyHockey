@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { VenueSelectSheet } from '@/components/venue-select-sheet';
 import { AnnounceToggleRow } from '@/components/announce-toggle-row';
+import { RepeatCountRow } from '@/components/repeat-count-row';
 import { CardField } from '@/components/card-field';
 import { TypeChips } from '@/components/type-chips';
 import { Input } from '@/components/input';
@@ -26,7 +27,8 @@ import { useT } from '@/hooks/use-t';
 import { useVenues } from '@/hooks/use-venues';
 import { invalidateHome } from '@/lib/invalidate-home';
 import { apiFetch, ApiError } from '@/lib/api-client';
-import { combineDateTime, formatLongDateLocal } from '@/lib/event-format';
+import { combineDateTime, formatLongDateLocal, weeklySeriesDates } from '@/lib/event-format';
+import { goBackOr } from '@/lib/nav-history';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
@@ -180,8 +182,10 @@ export default function EventNewPage() {
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [error, setError] = useState<string | null>(null);
   const [venueOpen, setVenueOpen] = useState(false);
-  // Анонс в Telegram-канал команды; строка видна, только если канал привязан.
+  // Анонс в группу команды в Telegram; строка видна, только если группа указана.
   const [announce, setAnnounce] = useState(true);
+  // Серия тренировок: сколько создать (каждую неделю в этот же день и время).
+  const [repeatCount, setRepeatCount] = useState(1);
 
   useEffect(() => {
     if (!meLoading && !isOrganizer) {
@@ -228,7 +232,7 @@ export default function EventNewPage() {
       }),
     onSuccess: (res) => {
       // Событие создано в любом случае; если анонс не ушёл — говорим почему,
-      // повторить можно из меню события («Анонсировать в канал»).
+      // повторить можно с экрана события (карточка «Анонс в группу»).
       if (res.announce === 'failed') {
         window.alert(
           [t('eventNew.announce.failed'), res.announce_error].filter(Boolean).join('\n'),
@@ -238,7 +242,8 @@ export default function EventNewPage() {
       // Новое событие → ближайшее на главной сдвигается; home-actions может
       // получить нового кандидата под «последнее прошедшее» (если оно в прошлом).
       invalidateHome(qc, { nextEvent: true, homeActions: true, dashboardStats: false });
-      router.replace('/events');
+      // Одно событие — сразу на его экран (там анонс и состав); серия — в расписание.
+      router.replace(res.count > 1 ? '/events' : `/events/${res.id}`);
     },
     onError: (e) => setError(e instanceof ApiError ? e.message : t('common.error')),
   });
@@ -246,10 +251,13 @@ export default function EventNewPage() {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const onBack = () => {
-    if (window.history.length > 1) router.back();
-    else router.push('/events');
-  };
+  const onBack = () => goBackOr(router, '/events');
+
+  const isSeries = form.type === 'training' && repeatCount > 1;
+  const seriesDates = useMemo(
+    () => (isSeries ? weeklySeriesDates(form.date, repeatCount) : []),
+    [isSeries, form.date, repeatCount],
+  );
 
   const onSubmit = () => {
     setError(null);
@@ -287,6 +295,9 @@ export default function EventNewPage() {
       announce,
       // Пояс устройства организатора: в нём бот напишет людям время события.
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      extra_starts_at: isSeries
+        ? seriesDates.slice(1).map((d) => combineDateTime(d, form.time))
+        : undefined,
     };
     createEvent.mutate(body);
   };
@@ -386,6 +397,13 @@ export default function EventNewPage() {
           </div>
         </div>
 
+        {form.type === 'training' ? (
+          <>
+            <SectionLabel>{t('eventNew.sections.repeat')}</SectionLabel>
+            <RepeatCountRow count={repeatCount} onChange={setRepeatCount} dates={seriesDates} />
+          </>
+        ) : null}
+
         {form.type === 'game' ? (
           <>
             <SectionLabel>{t('eventNew.sections.opponent')}</SectionLabel>
@@ -467,7 +485,11 @@ export default function EventNewPage() {
           style={{ background: colors.headerBg, marginTop: spacing['24'] }}
         >
           <IconSparkle size={18} color={colors.textInverse} />
-          {createEvent.isPending ? t('eventNew.submitting') : t('eventNew.submit')}
+          {createEvent.isPending
+            ? t('eventNew.submitting')
+            : isSeries
+              ? t('eventNew.submitSeries').replace('{count}', String(repeatCount))
+              : t('eventNew.submit')}
         </Button>
       </div>
 

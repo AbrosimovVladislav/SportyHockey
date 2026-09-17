@@ -5,7 +5,7 @@ import { formatName } from '@/lib/format-name';
 import { buildEventCard } from '@/lib/bot-event-card';
 import { asEventType } from '@/lib/event-enum';
 import { replyToAnnouncement } from '@/lib/announce';
-import { resolveTimezone } from '@/lib/bot-format';
+import { formatEventDateLine, formatRub, resolveTimezone } from '@/lib/bot-format';
 import { buildMiniAppUrl } from '@/lib/team-link';
 
 export async function notifyEventCreated(eventId: string): Promise<void> {
@@ -54,18 +54,81 @@ export async function notifyEventCreated(eventId: string): Promise<void> {
     timezone: teamRaw?.timezone ?? null,
   };
 
+  const card = buildEventCard(cardArgs);
   await Promise.all(
     members.map(async (p) => {
       const u = Array.isArray(p.users) ? p.users[0] : p.users;
       const telegramId = u?.telegram_id;
       if (!telegramId) return;
-      const card = buildEventCard({ ...cardArgs, my_vote: null });
       try {
         await bot.api.sendMessage(telegramId, card.text, {
           reply_markup: card.keyboard,
         });
       } catch (err) {
         console.error('[notify] event-created sendMessage failed:', err);
+      }
+    }),
+  );
+}
+
+// Серия тренировок (итерация 72): одно личное сообщение со всеми датами вместо пачки
+// одинаковых карточек.
+export async function notifyEventSeriesCreated(eventIds: string[]): Promise<void> {
+  if (eventIds.length === 0) return;
+  if (eventIds.length === 1) return notifyEventCreated(eventIds[0]);
+  const sb = supabaseServer();
+
+  const { data: events } = await sb
+    .from('events')
+    .select(
+      'id, team_id, type, starts_at, ends_at, cost_per_player, venue:venues(name), team:teams(name, timezone)',
+    )
+    .in('id', eventIds)
+    .order('starts_at', { ascending: true });
+  if (!events || events.length === 0) return;
+
+  const first = events[0];
+  const { data: members } = await sb
+    .from('team_memberships')
+    .select('user_id, users(telegram_id)')
+    .eq('team_id', first.team_id);
+  if (!members || members.length === 0) return;
+
+  let bot;
+  try {
+    bot = getBot();
+  } catch (e) {
+    console.warn('[notify] series-created: бот не сконфигурирован', e);
+    return;
+  }
+
+  const venueRaw = Array.isArray(first.venue) ? first.venue[0] : first.venue;
+  const teamRaw = Array.isArray(first.team) ? first.team[0] : first.team;
+  const isGame = first.type === 'game';
+  const lines: string[] = [`🏒 Новые ${isGame ? 'игры' : 'тренировки'}: ${events.length}`];
+  if (teamRaw?.name?.trim()) lines.push(`👥 ${teamRaw.name.trim()}`);
+  for (const e of events) {
+    lines.push(`📅 ${formatEventDateLine(e.starts_at, e.ends_at, teamRaw?.timezone)}`);
+  }
+  if (venueRaw?.name) lines.push(`📍 ${venueRaw.name}`);
+  const cost = first.cost_per_player != null ? Number(first.cost_per_player) : 0;
+  if (cost > 0) lines.push(`💰 ${formatRub(cost)} ₽`);
+  const text = lines.join('\n');
+
+  const eventsUrl = buildMiniAppUrl('/events');
+  const replyMarkup = eventsUrl
+    ? { inline_keyboard: [[{ text: 'Открыть в Mini App', web_app: { url: eventsUrl } }]] }
+    : undefined;
+
+  await Promise.all(
+    members.map(async (p) => {
+      const u = Array.isArray(p.users) ? p.users[0] : p.users;
+      const telegramId = u?.telegram_id;
+      if (!telegramId) return;
+      try {
+        await bot.api.sendMessage(telegramId, text, { reply_markup: replyMarkup });
+      } catch (err) {
+        console.error('[notify] series-created sendMessage failed:', err);
       }
     }),
   );

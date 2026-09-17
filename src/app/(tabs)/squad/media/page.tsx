@@ -27,6 +27,7 @@ import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import type { TKey } from '@/i18n/ru';
 import type { MediaItemDto, TeamMediaItemDto } from '@/types/api';
+import { goBackOr } from '@/lib/nav-history';
 
 export default function TeamMediaPage() {
   const t = useT();
@@ -54,10 +55,7 @@ export default function TeamMediaPage() {
     [me.data],
   );
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push('/squad');
-  };
+  const onBack = () => goBackOr(router, '/squad');
 
   const canDelete = (item: MediaItemDto): boolean =>
     isOrganizer || (meId != null && item.uploaded_by?.id === meId);

@@ -3,8 +3,6 @@ import { InlineKeyboard } from 'grammy';
 import { formatEventDateLine, formatRub } from '@/lib/bot-format';
 import { buildMiniAppUrl } from '@/lib/team-link';
 
-export type BotEventVote = 'going' | 'not_going' | null;
-
 export type BotEventCardArgs = {
   eventId: string;
   type: 'training' | 'game';
@@ -18,12 +16,13 @@ export type BotEventCardArgs = {
   team_name: string | null;
   // IANA-пояс команды: сервер живёт в UTC, время пишем в поясе команды.
   timezone: string | null;
-  my_vote: BotEventVote;
 };
 
+// Личная карточка события. Голосование кнопками в боте убрано (итерация 71): записаться
+// можно только в приложении, поэтому кнопка одна — открыть событие в Mini App.
 export function buildEventCard(args: BotEventCardArgs): {
   text: string;
-  keyboard: InlineKeyboard;
+  keyboard: InlineKeyboard | undefined;
 } {
   const titleSource =
     args.title?.trim() ||
@@ -44,17 +43,12 @@ export function buildEventCard(args: BotEventCardArgs): {
   }
   const text = lines.join('\n');
 
-  const goingLabel = args.my_vote === 'going' ? '✅ Иду ✓' : '✅ Иду';
-  const notGoingLabel = args.my_vote === 'not_going' ? '❌ Не иду ✓' : '❌ Не иду';
+  return { text, keyboard: eventOpenKeyboard(args.eventId) };
+}
 
-  const keyboard = new InlineKeyboard()
-    .text(goingLabel, `vote:going:${args.eventId}`)
-    .text(notGoingLabel, `vote:not_going:${args.eventId}`)
-    .row();
-
-  // Личка с ботом — здесь web_app-кнопка разрешена и открывает экран напрямую.
-  const eventUrl = buildMiniAppUrl(`/events/${args.eventId}`);
-  if (eventUrl) keyboard.webApp('Открыть в Mini App', eventUrl);
-
-  return { text, keyboard };
+// Личка с ботом — здесь web_app-кнопка разрешена и открывает экран напрямую.
+// undefined, если MINI_APP_URL не задан.
+export function eventOpenKeyboard(eventId: string): InlineKeyboard | undefined {
+  const eventUrl = buildMiniAppUrl(`/events/${eventId}`);
+  return eventUrl ? new InlineKeyboard().webApp('Открыть в Mini App', eventUrl) : undefined;
 }

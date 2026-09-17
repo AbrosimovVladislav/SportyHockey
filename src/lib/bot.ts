@@ -1,7 +1,7 @@
 import 'server-only';
 import { Bot, InlineKeyboard, type Context } from 'grammy';
 import { supabaseServer } from '@/lib/supabase-server';
-import { buildEventCard, type BotEventVote } from '@/lib/bot-event-card';
+import { buildEventCard, eventOpenKeyboard } from '@/lib/bot-event-card';
 import { asEventType } from '@/lib/event-enum';
 import { upsertTelegramUser } from '@/lib/upsert-telegram-user';
 import { normTelegramUsername } from '@/lib/normalize-contact';
@@ -36,16 +36,17 @@ function registerHandlers(bot: Bot): void {
   // Привязка канала анонсов (пересланный пост + выбор команды) — в bot-channel.ts.
   registerChannelHandlers(bot);
 
+  // Голосование кнопками в боте убрано (итерация 71). Кнопки «Иду / Не иду» остались
+  // под старыми сообщениями: отвечаем подсказкой и меняем их на «Открыть в Mini App».
   bot.callbackQuery(VOTE_CALLBACK_RE, async (ctx) => {
     const m = ctx.match;
     if (!Array.isArray(m)) return;
-    const next = m[1] as 'going' | 'not_going';
-    const eventId = m[2];
-    if (!ctx.from) {
-      await ctx.answerCallbackQuery({ text: 'Нет данных пользователя' });
-      return;
+    await ctx.answerCallbackQuery({ text: 'Записаться теперь можно в приложении — открой событие' });
+    try {
+      await ctx.editMessageReplyMarkup({ reply_markup: eventOpenKeyboard(m[2]) });
+    } catch (err) {
+      console.warn('[bot] editMessageReplyMarkup failed:', err);
     }
-    await handleVoteCallback(ctx, eventId, next);
   });
 
   bot.command('events', async (ctx) => {
@@ -55,7 +56,8 @@ function registerHandlers(bot: Bot): void {
 
   bot.command('start', async (ctx) => {
     const payload = (ctx.match ?? '').trim();
-    const kb = openMiniAppKeyboard();
+    // Кнопки web_app Telegram разрешает только в личке — в группе отвечаем без клавиатуры.
+    const kb = ctx.chat.type === 'private' ? openMiniAppKeyboard() : null;
     const withKb = kb ? { reply_markup: kb } : undefined;
 
     // Flow 2: персональное приглашение игрока без аккаунта — привязываем Telegram перешедшего.
@@ -109,108 +111,6 @@ async function ensureBotUserId(from: TelegramFrom): Promise<string | null> {
   }
 }
 
-async function handleVoteCallback(
-  ctx: Context,
-  eventId: string,
-  next: 'going' | 'not_going',
-): Promise<void> {
-  if (!ctx.from) {
-    await ctx.answerCallbackQuery({ text: 'Нет данных пользователя' });
-    return;
-  }
-  const sb = supabaseServer();
-
-  const userId = await ensureBotUserId(ctx.from);
-  if (!userId) {
-    await ctx.answerCallbackQuery({ text: 'Не удалось определить пользователя' });
-    return;
-  }
-
-  const { data: event } = await sb
-    .from('events')
-    .select(
-      'id, team_id, type, title, starts_at, ends_at, cost_per_player, opponent_name, status, venue:venues(name), team:teams(name, timezone)',
-    )
-    .eq('id', eventId)
-    .maybeSingle();
-  if (!event || event.status === 'cancelled') {
-    await ctx.answerCallbackQuery({ text: 'Событие недоступно' });
-    return;
-  }
-
-  const { data: mem } = await sb
-    .from('team_memberships')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('team_id', event.team_id)
-    .maybeSingle();
-  if (!mem) {
-    await ctx.answerCallbackQuery({ text: 'Ты не в этой команде' });
-    return;
-  }
-
-  const { data: prev } = await sb
-    .from('event_attendances')
-    .select('vote')
-    .eq('event_id', event.id)
-    .eq('user_id', userId)
-    .maybeSingle();
-  const prevVote = (prev?.vote === 'going' || prev?.vote === 'not_going'
-    ? prev.vote
-    : null) as BotEventVote;
-
-  let finalVote: BotEventVote;
-  if (prevVote === next) {
-    await sb
-      .from('event_attendances')
-      .delete()
-      .eq('event_id', event.id)
-      .eq('user_id', userId);
-    finalVote = null;
-  } else {
-    await sb.from('event_attendances').upsert(
-      {
-        event_id: event.id,
-        user_id: userId,
-        vote: next,
-        voted_at: new Date().toISOString(),
-      },
-      { onConflict: 'event_id,user_id' },
-    );
-    finalVote = next;
-  }
-
-  const venueRaw = Array.isArray(event.venue) ? event.venue[0] : event.venue;
-  const teamRaw = Array.isArray(event.team) ? event.team[0] : event.team;
-  const card = buildEventCard({
-    eventId: event.id,
-    type: asEventType(event.type),
-    title: event.title,
-    starts_at: event.starts_at,
-    ends_at: event.ends_at,
-    venue_name: venueRaw?.name ?? null,
-    cost_per_player: event.cost_per_player != null ? Number(event.cost_per_player) : null,
-    opponent_name: event.opponent_name ?? null,
-    team_name: teamRaw?.name ?? null,
-    timezone: teamRaw?.timezone ?? null,
-    my_vote: finalVote,
-  });
-
-  try {
-    await ctx.editMessageReplyMarkup({ reply_markup: card.keyboard });
-  } catch (err) {
-    console.warn('[bot] editMessageReplyMarkup failed:', err);
-  }
-
-  const toast =
-    finalVote === 'going'
-      ? 'Записано: иду'
-      : finalVote === 'not_going'
-        ? 'Записано: не иду'
-        : 'Голос снят';
-  await ctx.answerCallbackQuery({ text: toast });
-}
-
 async function sendUpcomingEvents(ctx: Context): Promise<void> {
   if (!ctx.from) return;
   const sb = supabaseServer();
@@ -243,19 +143,6 @@ async function sendUpcomingEvents(ctx: Context): Promise<void> {
     return;
   }
 
-  const eventIds = events.map((e) => e.id);
-  const { data: votes } = await sb
-    .from('event_attendances')
-    .select('event_id, vote')
-    .eq('user_id', userId)
-    .in('event_id', eventIds);
-  const voteMap = new Map<string, BotEventVote>(
-    (votes ?? []).map((v) => [
-      v.event_id,
-      (v.vote === 'going' || v.vote === 'not_going' ? v.vote : null) as BotEventVote,
-    ]),
-  );
-
   for (const event of events) {
     const venueRaw = Array.isArray(event.venue) ? event.venue[0] : event.venue;
     const teamRaw = Array.isArray(event.team) ? event.team[0] : event.team;
@@ -270,7 +157,6 @@ async function sendUpcomingEvents(ctx: Context): Promise<void> {
       opponent_name: event.opponent_name ?? null,
       team_name: teamRaw?.name ?? null,
       timezone: teamRaw?.timezone ?? null,
-      my_vote: voteMap.get(event.id) ?? null,
     });
     try {
       await ctx.reply(card.text, { reply_markup: card.keyboard });

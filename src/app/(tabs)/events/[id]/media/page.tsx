@@ -23,6 +23,7 @@ import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import type { MediaItemDto } from '@/types/api';
+import { goBackOr } from '@/lib/nav-history';
 
 export default function EventMediaPage() {
   const t = useT();
@@ -71,10 +72,7 @@ export default function EventMediaPage() {
     flexDirection: 'column',
     gap: spacing['16'],
   };
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push(`/events/${id}`);
-  };
+  const onBack = () => goBackOr(router, `/events/${id}`);
 
   if (ev.isLoading || !ev.data) {
     return (

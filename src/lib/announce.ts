@@ -148,7 +148,7 @@ export async function publishEventAnnouncement(
 
   let chatId = one(event.team)?.announce_chat_id ?? null;
   if (chatId == null) {
-    return { ok: false, reason: 'no_channel', message: 'Чат анонсов не привязан' };
+    return { ok: false, reason: 'no_channel', message: 'Группа команды не указана' };
   }
   const threadId = one(event.team)?.announce_thread_id ?? undefined;
 
@@ -205,7 +205,7 @@ export async function publishEventAnnouncement(
         ok: false,
         reason: 'bot_no_access',
         message:
-          'Бот не может писать в чат анонсов. Проверь, что он всё ещё в группе (или администратор канала с правом публикации).',
+          'Бот не может писать в группу команды. Проверь, что он всё ещё в группе и ему разрешено писать.',
       };
     }
     return { ok: false, reason: 'send_failed', message: 'Telegram не принял анонс, попробуй ещё раз' };

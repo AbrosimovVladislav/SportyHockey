@@ -33,6 +33,7 @@ import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import type { UpdateEventRequest, VenueDto } from '@/types/api';
+import { goBackOr } from '@/lib/nav-history';
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
@@ -180,10 +181,7 @@ export default function EventReschedulePage() {
   const selectedVenue =
     venues.find((v) => v.id === (form?.venueId ?? null)) ?? null;
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push(`/events/${id}`);
-  };
+  const onBack = () => goBackOr(router, `/events/${id}`);
 
   const root: CSSProperties = {
     background: colors.bg,

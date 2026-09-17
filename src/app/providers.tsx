@@ -16,6 +16,7 @@ import {
   setMiniAppBackgroundColor,
   backButton,
 } from '@telegram-apps/sdk-react';
+import { NavigationTracker } from './navigation-tracker';
 import { StartParamGate } from './start-param-redirect';
 import { WriteAccessPrompt } from './write-access-prompt';
 
@@ -41,6 +42,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <NavigationTracker />
       <StartParamGate>
         <WriteAccessPrompt />
         {children}

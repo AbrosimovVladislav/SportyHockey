@@ -20,6 +20,8 @@ const dateRangeFmt = new Intl.DateTimeFormat('ru-RU', {
   month: 'long',
 });
 
+const shortDateFmt = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' });
+
 const longDateFmt = new Intl.DateTimeFormat('ru-RU', {
   day: 'numeric',
   month: 'long',
@@ -51,6 +53,29 @@ export function formatLongDateLocal(dateStr: string): string {
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((p) => p.type === type)?.value ?? '';
   return `${get('day')} ${get('month')} ${get('year')}`;
+}
+
+// Даты серии «каждую неделю»: YYYY-MM-DD → [та же дата, +7 дней, +14 дней, …].
+// Считаем календарными днями в поясе устройства — время события не съезжает при
+// переводе часов, в отличие от прибавления 7×24 часов к моменту времени.
+export function weeklySeriesDates(dateStr: string, count: number): string[] {
+  if (!dateStr) return [];
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const date = new Date(y ?? 0, (m ?? 1) - 1, (d ?? 1) + 7 * i);
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    out.push(`${date.getFullYear()}-${mm}-${dd}`);
+  }
+  return out;
+}
+
+// «7 окт.» — короткая дата для превью серии.
+export function formatShortDateLocal(dateStr: string): string {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return shortDateFmt.format(new Date(y ?? 0, (m ?? 1) - 1, d ?? 1));
 }
 
 // YYYY-MM-DD + HH:mm → ISO в локальном часовом поясе

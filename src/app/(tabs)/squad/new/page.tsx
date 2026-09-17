@@ -16,6 +16,7 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
+import { goBackOr } from '@/lib/nav-history';
 
 export default function NewPlayerPage() {
   const t = useT();
@@ -29,10 +30,7 @@ export default function NewPlayerPage() {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push('/squad/roster');
-  };
+  const onBack = () => goBackOr(router, '/squad/roster');
 
   const dismissKeyboard = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = e.target as HTMLElement;

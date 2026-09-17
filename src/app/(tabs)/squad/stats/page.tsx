@@ -40,6 +40,7 @@ import type {
   TeamStatsPlayerRow,
   TeamStatsType,
 } from '@/types/api';
+import { goBackOr } from '@/lib/nav-history';
 
 type TopTab = 'stats' | 'analytics';
 // На вратарей данных пока нет — фильтр амплуа в таблице ограничен двумя
@@ -64,10 +65,7 @@ export default function TeamStatsPage() {
     goalie: t('teamStats.position.goalie'),
   };
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push('/squad');
-  };
+  const onBack = () => goBackOr(router, '/squad');
 
   const root: CSSProperties = {
     background: colors.bg,

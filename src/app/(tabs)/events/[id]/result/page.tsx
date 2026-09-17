@@ -50,6 +50,7 @@ import type {
   GoalParticipant,
   PenaltyDto,
 } from '@/types/api';
+import { goBackOr } from '@/lib/nav-history';
 
 export default function EventResultPage() {
   const t = useT();
@@ -100,10 +101,7 @@ export default function EventResultPage() {
     }));
   }, [ev.data]);
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push(`/events/${id}`);
-  };
+  const onBack = () => goBackOr(router, `/events/${id}`);
 
   const venueName = ev.data?.venue?.name ?? '';
   const subtitle = ev.data

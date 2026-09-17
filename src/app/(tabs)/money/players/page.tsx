@@ -18,6 +18,7 @@ import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import { formatSignedMoney, formatMoney } from '@/lib/format-money';
 import type { PlayerBalanceItem, PlayerBalanceStatus } from '@/types/api';
+import { goBackOr } from '@/lib/nav-history';
 
 // Балансы всех игроков активной команды на «сегодня». Источник — `computeTeamBalance`.
 // Знак `balance` здесь со стороны игрока: + = депозит у команды, − = долг.
@@ -78,10 +79,7 @@ export default function MoneyPlayersPage() {
     [t],
   );
 
-  const onBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
-    else router.push('/money');
-  };
+  const onBack = () => goBackOr(router, '/money');
 
   return (
     <div style={root}>

@@ -26,6 +26,7 @@ import { radius } from '@/theme/radius';
 import { typography } from '@/theme/typography';
 import type { TKey } from '@/i18n/ru';
 import type { PlayerPosition, TeamMember } from '@/types/api';
+import { goBackOr } from '@/lib/nav-history';
 
 type TabId = 'list' | 'lines' | 'sides';
 type FilterId = PlayerPosition | null;
@@ -87,7 +88,7 @@ export default function SquadPage() {
     <div style={root}>
       <LightHeader
         title={t('squad.title')}
-        onBack={() => router.back()}
+        onBack={() => goBackOr(router, '/squad')}
         ariaLabelBack={t('schedule.backLabel')}
       />
 

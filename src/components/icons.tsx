@@ -188,6 +188,12 @@ export const IconPlus = (p: IconProps) => (
   </Svg>
 );
 
+export const IconMinus = (p: IconProps) => (
+  <Svg {...p} strokeWidth={2.5}>
+    <path d="M4 12h16" />
+  </Svg>
+);
+
 export const IconBack = (p: IconProps) => (
   <Svg {...p} strokeWidth={2.2}>
     <path d="M15 18l-6-6 6-6" />

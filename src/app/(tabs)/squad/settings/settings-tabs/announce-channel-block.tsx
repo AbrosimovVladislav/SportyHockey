@@ -3,27 +3,47 @@
 import { useState, type CSSProperties } from 'react';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { Input } from '@/components/input';
 import { IconCheckCircle, IconTelegram } from '@/components/icons';
 import { useT } from '@/hooks/use-t';
-import { useTeamChannel, useUnbindTeamChannel } from '@/hooks/use-team-channel';
+import {
+  useBindTeamChannel,
+  useTeamChannel,
+  useUnbindTeamChannel,
+} from '@/hooks/use-team-channel';
+import { ApiError } from '@/lib/api-client';
 import { colors } from '@/theme/colors';
 import { radius } from '@/theme/radius';
 import { spacing } from '@/theme/spacing';
 import { SectionHeader } from './section-header';
 
-// Блок «Чат анонсов» на вкладке «Общее» (итерация 70). Привязка делается в Telegram:
-// бота добавляют в группу команды (или отправляют там /connect); для канала — делают
-// бота администратором и пересылают ему пост. Здесь — статус, инструкция и отвязка.
+// Блок «Группа команды в Telegram» на вкладке «Общее» (итерации 70–71). У каждой команды
+// своя группа, в неё бот публикует анонсы. Публичную группу организатор вписывает сюда
+// по @нику; закрытая (ника нет) привязывается сама, когда бота в неё добавляют.
 
 export function AnnounceChannelBlock() {
   const t = useT();
   const channelQ = useTeamChannel();
+  const bind = useBindTeamChannel();
   const unbind = useUnbindTeamChannel();
+  const [nick, setNick] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const channel = channelQ.data;
-  const botName = channel?.bot_username ? `@${channel.bot_username}` : t('teamSettings.channel.botFallback');
-  const connectCmd = channel?.bot_username ? `/connect@${channel.bot_username}` : '/connect';
+  const botName = channel?.bot_username
+    ? `@${channel.bot_username}`
+    : t('teamSettings.channel.botFallback');
+
+  async function handleBind() {
+    if (!nick.trim() || bind.isPending) return;
+    setError(null);
+    try {
+      await bind.mutateAsync({ username: nick.trim() });
+      setNick('');
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t('teamSettings.channel.bindError'));
+    }
+  }
 
   async function handleUnbind() {
     setError(null);
@@ -51,14 +71,11 @@ export function AnnounceChannelBlock() {
   };
   const title: CSSProperties = { fontSize: 15, fontWeight: 700, color: colors.text };
   const hint: CSSProperties = { fontSize: 13, color: colors.textSecondary, lineHeight: 1.45 };
-  const steps: CSSProperties = {
-    ...hint,
-    margin: 0,
-    marginTop: spacing['12'],
-    paddingLeft: spacing['20'],
-    display: 'flex',
-    flexDirection: 'column',
+  const bindRow: CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '1fr auto',
     gap: spacing['8'],
+    marginTop: spacing['16'],
   };
 
   return (
@@ -91,13 +108,24 @@ export function AnnounceChannelBlock() {
 
         {channel && !channel.bound ? (
           <>
-            <ol style={steps}>
-              <li>{t('teamSettings.channel.step1').replace('{bot}', botName)}</li>
-              <li>{t('teamSettings.channel.step2').replace('{cmd}', connectCmd)}</li>
-              <li>{t('teamSettings.channel.step3')}</li>
-            </ol>
+            <div style={bindRow}>
+              <Input
+                type="text"
+                value={nick}
+                onChange={(e) => setNick(e.currentTarget.value)}
+                placeholder={t('teamSettings.channel.nickPlaceholder')}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                maxLength={100}
+                aria-label={t('teamSettings.channel.nickPlaceholder')}
+              />
+              <Button onClick={() => void handleBind()} disabled={!nick.trim() || bind.isPending}>
+                {bind.isPending ? t('teamSettings.channel.binding') : t('teamSettings.channel.bind')}
+              </Button>
+            </div>
             <div style={{ ...hint, marginTop: spacing['12'] }}>
-              {t('teamSettings.channel.channelNote').replace('{bot}', botName)}
+              {t('teamSettings.channel.note').replace('{bot}', botName)}
             </div>
           </>
         ) : null}

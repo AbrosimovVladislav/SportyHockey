@@ -7,7 +7,7 @@ import { asEventStatus, asEventType } from '@/lib/event-enum';
 import { finalizeRows } from '@/lib/event-finalize';
 import { loadAttendance } from '@/lib/event-attendance';
 import { getUserTeamId } from '@/lib/user-team';
-import { notifyEventCreated } from '@/lib/notify';
+import { notifyEventSeriesCreated } from '@/lib/notify';
 import { publishEventAnnouncement } from '@/lib/announce';
 import { isValidTimezone } from '@/lib/bot-format';
 import { buildEventTitle } from '@/lib/event-title';
@@ -25,6 +25,8 @@ export const dynamic = 'force-dynamic';
 // сверх стандартных 10 с serverless-функции.
 export const maxDuration = 30;
 
+const MAX_SERIES = 12;
+
 const CreateBody = z.object({
   type: z.enum(['training', 'game']),
   starts_at: z.string().datetime({ offset: true }),
@@ -36,6 +38,9 @@ const CreateBody = z.object({
   opponent_name: z.string().trim().min(1).max(100).optional(),
   announce: z.boolean().optional(),
   timezone: z.string().max(64).optional(),
+  // Серия (итерация 72): начала остальных событий с теми же параметрами. Даты считает
+  // клиент в поясе устройства — так «то же время через неделю» переживает перевод часов.
+  extra_starts_at: z.array(z.string().datetime({ offset: true })).max(MAX_SERIES - 1).optional(),
 });
 
 type VenueRow = Pick<EventVenue, 'id' | 'name' | 'address' | 'photo_url'>;
@@ -147,8 +152,7 @@ export async function POST(req: Request): Promise<Response> {
     const opponentName =
       parsed.data.type === 'game' ? parsed.data.opponent_name ?? null : null;
 
-    const startsAt = new Date(parsed.data.starts_at);
-    const endsAt = new Date(startsAt.getTime() + parsed.data.duration_minutes * 60_000);
+    const durationMs = parsed.data.duration_minutes * 60_000;
     const cost =
       parsed.data.cost_per_player !== undefined
         ? parsed.data.cost_per_player
@@ -162,32 +166,44 @@ export async function POST(req: Request): Promise<Response> {
           ? Number(venue.cost_per_arena)
           : null;
 
-    const { data, error } = await sb
+    // Одно событие или серия: первое — starts_at, остальные — extra_starts_at.
+    const starts = [parsed.data.starts_at, ...(parsed.data.extra_starts_at ?? [])]
+      .map((iso) => new Date(iso))
+      .sort((a, b) => a.getTime() - b.getTime());
+    const title = buildEventTitle(parsed.data.type, teamName, opponentName);
+
+    const { data: created, error } = await sb
       .from('events')
-      .insert({
-        team_id: ctx.team_id,
-        created_by: ctx.id,
-        type: parsed.data.type,
-        starts_at: startsAt.toISOString(),
-        ends_at: endsAt.toISOString(),
-        venue_id: venue.id,
-        title: buildEventTitle(parsed.data.type, teamName, opponentName),
-        details: parsed.data.details ?? null,
-        cost_per_player: cost,
-        arena_cost: arenaCost,
-        opponent_name: opponentName,
-      })
-      .select('id')
-      .single();
-    if (error || !data) {
+      .insert(
+        starts.map((startsAt) => ({
+          team_id: ctx.team_id,
+          created_by: ctx.id,
+          type: parsed.data.type,
+          starts_at: startsAt.toISOString(),
+          ends_at: new Date(startsAt.getTime() + durationMs).toISOString(),
+          venue_id: venue.id,
+          title,
+          details: parsed.data.details ?? null,
+          cost_per_player: cost,
+          arena_cost: arenaCost,
+          opponent_name: opponentName,
+        })),
+      )
+      .select('id, starts_at');
+    if (error || !created || created.length === 0) {
       return NextResponse.json(
         { error: error?.message ?? 'Не удалось создать событие' },
         { status: 500 },
       );
     }
+    const ids = [...created]
+      .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+      .map((e) => e.id);
 
     // Прокидываем дефолтную раскидку команды (звенья + стороны для тренировки).
-    await applyDefaultLineup(data.id, parsed.data.type, ctx.team_id);
+    for (const id of ids) {
+      await applyDefaultLineup(id, parsed.data.type, ctx.team_id);
+    }
 
     // Пояс команды = пояс устройства организатора. Сохраняем ДО рассылки, чтобы уже
     // первое событие ушло людям с правильным временем (сервер живёт в UTC).
@@ -196,13 +212,16 @@ export async function POST(req: Request): Promise<Response> {
       await sb.from('teams').update({ timezone: tz }).eq('id', ctx.team_id);
     }
 
-    await notifyEventCreated(data.id);
+    // Личные сообщения: одна карточка на событие, на серию — одно общее сообщение.
+    await notifyEventSeriesCreated(ids);
 
-    // Анонс в канал команды — в дополнение к личным сообщениям. Сбой анонса не должен
-    // ломать создание события: возвращаем статус, а клиент покажет причину.
-    const body: CreateEventResponse = { id: data.id, announce: 'skipped' };
+    // Анонс в группу команды — в дополнение к личным сообщениям. В серии анонсируем
+    // только ближайшее событие: остальные организатор анонсирует с их экранов ближе
+    // к дате, иначе группа получит пачку постов разом. Сбой анонса не должен ломать
+    // создание: возвращаем статус, а клиент покажет причину.
+    const body: CreateEventResponse = { id: ids[0], count: ids.length, announce: 'skipped' };
     if (parsed.data.announce !== false) {
-      const result = await publishEventAnnouncement(data.id, ctx.id);
+      const result = await publishEventAnnouncement(ids[0], ctx.id);
       if (result.ok) {
         body.announce = 'sent';
       } else if (result.reason !== 'no_channel') {

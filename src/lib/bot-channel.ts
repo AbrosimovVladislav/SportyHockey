@@ -2,6 +2,7 @@ import 'server-only';
 import { InlineKeyboard, type Bot, type Context } from 'grammy';
 import { supabaseServer } from '@/lib/supabase-server';
 import { upsertTelegramUser } from '@/lib/upsert-telegram-user';
+import { checkChatAccess } from '@/lib/announce-chat';
 
 // Привязка чата анонсов к команде (итерация 70): группа или канал Telegram.
 //
@@ -11,6 +12,8 @@ import { upsertTelegramUser } from '@/lib/upsert-telegram-user';
 //     привязывается сразу;
 //   • запасной путь и перепривязка — команда /connect@<бот> в группе. В группе
 //     с темами команда, отправленная в теме, направит анонсы именно в эту тему.
+//   • публичную группу можно указать и по @нику в настройках команды (итерация 71) —
+//     это идёт мимо бота, через PUT /api/teams/me/channel.
 //   Пересланное из группы сообщение id чата не несёт, поэтому способ канала не годится.
 // Канал: бота делают администратором с правом публикации и пересылают ему в личку
 //   любой пост из канала.
@@ -19,7 +22,7 @@ import { upsertTelegramUser } from '@/lib/upsert-telegram-user';
 // Один бот обслуживает все команды, поэтому всегда проверяем обе стороны: отправитель
 // управляет командой в приложении И является администратором самого чата.
 
-// После итерации 71 (роль admin) привязка останется только у админа команды.
+// После итерации 73 (роль admin) привязка останется только у админа команды.
 const BINDER_ROLES = ['organizer', 'admin'];
 
 // «Анонимный админ» группы: сообщения приходят от служебного бота, человека не узнать.
@@ -206,35 +209,7 @@ async function loadManagedTeams(from: NonNullable<Context['from']>): Promise<Man
 // null — всё в порядке; иначе текст отказа для пользователя.
 async function checkAccess(ctx: Context, target: BindTarget): Promise<string | null> {
   if (!ctx.from) return 'Не удалось определить пользователя.';
-  const isChannel = target.kind === 'channel';
-  try {
-    const me = await ctx.api.getChatMember(target.chatId, ctx.me.id);
-    // Канал: нужен админ с правом публикации. Группа: достаточно быть участником,
-    // которому не запретили писать.
-    const canPost = isChannel
-      ? me.status === 'creator' || (me.status === 'administrator' && me.can_post_messages === true)
-      : me.status === 'creator' ||
-        me.status === 'administrator' ||
-        me.status === 'member' ||
-        (me.status === 'restricted' && me.can_send_messages);
-    if (!canPost) {
-      return isChannel
-        ? 'У меня нет права публиковать в этом канале. Добавь меня администратором с правом «Публикация сообщений» и перешли пост ещё раз.'
-        : 'Мне запрещено писать в этой группе. Сделай меня администратором и отправь /connect ещё раз.';
-    }
-    const sender = await ctx.api.getChatMember(target.chatId, ctx.from.id);
-    if (sender.status !== 'creator' && sender.status !== 'administrator') {
-      return isChannel
-        ? 'Привязать канал может только его администратор.'
-        : 'Привязать группу может только её администратор.';
-    }
-    return null;
-  } catch (e) {
-    console.warn('[bot-channel] getChatMember failed:', e);
-    return isChannel
-      ? 'Я не состою в этом канале. Добавь меня администратором с правом «Публикация сообщений» и перешли пост ещё раз.'
-      : 'Не получилось проверить права в этой группе, попробуй ещё раз.';
-  }
+  return checkChatAccess(ctx.api, ctx.me.id, target.chatId, target.kind, ctx.from.id);
 }
 
 async function bindChat(team: ManagedTeam, target: BindTarget): Promise<string> {
