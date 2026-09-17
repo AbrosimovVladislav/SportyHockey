@@ -1,0 +1,1 @@
+ALTER TABLE public.venues ADD COLUMN photo_url text;

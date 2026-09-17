@@ -1,95 +1,84 @@
 # SportyHockey — Architecture
 
-Обновлено: 2026-05-21.
+Обновлено: 2026-09-17. Главный источник правды по состоянию проекта — [ROADMAP.md](ROADMAP.md); здесь только каркас.
 
 ## Стек
 
 - **Next.js 16** (App Router) + **React 19** + TypeScript strict — фронт и API в одном проекте на Vercel.
-- **Supabase Postgres 17** — данные. **Supabase Storage** (bucket `team-media`) — фото.
-- **TanStack Query v5** — серверный стейт. **Zustand** — UI-стейт.
-- **grammy** — Telegram-бот webhook в `/api/bot`.
+- **Supabase Postgres 17** — данные. **Supabase Storage** (public-бакет `team-media`) — фото, аватары, логотипы, картинки разделов.
+- **TanStack Query v5** — серверный стейт. **Zustand** — UI-стейт (активная команда). **recharts** — графики финансов.
+- **grammy** — Telegram-бот, webhook в `/api/bot` (`/start`, `/events`, inline-голосование).
 - **Auth:** Telegram `initData` + HMAC на каждом запросе. Без JWT, cookies, сессий.
 
 ## Поток авторизации
 
 1. Mini App открывается → TG SDK даёт `initData`.
-2. Каждый fetch на `/api/*` несёт `Authorization: tma <initData>`.
-3. `requireUser(req)` валидирует HMAC через `BOT_TOKEN`, upsert'ит в `users`, возвращает `user`.
-4. Мутации организатора: `requireOrganizer(req)` → возвращает `user + team_id` (первая `organizer`-membership). API дополнительно сверяет `event.team_id === ctx.team_id`.
+2. Каждый fetch на `/api/*` несёт `Authorization: tma <initData>` и, если выбрана команда, `x-team-id`.
+3. `requireUser(req)` валидирует HMAC через `BOT_TOKEN` (порог свежести `auth_date` — 7 дней), создаёт/обновляет строку в `users`, возвращает `user`. Новый пользователь получает `onboarded = false` → layout табов уводит его на `/onboarding`.
+4. **Мультикомандность:** активная команда приходит в `x-team-id`. `resolveActiveTeamId` проверяет членство (fallback — первая команда пользователя), `requireOrganizer` — роль `organizer` именно в этой команде. API дополнительно сверяет `team_id` сущности с командой из контекста.
 
 ## Структура проекта
 
 ```
 src/
 ├── app/
-│   ├── (tabs)/              # 5 Mini App страниц + nested под /events/[id]
-│   ├── onboarding/          # создание команды
-│   ├── api/                 # все endpoints (см. ниже)
+│   ├── (tabs)/              # 5 табов: / (Главная), /events, /money, /squad (Команда), /profile + вложенные экраны
+│   ├── onboarding/          # первый вход, создание команды
+│   ├── join/[token]/        # вступление по invite-ссылке
+│   ├── api/                 # все endpoints
 │   └── providers.tsx        # TG SDK + TanStack Query
-├── components/              # UI-кит
-├── hooks/                   # query/mutation хуки
-├── lib/                     # auth, bot, supabase-server, утилиты
+├── components/              # UI-кит и блоки разделов (home/, finance-*/)
+├── hooks/                   # query/mutation хуки — один файл на запрос
+├── lib/                     # auth, bot, supabase-server, расчёты (финансы, статистика), утилиты
+├── store/                   # Zustand: active-team
 ├── theme/                   # colors / spacing / typography / radius
-├── types/                   # db.ts (сгенерён) + api.ts
+├── types/                   # db.ts (сгенерён) + api.ts (DTO)
 └── i18n/ru.ts               # плоский dict ключ → строка
-supabase/migrations/         # SQL миграции
+supabase/migrations/         # SQL-миграции (зеркало истории в Supabase)
 ```
 
-## Экраны → хуки
+## API
 
-| Экран                           | Основные хуки                                                                 |
-| ------------------------------- | ----------------------------------------------------------------------------- |
-| `/events` расписание            | `useEvents`, `useMe`                                                          |
-| `/events/new`                   | `useVenues`, `useMe` + POST `/api/events`                                     |
-| `/events/[id]` детали           | `useEvent`, `useEventResult` (для игр), `useVoteEvent`                        |
-| `/events/[id]/attendees`        | `useEvent`, `useSetAttendance`, `useSetPayment`, `usePaymentClaim`            |
-| `/events/[id]/lineup`           | `useEvent`, `useSetLineup`, `useSetLine`                                      |
-| `/events/[id]/media`            | `useEvent`, `useEventMedia`, `useUploadMedia`, `useDeleteMedia`               |
-| `/events/[id]/reschedule`       | `useEvent`, `useUpdateEvent`, `useVenues`                                     |
-| `/events/[id]/cancel`           | `useEvent`, `useUpdateEvent`                                                  |
-| `/events/[id]/result`           | `useEvent`, `useEventResult`, `use{Add,Update,Delete}{Goal,Penalty}`          |
-| `/squad`                        | `useTeamMembers`                                                              |
-| `/profile`, `/onboarding`       | `useMe`                                                                       |
+Все роуты требуют `requireUser`; мутации организатора — `requireOrganizer`. Сгруппировано по доменам, полный список — в [src/app/api/](../src/app/api/).
 
-## API endpoints
+| Домен | Префикс | Что делает |
+| --- | --- | --- |
+| Профиль | `/api/me/*` | профиль, онбординг, аватар, переключение членства, приглашения и заявки игрока |
+| Команды | `/api/teams`, `/api/teams/search`, `/api/teams/me/*` | создание и поиск, состав и карточки игроков, настройки, дефолтные звенья и стороны, invite-ссылка, заявки, медиа, лого/фото, картинки разделов, статистика, архив/выход |
+| Вступление | `/api/join/[token]` | превью и вступление по ссылке |
+| События | `/api/events`, `/api/events/[id]/*` | CRUD, явка, оплата и claim, состав (стороны, звенья, сброс), результат (голы, удаления), медиа, share-image |
+| Голосование | `/api/attendance/vote` | голос игрока (он же из бота) |
+| Финансы | `/api/finance`, `/api/finance/*` | лента операций, баланс, балансы игроков, срез за период, аналитика и прогноз |
+| Главная | `/api/team/*` | ближайшее событие, quick-actions, ключевая статистика |
+| Площадки | `/api/venues` | только чтение — CRUD площадок в приложении нет |
+| Бот | `/api/bot` | grammy webhook (защищён `X-Telegram-Bot-Api-Secret-Token`) |
 
-Все требуют `requireUser`. Где organizer — отмечено **org**.
-
-**Профиль и команды:** `GET /api/me`, `POST /api/teams`, `GET /api/teams/me/members`, `GET /api/venues`.
-
-**События:**
-- `GET /api/events` — список команды + счётчики явки
-- `POST /api/events` **org** — создать
-- `GET /api/events/[id]` — детали + участники + lineup + lines + оплаты + media-счётчик
-- `PATCH /api/events/[id]` **org** — редактировать (статус, время, площадка, цены)
-- `POST /api/events/[id]/attendance` **org** — отметить явку (showed_up)
-- `POST /api/attendance/vote` — голос игрока (going/not_going/null)
-
-**Платежи:** `POST /api/events/[id]/payment` **org**, `POST /api/events/[id]/payment-claim`.
-
-**Состав/линии:** `POST /api/events/[id]/lineup` **org** (сторона), `POST /api/events/[id]/line` **org** (звено).
-
-**Результат:** `GET /api/events/[id]/result`, `POST|PATCH|DELETE /api/events/[id]/goals[/goalId]` **org**, `POST|PATCH|DELETE /api/events/[id]/penalties[/penaltyId]` **org**, `GET /api/events/[id]/share-image` (OG-картинка 1200×630).
-
-**Медиа:** `GET /api/events/[id]/media`, `POST /api/events/[id]/media/sign` (signed upload URL), `POST /api/events/[id]/media`, `DELETE /api/events/[id]/media/[mediaId]`.
-
-**Бот:** `POST /api/bot` — grammy webhook (защищён `X-Telegram-Bot-Api-Secret-Token`).
+Загрузка файлов везде одинаковая: `*/sign` отдаёт signed upload URL → клиент грузит напрямую в Storage → отдельный запрос сохраняет ссылку.
 
 ## Хуки
 
-**Query:** `useMe`, `useEvents`, `useEvent`, `useEventResult`, `useEventMedia`, `useTeamMembers`, `useVenues` — все обёртка над [`api-client.ts`](../src/lib/api-client.ts) с дефолтным `staleTime: 30s`. `useEvent` дополнительно делает `refetchInterval: 10s` для живой явки.
+Один хук на запрос в [src/hooks/](../src/hooks/), все поверх [`api-client.ts`](../src/lib/api-client.ts). Дефолтный `staleTime` 30 с, `refetchOnWindowFocus` включён. Мутации сами инвалидируют зависимые ключи; для главной и профиля игрока — хелперы [`invalidate-home.ts`](../src/lib/invalidate-home.ts) и [`invalidate-player.ts`](../src/lib/invalidate-player.ts).
 
-**Mutation** (POST/PATCH/DELETE + invalidate): `useVoteEvent`, `useSetAttendance`, `useSetPayment`, `usePaymentClaim`, `useSetLineup`, `useSetLine`, `useUpdateEvent`, `useUploadMedia`, `useDeleteMedia`, `use{Add,Update,Delete}{Goal,Penalty}`.
+## Данные
 
-**Утилитарные:** `use-t` (i18n), `use-tg-header`, `use-tg-swipes`, `use-back-button`.
+18 таблиц в `public`:
 
-## Таблицы БД (13)
+- **Люди и команды:** `users`, `teams`, `team_memberships`, `team_invites`, `team_join_requests`, `team_default_lines`, `team_default_sides`, `team_section_images`
+- **События:** `events`, `event_attendances`, `event_lineups` (сторона: light/dark или own/opponent), `event_lines` (звенья), `event_penalties`
+- **Результат:** `result_points` (гол и передача — строки одной таблицы), `result_point_links` (гол ↔ передача)
+- **Финансы:** `finance_transactions` — единая лента «кто → кому» (`from_kind/from_id → to_kind/to_id`). Долги, переплаты и депозиты — не записи, а вычисляемые разрезы.
+- **Прочее:** `venues` (глобальный справочник, без привязки к команде), `media_items`
 
-`users`, `teams`, `team_memberships`, `venues`, `events`, `event_attendances`, `event_lineups` (сторона: light/dark или own/opponent), `event_lines` (звенья + позиции), `event_goals`, `event_goal_assists`, `event_penalties`, `finance_transactions`, `media_items`.
+Важное:
 
-RLS выключен на всех таблицах. Service-role доступ только через server-side API.
+- View, функций, enum'ов и триггеров в схеме нет — вся логика в [src/lib/](../src/lib/).
+- **RLS выключен на всех таблицах — осознанное решение.** Доступ только через server-side API с service-role. Security advisor Supabase будет показывать это как ERROR — так и задумано.
+- Схема меняется только миграцией: применили в Supabase → положили тот же SQL в `supabase/migrations/<version>_<name>.sql` → перегенерили [`src/types/db.ts`](../src/types/db.ts).
 
-Точная схема и FK — в [`src/types/db.ts`](../src/types/db.ts) (сгенерён через `supabase gen types typescript --linked`).
+## Инфраструктура
+
+- **Supabase:** проект `wzwpnwianozcqavfqvht` (eu-central-1), организация на тарифе Pro — auto-pause не применяется.
+- **Vercel:** авто-деплой `main` (production) и PR (preview). Env-переменные — в [README](../README.md).
 
 ## Принципы
 
@@ -100,22 +89,11 @@ RLS выключен на всех таблицах. Service-role доступ �
 5. **Стейт:** server → TanStack Query, UI → Zustand, локальный → useState.
 6. **Стиль:** цвета/отступы/типографика только из `src/theme/`. Тексты — через i18n.
 
-## Запреты
-
-- Не пушить в `main` без явного указания.
-- Не использовать `any` без `// FIXME:type` и причины.
-- Не коммитить секреты.
-- Не делать `git`-операции (`reset --hard`, `push --force`, удаление веток) без подтверждения.
-- Не вызывать Supabase из клиентских компонентов.
-- Не предлагать JWT/cookie-сессии.
-
-## Безопасность
-
-`requireUser` валидирует HMAC `initData` через `BOT_TOKEN`. `requireOrganizer` дополнительно проверяет роль. Service-role — только server-side. Webhook бота — секретный токен в заголовке. Storage — приватный bucket, signed/public URLs из API.
+Запреты — в [CLAUDE.md](../CLAUDE.md).
 
 ## Где искать детали
 
+- **Версии и итерации:** [`ROADMAP.md`](ROADMAP.md) + `roadmap/v0.X.md`
 - **Эпики:** [`docs/features/`](features/)
-- **Версии:** [`ROADMAP.md`](ROADMAP.md) + `roadmap/v0.X.md`
 - **Дизайн:** [`DESIGN.md`](DESIGN.md)
 - **Практики работы с Claude Code:** [`BEST_PRACTICES.md`](BEST_PRACTICES.md)
