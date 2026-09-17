@@ -3,81 +3,177 @@ import { InlineKeyboard, type Bot, type Context } from 'grammy';
 import { supabaseServer } from '@/lib/supabase-server';
 import { upsertTelegramUser } from '@/lib/upsert-telegram-user';
 
-// Привязка Telegram-канала к команде (итерация 70).
+// Привязка чата анонсов к команде (итерация 70): группа или канал Telegram.
 //
-// Сценарий: бота добавляют администратором канала с правом публикации, затем
-// организатор пересылает боту в личку любой пост из этого канала. Так мы узнаём
-// id канала без перенастройки webhook (нужен только тип `message`) и одинаково
-// работаем с публичными и приватными каналами.
+// Группа (основной сценарий, 70.8):
+//   • бота добавляют в группу — служебное сообщение об этом бот получает всегда,
+//     даже в privacy mode; если добавил админ группы, управляющий командой, — чат
+//     привязывается сразу;
+//   • запасной путь и перепривязка — команда /connect@<бот> в группе. В группе
+//     с темами команда, отправленная в теме, направит анонсы именно в эту тему.
+//   Пересланное из группы сообщение id чата не несёт, поэтому способ канала не годится.
+// Канал: бота делают администратором с правом публикации и пересылают ему в личку
+//   любой пост из канала.
 //
-// Один бот обслуживает все команды, поэтому проверяем обе стороны:
-//   • отправитель управляет командой в приложении;
-//   • отправитель — администратор самого канала. Без этого любой мог бы переслать
-//     пост из чужого канала, где бот уже админ, и публиковать туда свои анонсы.
+// Webhook получает только `message` и `callback_query` — оба сценария в это укладываются.
+// Один бот обслуживает все команды, поэтому всегда проверяем обе стороны: отправитель
+// управляет командой в приложении И является администратором самого чата.
 
 // После итерации 71 (роль admin) привязка останется только у админа команды.
 const BINDER_ROLES = ['organizer', 'admin'];
 
-const BIND_CALLBACK_RE = /^bindch:([0-9a-f-]{36}):(-?\d+)$/i;
+// «Анонимный админ» группы: сообщения приходят от служебного бота, человека не узнать.
+const ANONYMOUS_ADMIN_ID = 1087968824;
 
-type ManagedTeam = { id: string; name: string };
+// bc:<teamId без дефисов>:<chatId>:<threadId | 0> — укладывается в 64 байта callback_data.
+const BIND_CALLBACK_RE = /^bc:([0-9a-f]{32}):(-?\d+):(\d+)$/i;
+
+type ManagedTeam = { id: string; name: string; boundChatId: number | null };
+type BindTarget = {
+  chatId: number;
+  title: string;
+  kind: 'group' | 'channel';
+  threadId: number | null;
+};
+
+function isGroupChat(ctx: Context): boolean {
+  return ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+}
+
+function groupTarget(ctx: Context): BindTarget | null {
+  const chat = ctx.chat;
+  if (!chat || (chat.type !== 'group' && chat.type !== 'supergroup')) return null;
+  const msg = ctx.msg;
+  return {
+    chatId: chat.id,
+    title: chat.title ?? 'Группа',
+    kind: 'group',
+    threadId: msg?.is_topic_message && msg.message_thread_id ? msg.message_thread_id : null,
+  };
+}
 
 export function registerChannelHandlers(bot: Bot): void {
+  // Канал: пересланный пост в личке с ботом.
   bot.on('message:forward_origin', async (ctx, next) => {
     const origin = ctx.msg.forward_origin;
-    if (ctx.chat.type !== 'private' || origin.type !== 'channel' || !ctx.from) {
-      await next();
-      return;
-    }
-    const chatId = origin.chat.id;
+    if (ctx.chat.type !== 'private' || origin.type !== 'channel') return next();
     const title = 'title' in origin.chat ? (origin.chat.title ?? 'Канал') : 'Канал';
-
-    const teams = await loadManagedTeams(ctx.from);
-    if (teams.length === 0) {
-      await ctx.reply('Привязать канал может только организатор команды в приложении.');
-      return;
-    }
-    const problem = await checkChannelAccess(ctx, chatId);
-    if (problem) {
-      await ctx.reply(problem);
-      return;
-    }
-
-    if (teams.length === 1) {
-      await ctx.reply(await bindChannel(teams[0], chatId, title));
-      return;
-    }
-    const kb = new InlineKeyboard();
-    for (const team of teams) kb.text(team.name, `bindch:${team.id}:${chatId}`).row();
-    await ctx.reply(`К какой команде привязать канал «${title}»?`, { reply_markup: kb });
+    await startBind(ctx, { chatId: origin.chat.id, title, kind: 'channel', threadId: null }, false);
   });
 
+  // Группа: бота только что добавили.
+  bot.on('message:new_chat_members', async (ctx, next) => {
+    const target = groupTarget(ctx);
+    if (!target || !ctx.msg.new_chat_members.some((m) => m.id === ctx.me.id)) return next();
+    await startBind(ctx, target, true);
+  });
+
+  // Группа: явная привязка / перепривязка (в теме — анонсы пойдут в эту тему).
+  bot.command('connect', async (ctx) => {
+    const target = groupTarget(ctx);
+    if (!target) {
+      await ctx.reply(
+        `Эта команда работает в группе команды. Добавь меня в группу и отправь там /connect@${ctx.me.username}`,
+      );
+      return;
+    }
+    await startBind(ctx, target, false);
+  });
+
+  // Группа превратилась в супергруппу — Telegram меняет id чата.
+  bot.on('message:migrate_to_chat_id', async (ctx) => {
+    const { error } = await supabaseServer()
+      .from('teams')
+      .update({ announce_chat_id: ctx.msg.migrate_to_chat_id })
+      .eq('announce_chat_id', ctx.chat.id);
+    if (error) console.error('[bot-channel] migrate failed:', error);
+    // Уже опубликованные анонсы: реплаи об отмене/переносе должны попасть в новый чат.
+    await supabaseServer()
+      .from('events')
+      .update({ announce_chat_id: ctx.msg.migrate_to_chat_id })
+      .eq('announce_chat_id', ctx.chat.id);
+  });
+
+  // Выбор команды, если отправитель управляет несколькими.
   bot.callbackQuery(BIND_CALLBACK_RE, async (ctx) => {
     const m = ctx.match;
     if (!Array.isArray(m) || !ctx.from) return;
-    const teamId = m[1];
+    const teamId = m[1].replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5').toLowerCase();
     const chatId = Number(m[2]);
+    const threadId = Number(m[3]) || null;
 
     const team = (await loadManagedTeams(ctx.from)).find((t) => t.id === teamId);
     if (!team) {
       await ctx.answerCallbackQuery({ text: 'Нет прав на эту команду' });
       return;
     }
-    const problem = await checkChannelAccess(ctx, chatId);
-    if (problem) {
-      await ctx.answerCallbackQuery();
-      await ctx.editMessageText(problem);
-      return;
-    }
-    let title = 'Канал';
+    let target: BindTarget = { chatId, title: 'Чат', kind: 'group', threadId };
     try {
       const chat = await ctx.api.getChat(chatId);
-      if ('title' in chat && chat.title) title = chat.title;
+      target = {
+        ...target,
+        kind: chat.type === 'channel' ? 'channel' : 'group',
+        title: ('title' in chat && chat.title) || target.title,
+      };
     } catch (e) {
       console.warn('[bot-channel] getChat failed:', e);
     }
+    const problem = await checkAccess(ctx, target);
     await ctx.answerCallbackQuery();
-    await ctx.editMessageText(await bindChannel(team, chatId, title));
+    await ctx.editMessageText(problem ?? (await bindChat(team, target)));
+  });
+}
+
+// quietIntro — бота только что добавили в группу: вместо отказа подсказываем, что делать.
+async function startBind(ctx: Context, target: BindTarget, quietIntro: boolean): Promise<void> {
+  if (!ctx.from) return;
+  const connectHint = `Чтобы анонсы команды приходили сюда, админ группы, который управляет командой в приложении, должен отправить /connect@${ctx.me.username}`;
+
+  if (ctx.from.id === ANONYMOUS_ADMIN_ID) {
+    await say(ctx, target, `Ты пишешь анонимно от имени группы — я не вижу, кто ты. ${connectHint} не анонимно.`);
+    return;
+  }
+  const managed = await loadManagedTeams(ctx.from);
+  if (managed.length === 0) {
+    await say(
+      ctx,
+      target,
+      quietIntro ? `Привет! ${connectHint}` : 'Привязать чат может только организатор команды в приложении.',
+    );
+    return;
+  }
+  // Авто-привязка при добавлении бота — только для команды без чата: иначе добавление
+  // бота в любую другую группу молча перекинуло бы анонсы туда. Перенос — явным /connect.
+  const teams = quietIntro ? managed.filter((t) => t.boundChatId == null) : managed;
+  if (teams.length === 0) {
+    await say(
+      ctx,
+      target,
+      `Привет! У команды уже привязан чат анонсов. Чтобы перенести анонсы сюда, отправь /connect@${ctx.me.username}`,
+    );
+    return;
+  }
+  const problem = await checkAccess(ctx, target);
+  if (problem) {
+    await say(ctx, target, quietIntro ? `Привет! ${connectHint}` : problem);
+    return;
+  }
+  if (teams.length === 1) {
+    await say(ctx, target, await bindChat(teams[0], target));
+    return;
+  }
+  const kb = new InlineKeyboard();
+  for (const team of teams) {
+    kb.text(team.name, `bc:${team.id.replace(/-/g, '')}:${target.chatId}:${target.threadId ?? 0}`).row();
+  }
+  await say(ctx, target, `К какой команде привязать «${target.title}»?`, kb);
+}
+
+// Ответ там же, где пришло сообщение; в группе с темами — в той же теме.
+async function say(ctx: Context, target: BindTarget, text: string, kb?: InlineKeyboard): Promise<void> {
+  await ctx.reply(text, {
+    reply_markup: kb,
+    message_thread_id: isGroupChat(ctx) ? (target.threadId ?? undefined) : undefined,
   });
 }
 
@@ -91,7 +187,7 @@ async function loadManagedTeams(from: NonNullable<Context['from']>): Promise<Man
   });
   const { data, error } = await supabaseServer()
     .from('team_memberships')
-    .select('team_id, teams(name, archived_at)')
+    .select('team_id, teams(name, archived_at, announce_chat_id)')
     .eq('user_id', user.id)
     .in('role', BINDER_ROLES);
   if (error) {
@@ -102,40 +198,59 @@ async function loadManagedTeams(from: NonNullable<Context['from']>): Promise<Man
   for (const row of data ?? []) {
     const team = Array.isArray(row.teams) ? row.teams[0] : row.teams;
     if (!team || team.archived_at) continue;
-    out.push({ id: row.team_id, name: team.name });
+    out.push({ id: row.team_id, name: team.name, boundChatId: team.announce_chat_id ?? null });
   }
   return out;
 }
 
 // null — всё в порядке; иначе текст отказа для пользователя.
-async function checkChannelAccess(ctx: Context, chatId: number): Promise<string | null> {
+async function checkAccess(ctx: Context, target: BindTarget): Promise<string | null> {
   if (!ctx.from) return 'Не удалось определить пользователя.';
+  const isChannel = target.kind === 'channel';
   try {
-    const me = await ctx.api.getChatMember(chatId, ctx.me.id);
-    const canPost =
-      me.status === 'creator' || (me.status === 'administrator' && me.can_post_messages === true);
+    const me = await ctx.api.getChatMember(target.chatId, ctx.me.id);
+    // Канал: нужен админ с правом публикации. Группа: достаточно быть участником,
+    // которому не запретили писать.
+    const canPost = isChannel
+      ? me.status === 'creator' || (me.status === 'administrator' && me.can_post_messages === true)
+      : me.status === 'creator' ||
+        me.status === 'administrator' ||
+        me.status === 'member' ||
+        (me.status === 'restricted' && me.can_send_messages);
     if (!canPost) {
-      return 'У меня нет права публиковать в этом канале. Добавь меня администратором с правом «Публикация сообщений» и перешли пост ещё раз.';
+      return isChannel
+        ? 'У меня нет права публиковать в этом канале. Добавь меня администратором с правом «Публикация сообщений» и перешли пост ещё раз.'
+        : 'Мне запрещено писать в этой группе. Сделай меня администратором и отправь /connect ещё раз.';
     }
-    const sender = await ctx.api.getChatMember(chatId, ctx.from.id);
+    const sender = await ctx.api.getChatMember(target.chatId, ctx.from.id);
     if (sender.status !== 'creator' && sender.status !== 'administrator') {
-      return 'Привязать канал может только его администратор.';
+      return isChannel
+        ? 'Привязать канал может только его администратор.'
+        : 'Привязать группу может только её администратор.';
     }
     return null;
   } catch (e) {
     console.warn('[bot-channel] getChatMember failed:', e);
-    return 'Я не состою в этом канале. Добавь меня администратором с правом «Публикация сообщений» и перешли пост ещё раз.';
+    return isChannel
+      ? 'Я не состою в этом канале. Добавь меня администратором с правом «Публикация сообщений» и перешли пост ещё раз.'
+      : 'Не получилось проверить права в этой группе, попробуй ещё раз.';
   }
 }
 
-async function bindChannel(team: ManagedTeam, chatId: number, title: string): Promise<string> {
+async function bindChat(team: ManagedTeam, target: BindTarget): Promise<string> {
   const { error } = await supabaseServer()
     .from('teams')
-    .update({ announce_chat_id: chatId, announce_chat_title: title })
+    .update({
+      announce_chat_id: target.chatId,
+      announce_chat_title: target.title,
+      announce_thread_id: target.threadId,
+    })
     .eq('id', team.id);
   if (error) {
     console.error('[bot-channel] bind failed:', error);
     return 'Не получилось сохранить привязку, попробуй ещё раз.';
   }
-  return `Готово! Канал «${title}» привязан к команде «${team.name}». Анонсы событий теперь будут публиковаться туда.`;
+  const where = target.kind === 'channel' ? `Канал «${target.title}»` : `Группа «${target.title}»`;
+  const topic = target.threadId ? ' Анонсы будут приходить в эту тему.' : '';
+  return `Готово! ${where} привязан${target.kind === 'channel' ? '' : 'а'} к команде «${team.name}» — анонсы событий будут приходить сюда.${topic}`;
 }

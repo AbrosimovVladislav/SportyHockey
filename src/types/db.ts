@@ -765,6 +765,7 @@ export type Database = {
         Row: {
           announce_chat_id: number | null
           announce_chat_title: string | null
+          announce_thread_id: number | null
           archived_at: string | null
           created_at: string | null
           default_event_cost: number | null
@@ -779,6 +780,7 @@ export type Database = {
         Insert: {
           announce_chat_id?: number | null
           announce_chat_title?: string | null
+          announce_thread_id?: number | null
           archived_at?: string | null
           created_at?: string | null
           default_event_cost?: number | null
@@ -793,6 +795,7 @@ export type Database = {
         Update: {
           announce_chat_id?: number | null
           announce_chat_title?: string | null
+          announce_thread_id?: number | null
           archived_at?: string | null
           created_at?: string | null
           default_event_cost?: number | null

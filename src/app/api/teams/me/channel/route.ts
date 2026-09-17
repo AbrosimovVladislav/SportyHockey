@@ -7,9 +7,9 @@ import type { TeamChannelDto } from '@/types/api';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Итерация 70 — Telegram-канал анонсов активной команды.
-// Сама привязка идёт через бота (пересланный пост из канала, см. lib/bot-channel.ts);
-// здесь — только статус для экрана настроек и отвязка.
+// Итерация 70 — чат анонсов активной команды: группа или канал Telegram.
+// Сама привязка идёт через бота (добавление в группу / команда /connect, либо
+// пересланный пост из канала — см. lib/bot-channel.ts); здесь — статус и отвязка.
 
 function botUsername(): string | null {
   const raw = process.env.BOT_USERNAME?.trim();
@@ -44,7 +44,7 @@ export async function DELETE(req: Request): Promise<Response> {
     const org = await requireOrganizer(req);
     const { error } = await supabaseServer()
       .from('teams')
-      .update({ announce_chat_id: null, announce_chat_title: null })
+      .update({ announce_chat_id: null, announce_chat_title: null, announce_thread_id: null })
       .eq('id', org.team_id);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

@@ -11,9 +11,9 @@ import { radius } from '@/theme/radius';
 import { spacing } from '@/theme/spacing';
 import { SectionHeader } from './section-header';
 
-// Блок «Канал анонсов» на вкладке «Общее» (итерация 70). Привязка делается
-// в Telegram: бота добавляют администратором канала и пересылают ему любой пост
-// оттуда. Здесь — статус, инструкция и отвязка.
+// Блок «Чат анонсов» на вкладке «Общее» (итерация 70). Привязка делается в Telegram:
+// бота добавляют в группу команды (или отправляют там /connect); для канала — делают
+// бота администратором и пересылают ему пост. Здесь — статус, инструкция и отвязка.
 
 export function AnnounceChannelBlock() {
   const t = useT();
@@ -23,6 +23,7 @@ export function AnnounceChannelBlock() {
 
   const channel = channelQ.data;
   const botName = channel?.bot_username ? `@${channel.bot_username}` : t('teamSettings.channel.botFallback');
+  const connectCmd = channel?.bot_username ? `/connect@${channel.bot_username}` : '/connect';
 
   async function handleUnbind() {
     setError(null);
@@ -89,11 +90,16 @@ export function AnnounceChannelBlock() {
         </div>
 
         {channel && !channel.bound ? (
-          <ol style={steps}>
-            <li>{t('teamSettings.channel.step1').replace('{bot}', botName)}</li>
-            <li>{t('teamSettings.channel.step2').replace('{bot}', botName)}</li>
-            <li>{t('teamSettings.channel.step3')}</li>
-          </ol>
+          <>
+            <ol style={steps}>
+              <li>{t('teamSettings.channel.step1').replace('{bot}', botName)}</li>
+              <li>{t('teamSettings.channel.step2').replace('{cmd}', connectCmd)}</li>
+              <li>{t('teamSettings.channel.step3')}</li>
+            </ol>
+            <div style={{ ...hint, marginTop: spacing['12'] }}>
+              {t('teamSettings.channel.channelNote').replace('{bot}', botName)}
+            </div>
+          </>
         ) : null}
 
         {channel?.bound ? (

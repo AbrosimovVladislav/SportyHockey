@@ -6,9 +6,10 @@ import { ensureTeamInviteToken } from '@/lib/team-invite';
 import { buildEventDeepLink, buildMiniAppUrl } from '@/lib/team-link';
 import { escapeHtml, formatEventDateLine, formatRub } from '@/lib/bot-format';
 
-// Анонс события в Telegram-канал команды (итерация 70): фото + подпись + кнопка
-// «Записаться». Бот — администратор канала с правом публикации, поэтому пост
-// выглядит как пост самого канала. Один бот на все команды; у каждой — свой канал.
+// Анонс события в чат команды в Telegram (итерация 70): фото + подпись + кнопка
+// «Записаться». Чат — группа (бот в ней участник, пишет от своего имени; в группе
+// с темами — в выбранную тему) или канал (бот — администратор, пост выглядит как пост
+// канала). Один бот на все команды; у каждой команды — свой чат.
 
 export type AnnounceFailReason = 'event_not_found' | 'no_channel' | 'bot_no_access' | 'send_failed';
 
@@ -38,13 +39,18 @@ type AnnounceEvent = {
   announce_chat_id: number | null;
   announce_message_id: number | null;
   venue: Joined<{ name: string; photo_url: string | null }>;
-  team: Joined<{ name: string; timezone: string | null; announce_chat_id: number | null }>;
+  team: Joined<{
+    name: string;
+    timezone: string | null;
+    announce_chat_id: number | null;
+    announce_thread_id: number | null;
+  }>;
 };
 
 const EVENT_COLS =
   'id, team_id, type, title, details, starts_at, ends_at, cost_per_player, status, cancelled_reason, ' +
   'announce_chat_id, announce_message_id, venue:venues(name, photo_url), ' +
-  'team:teams(name, timezone, announce_chat_id)';
+  'team:teams(name, timezone, announce_chat_id, announce_thread_id)';
 
 async function loadEvent(eventId: string): Promise<AnnounceEvent | null> {
   const { data } = await supabaseServer()
@@ -55,7 +61,12 @@ async function loadEvent(eventId: string): Promise<AnnounceEvent | null> {
   return (data as AnnounceEvent | null) ?? null;
 }
 
-// Telegram не смог отправить из-за прав/доступа к каналу (а не из-за самого поста).
+// Группа превратилась в супергруппу: Telegram отвечает ошибкой с новым id чата.
+function migratedChatId(e: unknown): number | null {
+  return e instanceof GrammyError ? (e.parameters?.migrate_to_chat_id ?? null) : null;
+}
+
+// Telegram не смог отправить из-за прав/доступа к чату (а не из-за самого поста).
 function isAccessError(e: unknown): boolean {
   if (!(e instanceof GrammyError)) return false;
   if (e.error_code === 403) return true;
@@ -135,39 +146,57 @@ export async function publishEventAnnouncement(
   const event = await loadEvent(eventId);
   if (!event) return { ok: false, reason: 'event_not_found', message: 'Событие не найдено' };
 
-  const chatId = one(event.team)?.announce_chat_id ?? null;
+  let chatId = one(event.team)?.announce_chat_id ?? null;
   if (chatId == null) {
-    return { ok: false, reason: 'no_channel', message: 'Канал анонсов не привязан' };
+    return { ok: false, reason: 'no_channel', message: 'Чат анонсов не привязан' };
   }
+  const threadId = one(event.team)?.announce_thread_id ?? undefined;
 
   const token = await ensureTeamInviteToken(event.team_id, actorUserId);
   const keyboard = new InlineKeyboard().url('Записаться', buildEventDeepLink(event.id, token));
   const caption = buildCaption(event);
   const bot = getBot();
 
-  let messageId: number | null = null;
-  try {
-    const photo = await pickPhoto(event);
+  const photo = await pickPhoto(event);
+  const send = async (to: number): Promise<number> => {
     if (photo) {
       try {
-        const sent = await bot.api.sendPhoto(chatId, photo, {
+        const sent = await bot.api.sendPhoto(to, photo, {
           caption,
           parse_mode: 'HTML',
           reply_markup: keyboard,
+          message_thread_id: threadId,
         });
-        messageId = sent.message_id;
+        return sent.message_id;
       } catch (e) {
-        if (isAccessError(e)) throw e;
-        // Telegram не принял саму картинку (размеры, формат) — анонс важнее фото.
+        if (isAccessError(e) || migratedChatId(e) != null) throw e;
+        // Telegram не принял саму картинку (размеры, формат, запрет медиа в группе) —
+        // анонс важнее фото.
         console.warn('[announce] sendPhoto failed, fallback to text:', e);
       }
     }
-    if (messageId == null) {
-      const sent = await bot.api.sendMessage(chatId, caption, {
-        parse_mode: 'HTML',
-        reply_markup: keyboard,
-      });
-      messageId = sent.message_id;
+    const sent = await bot.api.sendMessage(to, caption, {
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+      message_thread_id: threadId,
+    });
+    return sent.message_id;
+  };
+
+  let messageId: number;
+  try {
+    try {
+      messageId = await send(chatId);
+    } catch (e) {
+      const newChatId = migratedChatId(e);
+      if (newChatId == null) throw e;
+      // Запоминаем новый id чата и повторяем один раз.
+      await supabaseServer()
+        .from('teams')
+        .update({ announce_chat_id: newChatId })
+        .eq('id', event.team_id);
+      chatId = newChatId;
+      messageId = await send(chatId);
     }
   } catch (e) {
     console.error('[announce] publish failed:', e);
@@ -175,7 +204,8 @@ export async function publishEventAnnouncement(
       return {
         ok: false,
         reason: 'bot_no_access',
-        message: 'Бот не может писать в канал. Проверь, что он администратор с правом публикации.',
+        message:
+          'Бот не может писать в чат анонсов. Проверь, что он всё ещё в группе (или администратор канала с правом публикации).',
       };
     }
     return { ok: false, reason: 'send_failed', message: 'Telegram не принял анонс, попробуй ещё раз' };
